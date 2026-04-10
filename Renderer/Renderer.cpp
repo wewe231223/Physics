@@ -110,14 +110,14 @@ bool Renderer::Initialize() {
     return true;
 }
 
-void Renderer::Run() {
+void Renderer::Run(const Scene& CurrentScene) {
     if (!mIsInitialized) {
         return;
     }
 
     while (glfwWindowShouldClose(mWindow) == GLFW_FALSE) {
         ProcessInput();
-        RenderFrame();
+        RenderFrame(CurrentScene);
         glfwSwapBuffers(mWindow);
         glfwPollEvents();
     }
@@ -175,7 +175,15 @@ void Renderer::ProcessInput() const {
     }
 }
 
-void Renderer::RenderFrame() const {
-    glClearColor(0.1F, 0.2F, 0.3F, 1.0F);
+void Renderer::RenderFrame(const Scene& CurrentScene) const {
+    const Camera& MainCamera{ CurrentScene.GetMainCamera() };
+
+    float ClearRed{};
+    float ClearGreen{};
+    float ClearBlue{};
+    float ClearAlpha{};
+    MainCamera.GetClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
+
+    glClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
     glClear(GL_COLOR_BUFFER_BIT);
 }

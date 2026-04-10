@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../Scene/Scene.h"
+
 #include <string>
 
 struct GLFWwindow;
@@ -15,7 +17,7 @@ public:
 
 public:
     bool Initialize();
-    void Run();
+    void Run(const Scene& CurrentScene);
     void Shutdown();
 
 private:
@@ -23,7 +25,7 @@ private:
     bool CreateWindow();
     bool InitializeGlad();
     void ProcessInput() const;
-    void RenderFrame() const;
+    void RenderFrame(const Scene& CurrentScene) const;
 
 private:
     GLFWwindow* mWindow;
