@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Mesh.h"
+#include "Transform.h"
+
+#include <memory>
 #include <string>
 
 class GameObject final {
@@ -20,7 +24,15 @@ public:
     void SetIsActive(bool IsActive);
     bool GetIsActive() const;
 
+    Transform& GetTransform();
+    const Transform& GetTransform() const;
+
+    void SetMesh(const std::shared_ptr<Mesh>& MeshData);
+    const std::shared_ptr<Mesh>& GetMesh() const;
+
 private:
     std::string mName;
     bool mIsActive;
+    Transform mTransform;
+    std::shared_ptr<Mesh> mMesh;
 };

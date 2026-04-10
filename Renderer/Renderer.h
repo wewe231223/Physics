@@ -17,14 +17,17 @@ public:
 
 public:
     bool Initialize();
-    void Run(const Scene& CurrentScene);
+    void Run(Scene& CurrentScene);
     void Shutdown();
 
 private:
     bool InitializeGlfw();
     bool CreateWindow();
     bool InitializeGlad();
-    void ProcessInput() const;
+    bool CreateShaderProgram();
+    void DestroyShaderProgram();
+    unsigned int CreateShader(unsigned int ShaderType, const std::string& ShaderSource) const;
+    void ProcessInput(Scene& CurrentScene) const;
     void RenderFrame(const Scene& CurrentScene) const;
 
 private:
@@ -33,4 +36,5 @@ private:
     int mHeight;
     std::string mTitle;
     bool mIsInitialized;
+    unsigned int mShaderProgram;
 };
