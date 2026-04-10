@@ -141,12 +141,18 @@
     <ClCompile Include="Scene\Camera.cpp" />
     <ClCompile Include="Scene\GameObject.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
+    <ClCompile Include="Scene\Mesh.cpp" />
+    <ClCompile Include="Scene\MeshFactory.cpp" />
+    <ClCompile Include="Scene\Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Renderer\Renderer.h" />
     <ClInclude Include="Scene\Camera.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Scene.h" />
+    <ClInclude Include="Scene\Mesh.h" />
+    <ClInclude Include="Scene\MeshFactory.h" />
+    <ClInclude Include="Scene\Transform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

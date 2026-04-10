@@ -3,7 +3,12 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
+#include <iostream>
 #include <utility>
+
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 void FramebufferSizeCallback(GLFWwindow* Window, int Width, int Height) {
     (void)Window;
@@ -15,7 +20,8 @@ Renderer::Renderer()
       mWidth{ 1280 },
       mHeight{ 720 },
       mTitle{ "Physics" },
-      mIsInitialized{} {
+      mIsInitialized{},
+      mShaderProgram{} {
 }
 
 Renderer::~Renderer() {
@@ -27,7 +33,8 @@ Renderer::Renderer(const Renderer& Other)
       mWidth{ Other.mWidth },
       mHeight{ Other.mHeight },
       mTitle{ Other.mTitle },
-      mIsInitialized{} {
+      mIsInitialized{},
+      mShaderProgram{} {
 }
 
 Renderer& Renderer::operator=(const Renderer& Other) {
@@ -42,6 +49,7 @@ Renderer& Renderer::operator=(const Renderer& Other) {
     mHeight = Other.mHeight;
     mTitle = Other.mTitle;
     mIsInitialized = false;
+    mShaderProgram = 0U;
 
     return *this;
 }
@@ -51,12 +59,14 @@ Renderer::Renderer(Renderer&& Other) noexcept
       mWidth{ Other.mWidth },
       mHeight{ Other.mHeight },
       mTitle{ std::move(Other.mTitle) },
-      mIsInitialized{ Other.mIsInitialized } {
+      mIsInitialized{ Other.mIsInitialized },
+      mShaderProgram{ Other.mShaderProgram } {
     Other.mWindow = nullptr;
     Other.mWidth = 0;
     Other.mHeight = 0;
     Other.mTitle = "";
     Other.mIsInitialized = false;
+    Other.mShaderProgram = 0U;
 }
 
 Renderer& Renderer::operator=(Renderer&& Other) noexcept {
@@ -71,12 +81,14 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     mHeight = Other.mHeight;
     mTitle = std::move(Other.mTitle);
     mIsInitialized = Other.mIsInitialized;
+    mShaderProgram = Other.mShaderProgram;
 
     Other.mWindow = nullptr;
     Other.mWidth = 0;
     Other.mHeight = 0;
     Other.mTitle = "";
     Other.mIsInitialized = false;
+    Other.mShaderProgram = 0U;
 
     return *this;
 }
@@ -102,21 +114,29 @@ bool Renderer::Initialize() {
         return false;
     }
 
+    if (!CreateShaderProgram()) {
+        glfwDestroyWindow(mWindow);
+        mWindow = nullptr;
+        glfwTerminate();
+        return false;
+    }
+
     glViewport(0, 0, mWidth, mHeight);
     glfwSetFramebufferSizeCallback(mWindow, FramebufferSizeCallback);
+    glEnable(GL_DEPTH_TEST);
 
     mIsInitialized = true;
 
     return true;
 }
 
-void Renderer::Run(const Scene& CurrentScene) {
+void Renderer::Run(Scene& CurrentScene) {
     if (!mIsInitialized) {
         return;
     }
 
     while (glfwWindowShouldClose(mWindow) == GLFW_FALSE) {
-        ProcessInput();
+        ProcessInput(CurrentScene);
         RenderFrame(CurrentScene);
         glfwSwapBuffers(mWindow);
         glfwPollEvents();
@@ -124,6 +144,8 @@ void Renderer::Run(const Scene& CurrentScene) {
 }
 
 void Renderer::Shutdown() {
+    DestroyShaderProgram();
+
     if (mWindow != nullptr) {
         glfwDestroyWindow(mWindow);
         mWindow = nullptr;
@@ -169,9 +191,127 @@ bool Renderer::InitializeGlad() {
     return true;
 }
 
-void Renderer::ProcessInput() const {
+bool Renderer::CreateShaderProgram() {
+    std::string VertexShaderSource{ "#version 330 core\nlayout (location = 0) in vec3 InPosition;\nuniform mat4 UModel;\nuniform mat4 UView;\nuniform mat4 UProjection;\nvoid main()\n{\n    gl_Position = UProjection * UView * UModel * vec4(InPosition, 1.0);\n}\n" };
+    std::string FragmentShaderSource{ "#version 330 core\nout vec4 OutColor;\nuniform vec3 UColor;\nvoid main()\n{\n    OutColor = vec4(UColor, 1.0);\n}\n" };
+
+    unsigned int VertexShader{ CreateShader(GL_VERTEX_SHADER, VertexShaderSource) };
+    unsigned int FragmentShader{ CreateShader(GL_FRAGMENT_SHADER, FragmentShaderSource) };
+
+    if (VertexShader == 0U || FragmentShader == 0U) {
+        if (VertexShader != 0U) {
+            glDeleteShader(VertexShader);
+        }
+
+        if (FragmentShader != 0U) {
+            glDeleteShader(FragmentShader);
+        }
+
+        return false;
+    }
+
+    mShaderProgram = glCreateProgram();
+    glAttachShader(mShaderProgram, VertexShader);
+    glAttachShader(mShaderProgram, FragmentShader);
+    glLinkProgram(mShaderProgram);
+
+    int LinkResult{};
+    glGetProgramiv(mShaderProgram, GL_LINK_STATUS, &LinkResult);
+
+    glDeleteShader(VertexShader);
+    glDeleteShader(FragmentShader);
+
+    if (LinkResult == 0) {
+        int LogLength{};
+        glGetProgramiv(mShaderProgram, GL_INFO_LOG_LENGTH, &LogLength);
+        std::string ErrorLog(static_cast<std::size_t>(LogLength), '\0');
+        glGetProgramInfoLog(mShaderProgram, LogLength, nullptr, ErrorLog.data());
+        std::cerr << ErrorLog << std::endl;
+
+        glDeleteProgram(mShaderProgram);
+        mShaderProgram = 0U;
+
+        return false;
+    }
+
+    return true;
+}
+
+void Renderer::DestroyShaderProgram() {
+    if (mShaderProgram != 0U) {
+        glDeleteProgram(mShaderProgram);
+        mShaderProgram = 0U;
+    }
+}
+
+unsigned int Renderer::CreateShader(unsigned int ShaderType, const std::string& ShaderSource) const {
+    unsigned int CreatedShader{ glCreateShader(ShaderType) };
+    const char* SourcePointer{ ShaderSource.c_str() };
+    glShaderSource(CreatedShader, 1, &SourcePointer, nullptr);
+    glCompileShader(CreatedShader);
+
+    int CompileResult{};
+    glGetShaderiv(CreatedShader, GL_COMPILE_STATUS, &CompileResult);
+    if (CompileResult == 0) {
+        int LogLength{};
+        glGetShaderiv(CreatedShader, GL_INFO_LOG_LENGTH, &LogLength);
+        std::string ErrorLog(static_cast<std::size_t>(LogLength), '\0');
+        glGetShaderInfoLog(CreatedShader, LogLength, nullptr, ErrorLog.data());
+        std::cerr << ErrorLog << std::endl;
+        glDeleteShader(CreatedShader);
+        return 0U;
+    }
+
+    return CreatedShader;
+}
+
+void Renderer::ProcessInput(Scene& CurrentScene) const {
     if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
+    }
+
+    Camera& MainCamera{ CurrentScene.GetMainCamera() };
+    float MoveSpeed{ 0.02F };
+    float RotationSpeed{ 0.01F };
+
+    if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, MoveSpeed });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_Q) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, MoveSpeed, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_E) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, -MoveSpeed, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ -RotationSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ RotationSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ 0.0F, -RotationSpeed, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ 0.0F, RotationSpeed, 0.0F });
     }
 }
 
@@ -185,5 +325,57 @@ void Renderer::RenderFrame(const Scene& CurrentScene) const {
     MainCamera.GetClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
 
     glClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    float AspectRatio{ static_cast<float>(mWidth) / static_cast<float>(mHeight) };
+    glm::mat4 ProjectionMatrix{ glm::perspective(glm::radians(60.0F), AspectRatio, 0.1F, 100.0F) };
+    glm::mat4 ViewMatrix{ MainCamera.GetViewMatrix() };
+
+    glUseProgram(mShaderProgram);
+
+    int ModelLocation{ glGetUniformLocation(mShaderProgram, "UModel") };
+    int ViewLocation{ glGetUniformLocation(mShaderProgram, "UView") };
+    int ProjectionLocation{ glGetUniformLocation(mShaderProgram, "UProjection") };
+    int ColorLocation{ glGetUniformLocation(mShaderProgram, "UColor") };
+
+    glUniformMatrix4fv(ViewLocation, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
+    glUniformMatrix4fv(ProjectionLocation, 1, GL_FALSE, glm::value_ptr(ProjectionMatrix));
+
+    std::size_t GameObjectCount{ CurrentScene.GetGameObjectCount() };
+    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+        const GameObject* CurrentObject{ CurrentScene.GetGameObject(ObjectIndex) };
+
+        if (CurrentObject == nullptr) {
+            continue;
+        }
+
+        if (!CurrentObject->GetIsActive()) {
+            continue;
+        }
+
+        const std::shared_ptr<Mesh>& CurrentMesh{ CurrentObject->GetMesh() };
+        if (CurrentMesh == nullptr) {
+            continue;
+        }
+
+        CurrentMesh->EnsureUploaded();
+
+        glm::mat4 ModelMatrix{ CurrentObject->GetTransform().GetWorldMatrix() };
+        glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
+
+        if (CurrentMesh->GetTopology() == MeshTopology::Lines) {
+            glUniform3f(ColorLocation, 0.55F, 0.55F, 0.55F);
+        }
+        else {
+            glUniform3f(ColorLocation, 0.90F, 0.70F, 0.20F);
+        }
+
+        CurrentMesh->Bind();
+
+        unsigned int DrawMode{ static_cast<unsigned int>(CurrentMesh->GetTopology() == MeshTopology::Lines ? GL_LINES : GL_TRIANGLES) };
+        GLsizei IndexCount{ static_cast<GLsizei>(CurrentMesh->GetIndices().size()) };
+        glDrawElements(DrawMode, IndexCount, GL_UNSIGNED_INT, nullptr);
+
+        CurrentMesh->Unbind();
+    }
 }
