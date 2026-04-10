@@ -14,6 +14,7 @@
     <ClCompile Include="Renderer\Renderer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="glad.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Renderer\Renderer.h">
