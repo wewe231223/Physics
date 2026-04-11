@@ -59,7 +59,19 @@ int main() {
 		SquarePyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, 0.5F, 2.0F });
 	}
 
-	MainPhysicsWorld.BuildActorsFromScene(MainScene);
+	MainPhysicsWorld.ClearActors();
+	std::size_t GameObjectCount{ MainScene.GetGameObjectCount() };
+
+	for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+		GameObject* CurrentObject{ MainScene.GetGameObject(ObjectIndex) };
+		if (CurrentObject == nullptr) {
+			continue;
+		}
+
+		PhysicsActor::ActorDesc ActorDesc{ CurrentObject->GetPhysicsActorDesc() };
+		PhysicsActor* PhysicsActorPointer{ MainPhysicsWorld.CreateActor(ActorDesc) };
+		CurrentObject->SetPhysicsActor(PhysicsActorPointer);
+	}
 
 	Renderer MainRenderer{};
 
@@ -69,8 +81,17 @@ int main() {
 
 	while (!MainRenderer.ShouldClose()) {
 		MainRenderer.ProcessInput(MainScene);
-		MainPhysicsWorld.BuildActorsFromScene(MainScene);
 		MainPhysicsWorld.Update(WorldSettings.FixedTimeStep);
+
+		for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+			GameObject* CurrentObject{ MainScene.GetGameObject(ObjectIndex) };
+			if (CurrentObject == nullptr) {
+				continue;
+			}
+
+			CurrentObject->PullTransformFromPhysicsActor();
+		}
+
 		MainScene.Update();
 		MainRenderer.RenderFrame(MainScene);
 		MainRenderer.Present();

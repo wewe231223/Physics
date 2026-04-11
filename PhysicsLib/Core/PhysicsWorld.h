@@ -1,14 +1,9 @@
 #pragma once
 
 #include <cstddef>
-#include <vector>
+#include <deque>
 #include <SimpleMath/SimpleMath.h>
 #include "PhysicsActor.h"
-
-#include "Scene/Scene.h"
-
-
-
 
 class PhysicsWorld final {
 public:
@@ -30,11 +25,10 @@ public:
 public:
     void Initialize(const WorldSettings& Settings);
 
+    PhysicsActor* CreateActor(const PhysicsActor::ActorDesc& Desc);
     void AddActor(const PhysicsActor& Actor);
     void AddActor(PhysicsActor&& Actor);
     void ClearActors();
-
-    void BuildActorsFromScene(const Scene& CurrentScene);
 
     PhysicsActor* GetActor(std::size_t Index);
     const PhysicsActor* GetActor(std::size_t Index) const;
@@ -52,5 +46,5 @@ private:
 private:
     WorldSettings mSettings;
     float mAccumulator;
-    std::vector<PhysicsActor> mActors;
+    std::deque<PhysicsActor> mActors;
 };

@@ -1,7 +1,5 @@
 #include "PhysicsWorld.h"
 
-#include "Renderer/MathConversion.h"
-
 #include <utility>
 
 PhysicsWorld::PhysicsWorld()
@@ -65,6 +63,13 @@ void PhysicsWorld::Initialize(const WorldSettings& Settings) {
     mAccumulator = 0.0F;
 }
 
+PhysicsActor* PhysicsWorld::CreateActor(const PhysicsActor::ActorDesc& Desc) {
+    PhysicsActor NewActor{ Desc };
+    mActors.push_back(NewActor);
+
+    return &mActors.back();
+}
+
 void PhysicsWorld::AddActor(const PhysicsActor& Actor) {
     mActors.push_back(Actor);
 }
@@ -75,38 +80,6 @@ void PhysicsWorld::AddActor(PhysicsActor&& Actor) {
 
 void PhysicsWorld::ClearActors() {
     mActors.clear();
-}
-
-void PhysicsWorld::BuildActorsFromScene(const Scene& CurrentScene) {
-    mActors.clear();
-
-    std::size_t GameObjectCount{ CurrentScene.GetGameObjectCount() };
-    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
-        const GameObject* CurrentObject{ CurrentScene.GetGameObject(ObjectIndex) };
-
-        if (CurrentObject == nullptr) {
-            continue;
-        }
-
-        PhysicsActor NewActor{ CurrentObject->GetName() };
-        NewActor.SetIsActive(CurrentObject->GetIsActive());
-
-        glm::vec3 ObjectPosition{ CurrentObject->GetTransform().GetPosition() };
-        glm::vec3 ObjectRotation{ CurrentObject->GetTransform().GetRotation() };
-        glm::vec3 ObjectScale{ CurrentObject->GetTransform().GetScale() };
-
-        NewActor.SetPosition(RendererMathConversion::ToSimpleMathVector3(ObjectPosition));
-        NewActor.SetRotation(RendererMathConversion::ToSimpleMathVector3(ObjectRotation));
-        NewActor.SetScale(RendererMathConversion::ToSimpleMathVector3(ObjectScale));
-
-        bool IsStaticActor{ CurrentObject->GetMesh() == nullptr || CurrentObject->GetName() == "Grid" };
-        if (IsStaticActor) {
-            NewActor.SetMass(0.0F);
-            NewActor.SetFlags(PhysicsActor::PhysicsActorFlags::Static);
-        }
-
-        AddActor(std::move(NewActor));
-    }
 }
 
 PhysicsActor* PhysicsWorld::GetActor(std::size_t Index) {

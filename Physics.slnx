@@ -3,6 +3,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Physics.vcxproj" Id="7b4c3d14-3f8a-4f61-aad7-dce198b2a9f1" />
+  <Project Path="Physics.vcxproj" Id="7b4c3d14-3f8a-4f61-aad7-dce198b2a9f1">
+    <BuildDependency Project="PhysicsLib/PhysicsLib.vcxproj" />
+  </Project>
   <Project Path="PhysicsLib/PhysicsLib.vcxproj" Id="4bee3966-72c0-4720-95c5-b3acc4159633" />
 </Solution>

@@ -1,5 +1,4 @@
 #include "Renderer.h"
-
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
@@ -9,6 +8,8 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+
 
 void FramebufferSizeCallback(GLFWwindow* Window, int Width, int Height) {
     (void)Window;

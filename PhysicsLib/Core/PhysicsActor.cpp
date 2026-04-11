@@ -1,6 +1,6 @@
+#include <utility>
 #include "PhysicsActor.h"
 
-#include <utility>
 
 PhysicsActor::PhysicsActor()
     : mName{ "PhysicsActor" },
@@ -98,6 +98,17 @@ PhysicsActor::PhysicsActor(std::string Name)
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F } {
+}
+
+PhysicsActor::PhysicsActor(const ActorDesc& Desc)
+    : mName{ Desc.Name },
+      mIsActive{ Desc.IsActive },
+      mMass{ Desc.Mass },
+      mFlags{ Desc.Flags },
+      mBoundingBox{ Desc.BoundingBoxValue },
+      mPosition{ Desc.Position },
+      mRotation{ Desc.Rotation },
+      mScale{ Desc.Scale } {
 }
 
 void PhysicsActor::SetName(std::string Name) {

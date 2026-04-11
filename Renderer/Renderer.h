@@ -1,10 +1,12 @@
 #pragma once
 
-#include "../Scene/Scene.h"
+#include "Scene/Scene.h"
 
 #include <string>
 
 struct GLFWwindow;
+
+#undef CreateWindow
 
 class Renderer final {
 public:

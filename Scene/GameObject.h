@@ -2,6 +2,7 @@
 
 #include "Mesh.h"
 #include "Transform.h"
+#include "PhysicsLib/Core/PhysicsActor.h"
 
 #include <memory>
 #include <string>
@@ -35,10 +36,18 @@ public:
     void UpdateWorldMatrix();
     const glm::mat4& GetWorldMatrix() const;
 
+    PhysicsActor::ActorDesc GetPhysicsActorDesc() const;
+    void SetPhysicsActor(PhysicsActor* PhysicsActorPointer);
+    PhysicsActor* GetPhysicsActor();
+    const PhysicsActor* GetPhysicsActor() const;
+
+    void PullTransformFromPhysicsActor();
+
 private:
     std::string mName;
     bool mIsActive;
     Transform mTransform;
     std::shared_ptr<Mesh> mMesh;
     glm::mat4 mWorldMatrix;
+    PhysicsActor* mPhysicsActor;
 };

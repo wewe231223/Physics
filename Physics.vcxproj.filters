@@ -11,9 +11,6 @@
     <Filter Include="Scene">
       <UniqueIdentifier>{2f7281e0-cf8e-4e74-b1ee-e776584520d4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="PhysicsLib">
-      <UniqueIdentifier>{5cc5fbb5-a2ca-4b65-90ca-c8454f62273c}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -22,12 +19,6 @@
     </ClCompile>
     <ClCompile Include="Renderer\MathConversion.cpp">
       <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="PhysicsLib\PhysicsActor.cpp">
-      <Filter>PhysicsLib</Filter>
-    </ClCompile>
-    <ClCompile Include="PhysicsLib\PhysicsWorld.cpp">
-      <Filter>PhysicsLib</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Camera.cpp">
       <Filter>Scene</Filter>
@@ -55,12 +46,6 @@
     </ClInclude>
     <ClInclude Include="Renderer\MathConversion.h">
       <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="PhysicsLib\PhysicsActor.h">
-      <Filter>PhysicsLib</Filter>
-    </ClInclude>
-    <ClInclude Include="PhysicsLib\PhysicsWorld.h">
-      <Filter>PhysicsLib</Filter>
     </ClInclude>
     <ClInclude Include="Scene\Camera.h">
       <Filter>Scene</Filter>

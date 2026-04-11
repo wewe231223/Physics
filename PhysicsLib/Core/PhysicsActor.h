@@ -25,6 +25,17 @@ public:
         DirectX::SimpleMath::Vector3 Max;
     };
 
+    struct ActorDesc {
+        std::string Name;
+        bool IsActive;
+        float Mass;
+        PhysicsActorFlags Flags;
+        BoundingBox BoundingBoxValue;
+        DirectX::SimpleMath::Vector3 Position;
+        DirectX::SimpleMath::Vector3 Rotation;
+        DirectX::SimpleMath::Vector3 Scale;
+    };
+
 public:
     PhysicsActor();
     ~PhysicsActor();
@@ -34,6 +45,7 @@ public:
     PhysicsActor& operator=(PhysicsActor&& Other) noexcept;
 
     explicit PhysicsActor(std::string Name);
+    explicit PhysicsActor(const ActorDesc& Desc);
 
 public:
     void SetName(std::string Name);
