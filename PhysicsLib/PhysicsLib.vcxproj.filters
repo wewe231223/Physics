@@ -9,12 +9,24 @@
     <ClCompile Include="Core\PhysicsActor.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\PhysicsDynamicActor.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PhysicsTerrainActor.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
     <ClCompile Include="Core\PhysicsWorld.cpp">
       <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\PhysicsActor.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PhysicsDynamicActor.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PhysicsTerrainActor.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\PhysicsWorld.h">

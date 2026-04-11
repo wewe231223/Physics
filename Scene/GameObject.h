@@ -3,6 +3,8 @@
 #include "Mesh.h"
 #include "Transform.h"
 #include "PhysicsLib/Core/PhysicsActor.h"
+#include "PhysicsLib/Core/PhysicsDynamicActor.h"
+#include "PhysicsLib/Core/PhysicsTerrainActor.h"
 
 #include <memory>
 #include <string>
@@ -36,7 +38,9 @@ public:
     void UpdateWorldMatrix();
     const glm::mat4& GetWorldMatrix() const;
 
-    PhysicsActor::ActorDesc GetPhysicsActorDesc() const;
+    bool IsTerrainObject() const;
+    PhysicsDynamicActor::ActorDesc GetPhysicsDynamicActorDesc() const;
+    PhysicsTerrainActor::ActorDesc GetPhysicsTerrainActorDesc() const;
     void SetPhysicsActor(PhysicsActor* PhysicsActorPointer);
     PhysicsActor* GetPhysicsActor();
     const PhysicsActor* GetPhysicsActor() const;

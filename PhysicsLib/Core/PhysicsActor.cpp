@@ -1,33 +1,13 @@
 #include <utility>
+
 #include "PhysicsActor.h"
-
-namespace {
-DirectX::BoundingOrientedBox MakeDefaultBoundingOrientedBox() {
-    DirectX::BoundingOrientedBox Box{};
-    Box.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
-    Box.Extents = DirectX::XMFLOAT3{ 0.5F, 0.5F, 0.5F };
-    Box.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
-    return Box;
-}
-
-DirectX::BoundingOrientedBox MakeEmptyBoundingOrientedBox() {
-    DirectX::BoundingOrientedBox Box{};
-    Box.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
-    Box.Extents = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
-    Box.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
-    return Box;
-}
-}
 
 PhysicsActor::PhysicsActor()
     : mName{ "PhysicsActor" },
       mIsActive{ true },
       mMass{ 1.0F },
       mFlags{ PhysicsActorFlags::None },
-      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
-      mPosition{},
-      mRotation{},
-      mScale{ 1.0F, 1.0F, 1.0F } {
+      mActorType{ PhysicsActorType::Dynamic } {
 }
 
 PhysicsActor::~PhysicsActor() {
@@ -38,10 +18,7 @@ PhysicsActor::PhysicsActor(const PhysicsActor& Other)
       mIsActive{ Other.mIsActive },
       mMass{ Other.mMass },
       mFlags{ Other.mFlags },
-      mBoundingBox{ Other.mBoundingBox },
-      mPosition{ Other.mPosition },
-      mRotation{ Other.mRotation },
-      mScale{ Other.mScale } {
+      mActorType{ Other.mActorType } {
 }
 
 PhysicsActor& PhysicsActor::operator=(const PhysicsActor& Other) {
@@ -53,10 +30,7 @@ PhysicsActor& PhysicsActor::operator=(const PhysicsActor& Other) {
     mIsActive = Other.mIsActive;
     mMass = Other.mMass;
     mFlags = Other.mFlags;
-    mBoundingBox = Other.mBoundingBox;
-    mPosition = Other.mPosition;
-    mRotation = Other.mRotation;
-    mScale = Other.mScale;
+    mActorType = Other.mActorType;
 
     return *this;
 }
@@ -66,18 +40,12 @@ PhysicsActor::PhysicsActor(PhysicsActor&& Other) noexcept
       mIsActive{ Other.mIsActive },
       mMass{ Other.mMass },
       mFlags{ Other.mFlags },
-      mBoundingBox{ Other.mBoundingBox },
-      mPosition{ Other.mPosition },
-      mRotation{ Other.mRotation },
-      mScale{ Other.mScale } {
+      mActorType{ Other.mActorType } {
     Other.mName = "";
     Other.mIsActive = false;
     Other.mMass = 0.0F;
     Other.mFlags = PhysicsActorFlags::None;
-    Other.mBoundingBox = MakeEmptyBoundingOrientedBox();
-    Other.mPosition = DirectX::SimpleMath::Vector3{};
-    Other.mRotation = DirectX::SimpleMath::Vector3{};
-    Other.mScale = DirectX::SimpleMath::Vector3{};
+    Other.mActorType = PhysicsActorType::Dynamic;
 }
 
 PhysicsActor& PhysicsActor::operator=(PhysicsActor&& Other) noexcept {
@@ -89,19 +57,13 @@ PhysicsActor& PhysicsActor::operator=(PhysicsActor&& Other) noexcept {
     mIsActive = Other.mIsActive;
     mMass = Other.mMass;
     mFlags = Other.mFlags;
-    mBoundingBox = Other.mBoundingBox;
-    mPosition = Other.mPosition;
-    mRotation = Other.mRotation;
-    mScale = Other.mScale;
+    mActorType = Other.mActorType;
 
     Other.mName = "";
     Other.mIsActive = false;
     Other.mMass = 0.0F;
     Other.mFlags = PhysicsActorFlags::None;
-    Other.mBoundingBox = MakeEmptyBoundingOrientedBox();
-    Other.mPosition = DirectX::SimpleMath::Vector3{};
-    Other.mRotation = DirectX::SimpleMath::Vector3{};
-    Other.mScale = DirectX::SimpleMath::Vector3{};
+    Other.mActorType = PhysicsActorType::Dynamic;
 
     return *this;
 }
@@ -111,21 +73,7 @@ PhysicsActor::PhysicsActor(std::string Name)
       mIsActive{ true },
       mMass{ 1.0F },
       mFlags{ PhysicsActorFlags::None },
-      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
-      mPosition{},
-      mRotation{},
-      mScale{ 1.0F, 1.0F, 1.0F } {
-}
-
-PhysicsActor::PhysicsActor(const ActorDesc& Desc)
-    : mName{ Desc.Name },
-      mIsActive{ Desc.IsActive },
-      mMass{ Desc.Mass },
-      mFlags{ Desc.Flags },
-      mBoundingBox{ Desc.BoundingBoxValue },
-      mPosition{ Desc.Position },
-      mRotation{ Desc.Rotation },
-      mScale{ Desc.Scale } {
+      mActorType{ PhysicsActorType::Dynamic } {
 }
 
 void PhysicsActor::SetName(std::string Name) {
@@ -165,36 +113,12 @@ bool PhysicsActor::HasFlag(PhysicsActorFlags Flag) const {
     return BitAndResult != PhysicsActorFlags::None;
 }
 
-void PhysicsActor::SetBoundingBox(const DirectX::BoundingOrientedBox& Box) {
-    mBoundingBox = Box;
+void PhysicsActor::SetActorType(PhysicsActorType ActorType) {
+    mActorType = ActorType;
 }
 
-const DirectX::BoundingOrientedBox& PhysicsActor::GetBoundingBox() const {
-    return mBoundingBox;
-}
-
-void PhysicsActor::SetPosition(const DirectX::SimpleMath::Vector3& Position) {
-    mPosition = Position;
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsActor::GetPosition() const {
-    return mPosition;
-}
-
-void PhysicsActor::SetRotation(const DirectX::SimpleMath::Vector3& Rotation) {
-    mRotation = Rotation;
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsActor::GetRotation() const {
-    return mRotation;
-}
-
-void PhysicsActor::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
-    mScale = Scale;
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsActor::GetScale() const {
-    return mScale;
+PhysicsActor::PhysicsActorType PhysicsActor::GetActorType() const {
+    return mActorType;
 }
 
 PhysicsActor::PhysicsActorFlags operator|(PhysicsActor::PhysicsActorFlags Left, PhysicsActor::PhysicsActorFlags Right) {

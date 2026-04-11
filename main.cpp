@@ -68,8 +68,15 @@ int main() {
 			continue;
 		}
 
-		PhysicsActor::ActorDesc ActorDesc{ CurrentObject->GetPhysicsActorDesc() };
-		PhysicsActor* PhysicsActorPointer{ MainPhysicsWorld.CreateActor(ActorDesc) };
+		if (CurrentObject->IsTerrainObject()) {
+			PhysicsTerrainActor::ActorDesc ActorDesc{ CurrentObject->GetPhysicsTerrainActorDesc() };
+			PhysicsTerrainActor* PhysicsActorPointer{ MainPhysicsWorld.CreateTerrainActor(ActorDesc) };
+			CurrentObject->SetPhysicsActor(PhysicsActorPointer);
+			continue;
+		}
+
+		PhysicsDynamicActor::ActorDesc ActorDesc{ CurrentObject->GetPhysicsDynamicActorDesc() };
+		PhysicsDynamicActor* PhysicsActorPointer{ MainPhysicsWorld.CreateDynamicActor(ActorDesc) };
 		CurrentObject->SetPhysicsActor(PhysicsActorPointer);
 	}
 

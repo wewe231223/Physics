@@ -1,9 +1,14 @@
 #pragma once
 
 #include <cstddef>
-#include <deque>
+#include <memory>
+#include <vector>
+
 #include <SimpleMath/SimpleMath.h>
+
 #include "PhysicsActor.h"
+#include "PhysicsDynamicActor.h"
+#include "PhysicsTerrainActor.h"
 
 class PhysicsWorld final {
 public:
@@ -25,9 +30,9 @@ public:
 public:
     void Initialize(const WorldSettings& Settings);
 
-    PhysicsActor* CreateActor(const PhysicsActor::ActorDesc& Desc);
-    void AddActor(const PhysicsActor& Actor);
-    void AddActor(PhysicsActor&& Actor);
+    PhysicsDynamicActor* CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc);
+    PhysicsTerrainActor* CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc);
+    void AddActor(std::unique_ptr<PhysicsActor> Actor);
     void ClearActors();
 
     PhysicsActor* GetActor(std::size_t Index);
@@ -41,10 +46,11 @@ public:
     void Update(float DeltaTime);
 
 private:
-    void IntegrateActor(PhysicsActor& Actor, float DeltaTime) const;
+    void IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) const;
+    bool FindTerrainHitPoint(const PhysicsDynamicActor& Actor, DirectX::SimpleMath::Vector3& HitPoint) const;
 
 private:
     WorldSettings mSettings;
     float mAccumulator;
-    std::deque<PhysicsActor> mActors;
+    std::vector<std::unique_ptr<PhysicsActor>> mActors;
 };
