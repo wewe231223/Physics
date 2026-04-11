@@ -14,7 +14,6 @@ int main() {
 	std::wcout.imbue(std::locale("ko_KR.UTF-8"));
 	std::cout.imbue(std::locale("ko_KR.UTF-8"));
 
-	std::cout << " 가나다라 " << std::endl;
 
 	Scene MainScene{};
 
