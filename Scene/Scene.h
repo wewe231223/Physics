@@ -4,7 +4,17 @@
 #include "GameObject.h"
 
 #include <cstddef>
+#include <memory>
+#include <string>
 #include <vector>
+
+enum class PrimitiveMeshType {
+    Cube,
+    Sphere,
+    TriangularPyramid,
+    SquarePyramid,
+    Grid
+};
 
 class Scene final {
 public:
@@ -22,12 +32,22 @@ public:
     std::size_t AddGameObject(const GameObject& Object);
     std::size_t AddGameObject(GameObject&& Object);
 
+    std::size_t CreatePrimitiveGameObject(std::string Name, PrimitiveMeshType PrimitiveType);
+
     GameObject* GetGameObject(std::size_t Index);
     const GameObject* GetGameObject(std::size_t Index) const;
 
     std::size_t GetGameObjectCount() const;
 
 private:
+    std::shared_ptr<Mesh> GetPrimitiveMesh(PrimitiveMeshType PrimitiveType);
+
+private:
     Camera mMainCamera;
     std::vector<GameObject> mGameObjects;
+    std::shared_ptr<Mesh> mCubeMesh;
+    std::shared_ptr<Mesh> mSphereMesh;
+    std::shared_ptr<Mesh> mTriangularPyramidMesh;
+    std::shared_ptr<Mesh> mSquarePyramidMesh;
+    std::shared_ptr<Mesh> mGridMesh;
 };
