@@ -134,10 +134,14 @@ PhysicsActor::ActorDesc GameObject::GetPhysicsActorDesc() const {
         ActorMass = 0.0F;
     }
 
-    PhysicsActor::BoundingBox ActorBoundingBox{
-        DirectX::SimpleMath::Vector3{ -0.5F, -0.5F, -0.5F },
-        DirectX::SimpleMath::Vector3{ 0.5F, 0.5F, 0.5F }
-    };
+    DirectX::BoundingOrientedBox ActorBoundingBox{};
+    if (mMesh == nullptr) {
+        ActorBoundingBox.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
+        ActorBoundingBox.Extents = DirectX::XMFLOAT3{ 0.5F, 0.5F, 0.5F };
+        ActorBoundingBox.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
+    } else {
+        ActorBoundingBox = mMesh->GetBoundingBox();
+    }
 
     PhysicsActor::ActorDesc ActorDesc{
         mName,

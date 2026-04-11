@@ -2,12 +2,24 @@
 
 #include "glad/glad.h"
 
+#include <algorithm>
 #include <utility>
+
+namespace {
+DirectX::BoundingOrientedBox MakeDefaultBoundingOrientedBox() {
+    DirectX::BoundingOrientedBox Box{};
+    Box.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
+    Box.Extents = DirectX::XMFLOAT3{ 0.5F, 0.5F, 0.5F };
+    Box.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
+    return Box;
+}
+}
 
 Mesh::Mesh()
     : mVertices{},
       mIndices{},
       mTopology{ MeshTopology::Triangles },
+      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mVertexArrayObject{},
       mVertexBufferObject{},
       mElementBufferObject{},
@@ -22,6 +34,7 @@ Mesh::Mesh(const Mesh& Other)
     : mVertices{ Other.mVertices },
       mIndices{ Other.mIndices },
       mTopology{ Other.mTopology },
+      mBoundingBox{ Other.mBoundingBox },
       mVertexArrayObject{},
       mVertexBufferObject{},
       mElementBufferObject{},
@@ -38,6 +51,7 @@ Mesh& Mesh::operator=(const Mesh& Other) {
     mVertices = Other.mVertices;
     mIndices = Other.mIndices;
     mTopology = Other.mTopology;
+    mBoundingBox = Other.mBoundingBox;
     mVertexArrayObject = 0U;
     mVertexBufferObject = 0U;
     mElementBufferObject = 0U;
@@ -50,11 +64,13 @@ Mesh::Mesh(Mesh&& Other) noexcept
     : mVertices{ std::move(Other.mVertices) },
       mIndices{ std::move(Other.mIndices) },
       mTopology{ Other.mTopology },
+      mBoundingBox{ Other.mBoundingBox },
       mVertexArrayObject{ Other.mVertexArrayObject },
       mVertexBufferObject{ Other.mVertexBufferObject },
       mElementBufferObject{ Other.mElementBufferObject },
       mIsUploaded{ Other.mIsUploaded } {
     Other.mTopology = MeshTopology::Triangles;
+    Other.mBoundingBox = MakeDefaultBoundingOrientedBox();
     Other.mVertexArrayObject = 0U;
     Other.mVertexBufferObject = 0U;
     Other.mElementBufferObject = 0U;
@@ -71,12 +87,14 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
     mVertices = std::move(Other.mVertices);
     mIndices = std::move(Other.mIndices);
     mTopology = Other.mTopology;
+    mBoundingBox = Other.mBoundingBox;
     mVertexArrayObject = Other.mVertexArrayObject;
     mVertexBufferObject = Other.mVertexBufferObject;
     mElementBufferObject = Other.mElementBufferObject;
     mIsUploaded = Other.mIsUploaded;
 
     Other.mTopology = MeshTopology::Triangles;
+    Other.mBoundingBox = MakeDefaultBoundingOrientedBox();
     Other.mVertexArrayObject = 0U;
     Other.mVertexBufferObject = 0U;
     Other.mElementBufferObject = 0U;
@@ -87,6 +105,7 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
 
 void Mesh::SetVertices(const std::vector<glm::vec3>& Vertices) {
     mVertices = Vertices;
+    RebuildBoundingBoxFromVertices();
     mIsUploaded = false;
 }
 
@@ -109,6 +128,10 @@ void Mesh::SetTopology(MeshTopology Topology) {
 
 MeshTopology Mesh::GetTopology() const {
     return mTopology;
+}
+
+const DirectX::BoundingOrientedBox& Mesh::GetBoundingBox() const {
+    return mBoundingBox;
 }
 
 void Mesh::EnsureUploaded() {
@@ -148,6 +171,32 @@ void Mesh::Bind() const {
 
 void Mesh::Unbind() const {
     glBindVertexArray(0);
+}
+
+void Mesh::RebuildBoundingBoxFromVertices() {
+    if (mVertices.empty()) {
+        mBoundingBox = MakeDefaultBoundingOrientedBox();
+        return;
+    }
+
+    glm::vec3 MinimumVertex{ mVertices.front() };
+    glm::vec3 MaximumVertex{ mVertices.front() };
+
+    for (const glm::vec3& CurrentVertex : mVertices) {
+        MinimumVertex.x = std::min(MinimumVertex.x, CurrentVertex.x);
+        MinimumVertex.y = std::min(MinimumVertex.y, CurrentVertex.y);
+        MinimumVertex.z = std::min(MinimumVertex.z, CurrentVertex.z);
+        MaximumVertex.x = std::max(MaximumVertex.x, CurrentVertex.x);
+        MaximumVertex.y = std::max(MaximumVertex.y, CurrentVertex.y);
+        MaximumVertex.z = std::max(MaximumVertex.z, CurrentVertex.z);
+    }
+
+    glm::vec3 Center{ (MinimumVertex + MaximumVertex) * 0.5F };
+    glm::vec3 Extents{ (MaximumVertex - MinimumVertex) * 0.5F };
+
+    mBoundingBox.Center = DirectX::XMFLOAT3{ Center.x, Center.y, Center.z };
+    mBoundingBox.Extents = DirectX::XMFLOAT3{ Extents.x, Extents.y, Extents.z };
+    mBoundingBox.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
 }
 
 void Mesh::ReleaseGpuResources() {

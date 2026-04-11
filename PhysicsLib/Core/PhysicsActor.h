@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SimpleMath/SimpleMath.h>
+#include <DirectXCollision.h>
 
 #include <cstdint>
 #include <string>
@@ -20,17 +21,12 @@ public:
         Trigger = 1U << 2U
     };
 
-    struct BoundingBox {
-        DirectX::SimpleMath::Vector3 Min;
-        DirectX::SimpleMath::Vector3 Max;
-    };
-
     struct ActorDesc {
         std::string Name;
         bool IsActive;
         float Mass;
         PhysicsActorFlags Flags;
-        BoundingBox BoundingBoxValue;
+        DirectX::BoundingOrientedBox BoundingBoxValue;
         DirectX::SimpleMath::Vector3 Position;
         DirectX::SimpleMath::Vector3 Rotation;
         DirectX::SimpleMath::Vector3 Scale;
@@ -61,8 +57,8 @@ public:
     PhysicsActorFlags GetFlags() const;
     bool HasFlag(PhysicsActorFlags Flag) const;
 
-    void SetBoundingBox(const BoundingBox& Box);
-    const BoundingBox& GetBoundingBox() const;
+    void SetBoundingBox(const DirectX::BoundingOrientedBox& Box);
+    const DirectX::BoundingOrientedBox& GetBoundingBox() const;
 
     void SetPosition(const DirectX::SimpleMath::Vector3& Position);
     const DirectX::SimpleMath::Vector3& GetPosition() const;
@@ -78,7 +74,7 @@ private:
     bool mIsActive;
     float mMass;
     PhysicsActorFlags mFlags;
-    BoundingBox mBoundingBox;
+    DirectX::BoundingOrientedBox mBoundingBox;
     DirectX::SimpleMath::Vector3 mPosition;
     DirectX::SimpleMath::Vector3 mRotation;
     DirectX::SimpleMath::Vector3 mScale;

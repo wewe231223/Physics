@@ -1,13 +1,30 @@
 #include <utility>
 #include "PhysicsActor.h"
 
+namespace {
+DirectX::BoundingOrientedBox MakeDefaultBoundingOrientedBox() {
+    DirectX::BoundingOrientedBox Box{};
+    Box.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
+    Box.Extents = DirectX::XMFLOAT3{ 0.5F, 0.5F, 0.5F };
+    Box.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
+    return Box;
+}
+
+DirectX::BoundingOrientedBox MakeEmptyBoundingOrientedBox() {
+    DirectX::BoundingOrientedBox Box{};
+    Box.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
+    Box.Extents = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
+    Box.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
+    return Box;
+}
+}
 
 PhysicsActor::PhysicsActor()
     : mName{ "PhysicsActor" },
       mIsActive{ true },
       mMass{ 1.0F },
       mFlags{ PhysicsActorFlags::None },
-      mBoundingBox{ DirectX::SimpleMath::Vector3{ -0.5F, -0.5F, -0.5F }, DirectX::SimpleMath::Vector3{ 0.5F, 0.5F, 0.5F } },
+      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F } {
@@ -57,7 +74,7 @@ PhysicsActor::PhysicsActor(PhysicsActor&& Other) noexcept
     Other.mIsActive = false;
     Other.mMass = 0.0F;
     Other.mFlags = PhysicsActorFlags::None;
-    Other.mBoundingBox = BoundingBox{ DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{} };
+    Other.mBoundingBox = MakeEmptyBoundingOrientedBox();
     Other.mPosition = DirectX::SimpleMath::Vector3{};
     Other.mRotation = DirectX::SimpleMath::Vector3{};
     Other.mScale = DirectX::SimpleMath::Vector3{};
@@ -81,7 +98,7 @@ PhysicsActor& PhysicsActor::operator=(PhysicsActor&& Other) noexcept {
     Other.mIsActive = false;
     Other.mMass = 0.0F;
     Other.mFlags = PhysicsActorFlags::None;
-    Other.mBoundingBox = BoundingBox{ DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{} };
+    Other.mBoundingBox = MakeEmptyBoundingOrientedBox();
     Other.mPosition = DirectX::SimpleMath::Vector3{};
     Other.mRotation = DirectX::SimpleMath::Vector3{};
     Other.mScale = DirectX::SimpleMath::Vector3{};
@@ -94,7 +111,7 @@ PhysicsActor::PhysicsActor(std::string Name)
       mIsActive{ true },
       mMass{ 1.0F },
       mFlags{ PhysicsActorFlags::None },
-      mBoundingBox{ DirectX::SimpleMath::Vector3{ -0.5F, -0.5F, -0.5F }, DirectX::SimpleMath::Vector3{ 0.5F, 0.5F, 0.5F } },
+      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F } {
@@ -148,11 +165,11 @@ bool PhysicsActor::HasFlag(PhysicsActorFlags Flag) const {
     return BitAndResult != PhysicsActorFlags::None;
 }
 
-void PhysicsActor::SetBoundingBox(const BoundingBox& Box) {
+void PhysicsActor::SetBoundingBox(const DirectX::BoundingOrientedBox& Box) {
     mBoundingBox = Box;
 }
 
-const PhysicsActor::BoundingBox& PhysicsActor::GetBoundingBox() const {
+const DirectX::BoundingOrientedBox& PhysicsActor::GetBoundingBox() const {
     return mBoundingBox;
 }
 

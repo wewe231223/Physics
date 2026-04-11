@@ -20,7 +20,7 @@ int main() {
 
 	Scene MainScene{};
 
-	PhysicsWorld::WorldSettings WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } };
+	PhysicsWorld::WorldSettings WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -0.F, 0.0F } };
 	PhysicsWorld MainPhysicsWorld{ WorldSettings };
 
 	Camera& MainCamera{ MainScene.GetMainCamera() };

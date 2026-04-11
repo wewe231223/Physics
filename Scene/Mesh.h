@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <glm/vec3.hpp>
+#include <DirectXCollision.h>
 
 enum class MeshTopology {
     Triangles,
@@ -27,18 +28,21 @@ public:
 
     void SetTopology(MeshTopology Topology);
     MeshTopology GetTopology() const;
+    const DirectX::BoundingOrientedBox& GetBoundingBox() const;
 
     void EnsureUploaded();
     void Bind() const;
     void Unbind() const;
 
 private:
+    void RebuildBoundingBoxFromVertices();
     void ReleaseGpuResources();
 
 private:
     std::vector<glm::vec3> mVertices;
     std::vector<unsigned int> mIndices;
     MeshTopology mTopology;
+    DirectX::BoundingOrientedBox mBoundingBox;
     unsigned int mVertexArrayObject;
     unsigned int mVertexBufferObject;
     unsigned int mElementBufferObject;
