@@ -1,12 +1,15 @@
 ﻿#include <iostream>
 #include <locale>
 #include "Renderer/Renderer.h"
+#include "PhysicsLib/Core/PhysicsWorld.h"
 
 
 #ifdef _DEBUG
 #pragma comment(lib, "debug/glfw3.lib")
+#pragma comment(lib, "out/Debug/PhysicsLib.lib")
 #else
 #pragma comment(lib, "release/glfw3.lib")
+#pragma comment(lib, "out/Release/PhysicsLib.lib")
 #endif
 
 int main() {
@@ -16,6 +19,9 @@ int main() {
 
 
 	Scene MainScene{};
+
+	PhysicsWorld::WorldSettings WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } };
+	PhysicsWorld MainPhysicsWorld{ WorldSettings };
 
 	Camera& MainCamera{ MainScene.GetMainCamera() };
 	MainCamera.SetClearColor(0.1F, 0.2F, 0.3F, 1.0F);
@@ -53,6 +59,8 @@ int main() {
 		SquarePyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, 0.5F, 2.0F });
 	}
 
+	MainPhysicsWorld.BuildActorsFromScene(MainScene);
+
 	Renderer MainRenderer{};
 
 	if (!MainRenderer.Initialize()) {
@@ -61,6 +69,8 @@ int main() {
 
 	while (!MainRenderer.ShouldClose()) {
 		MainRenderer.ProcessInput(MainScene);
+		MainPhysicsWorld.BuildActorsFromScene(MainScene);
+		MainPhysicsWorld.Update(WorldSettings.FixedTimeStep);
 		MainScene.Update();
 		MainRenderer.RenderFrame(MainScene);
 		MainRenderer.Present();

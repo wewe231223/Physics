@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)Externals\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\Externals\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)Externals\Include;$(SolutionDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\Externals\lib;$(SolutionDir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)Externals\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\Externals\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)Externals\Include;$(SolutionDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\Externals\lib;$(SolutionDir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -140,6 +140,9 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
+    <ClCompile Include="Renderer\MathConversion.cpp" />
+    <ClCompile Include="PhysicsLib\PhysicsActor.cpp" />
+    <ClCompile Include="PhysicsLib\PhysicsWorld.cpp" />
     <ClCompile Include="Scene\Camera.cpp" />
     <ClCompile Include="Scene\GameObject.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
@@ -149,6 +152,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Renderer\Renderer.h" />
+    <ClInclude Include="Renderer\MathConversion.h" />
+    <ClInclude Include="PhysicsLib\PhysicsActor.h" />
+    <ClInclude Include="PhysicsLib\PhysicsWorld.h" />
     <ClInclude Include="Scene\Camera.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Scene.h" />
