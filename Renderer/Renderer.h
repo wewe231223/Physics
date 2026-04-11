@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "../Scene/Scene.h"
 
@@ -17,7 +17,11 @@ public:
 
 public:
     bool Initialize();
-    void Run(Scene& CurrentScene);
+    bool ShouldClose() const;
+    void ProcessInput(Scene& CurrentScene) const;
+    void RenderFrame(const Scene& CurrentScene) const;
+    void Present() const;
+    void PollEvents() const;
     void Shutdown();
 
 private:
@@ -27,8 +31,6 @@ private:
     bool CreateShaderProgram();
     void DestroyShaderProgram();
     unsigned int CreateShader(unsigned int ShaderType, const std::string& ShaderSource) const;
-    void ProcessInput(Scene& CurrentScene) const;
-    void RenderFrame(const Scene& CurrentScene) const;
 
 private:
     GLFWwindow* mWindow;

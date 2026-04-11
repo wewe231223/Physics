@@ -31,13 +31,13 @@ public:
 
     std::size_t AddGameObject(const GameObject& Object);
     std::size_t AddGameObject(GameObject&& Object);
-
     std::size_t CreatePrimitiveGameObject(std::string Name, PrimitiveMeshType PrimitiveType);
 
     GameObject* GetGameObject(std::size_t Index);
     const GameObject* GetGameObject(std::size_t Index) const;
-
     std::size_t GetGameObjectCount() const;
+
+    void Update();
 
 private:
     std::shared_ptr<Mesh> GetPrimitiveMesh(PrimitiveMeshType PrimitiveType);

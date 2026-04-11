@@ -79,20 +79,28 @@ const Camera& Scene::GetMainCamera() const {
 
 std::size_t Scene::AddGameObject(const GameObject& Object) {
     mGameObjects.push_back(Object);
+
     std::size_t CreatedIndex{ mGameObjects.size() - 1U };
+    mGameObjects[CreatedIndex].UpdateWorldMatrix();
+
     return CreatedIndex;
 }
 
 std::size_t Scene::AddGameObject(GameObject&& Object) {
     mGameObjects.push_back(std::move(Object));
+
     std::size_t CreatedIndex{ mGameObjects.size() - 1U };
+    mGameObjects[CreatedIndex].UpdateWorldMatrix();
+
     return CreatedIndex;
 }
 
 std::size_t Scene::CreatePrimitiveGameObject(std::string Name, PrimitiveMeshType PrimitiveType) {
     GameObject NewObject{ std::move(Name) };
     std::shared_ptr<Mesh> SharedMesh{ GetPrimitiveMesh(PrimitiveType) };
+
     NewObject.SetMesh(SharedMesh);
+    NewObject.UpdateWorldMatrix();
     mGameObjects.push_back(std::move(NewObject));
 
     std::size_t CreatedIndex{ mGameObjects.size() - 1U };
@@ -118,6 +126,14 @@ const GameObject* Scene::GetGameObject(std::size_t Index) const {
 std::size_t Scene::GetGameObjectCount() const {
     std::size_t Count{ mGameObjects.size() };
     return Count;
+}
+
+void Scene::Update() {
+    std::size_t GameObjectCount{ mGameObjects.size() };
+
+    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+        mGameObjects[ObjectIndex].UpdateWorldMatrix();
+    }
 }
 
 std::shared_ptr<Mesh> Scene::GetPrimitiveMesh(PrimitiveMeshType PrimitiveType) {

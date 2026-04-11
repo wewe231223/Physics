@@ -55,7 +55,14 @@ int main() {
         return -1;
     }
 
-    MainRenderer.Run(MainScene);
+    while (!MainRenderer.ShouldClose()) {
+        MainRenderer.ProcessInput(MainScene);
+        MainScene.Update();
+        MainRenderer.RenderFrame(MainScene);
+        MainRenderer.Present();
+        MainRenderer.PollEvents();
+    }
+
     MainRenderer.Shutdown();
 
     return 0;

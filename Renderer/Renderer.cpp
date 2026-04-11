@@ -1,4 +1,4 @@
-﻿#include "Renderer.h"
+#include "Renderer.h"
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -130,17 +130,135 @@ bool Renderer::Initialize() {
     return true;
 }
 
-void Renderer::Run(Scene& CurrentScene) {
+bool Renderer::ShouldClose() const {
     if (!mIsInitialized) {
-        return;
+        return true;
     }
 
-    while (glfwWindowShouldClose(mWindow) == GLFW_FALSE) {
-        ProcessInput(CurrentScene);
-        RenderFrame(CurrentScene);
-        glfwSwapBuffers(mWindow);
-        glfwPollEvents();
+    return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
+}
+
+void Renderer::ProcessInput(Scene& CurrentScene) const {
+    if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
     }
+
+    Camera& MainCamera{ CurrentScene.GetMainCamera() };
+    float MoveSpeed{ 0.02F };
+    float RotationSpeed{ 0.01F };
+
+    if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, MoveSpeed });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_Q) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, MoveSpeed, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_E) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, -MoveSpeed, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ -RotationSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ RotationSpeed, 0.0F, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ 0.0F, -RotationSpeed, 0.0F });
+    }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ 0.0F, RotationSpeed, 0.0F });
+    }
+}
+
+void Renderer::RenderFrame(const Scene& CurrentScene) const {
+    const Camera& MainCamera{ CurrentScene.GetMainCamera() };
+
+    float ClearRed{};
+    float ClearGreen{};
+    float ClearBlue{};
+    float ClearAlpha{};
+    MainCamera.GetClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
+
+    glClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    float AspectRatio{ static_cast<float>(mWidth) / static_cast<float>(mHeight) };
+    glm::mat4 ProjectionMatrix{ glm::perspective(glm::radians(60.0F), AspectRatio, 0.1F, 100.0F) };
+    glm::mat4 ViewMatrix{ MainCamera.GetViewMatrix() };
+
+    glUseProgram(mShaderProgram);
+
+    int ModelLocation{ glGetUniformLocation(mShaderProgram, "UModel") };
+    int ViewLocation{ glGetUniformLocation(mShaderProgram, "UView") };
+    int ProjectionLocation{ glGetUniformLocation(mShaderProgram, "UProjection") };
+    int ColorLocation{ glGetUniformLocation(mShaderProgram, "UColor") };
+
+    glUniformMatrix4fv(ViewLocation, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
+    glUniformMatrix4fv(ProjectionLocation, 1, GL_FALSE, glm::value_ptr(ProjectionMatrix));
+
+    std::size_t GameObjectCount{ CurrentScene.GetGameObjectCount() };
+    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+        const GameObject* CurrentObject{ CurrentScene.GetGameObject(ObjectIndex) };
+
+        if (CurrentObject == nullptr) {
+            continue;
+        }
+
+        if (!CurrentObject->GetIsActive()) {
+            continue;
+        }
+
+        const std::shared_ptr<Mesh>& CurrentMesh{ CurrentObject->GetMesh() };
+        if (CurrentMesh == nullptr) {
+            continue;
+        }
+
+        CurrentMesh->EnsureUploaded();
+
+        const glm::mat4& ModelMatrix{ CurrentObject->GetWorldMatrix() };
+        glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
+
+        if (CurrentMesh->GetTopology() == MeshTopology::Lines) {
+            glUniform3f(ColorLocation, 0.55F, 0.55F, 0.55F);
+        }
+        else {
+            glUniform3f(ColorLocation, 0.90F, 0.70F, 0.20F);
+        }
+
+        CurrentMesh->Bind();
+
+        unsigned int DrawMode{ static_cast<unsigned int>(CurrentMesh->GetTopology() == MeshTopology::Lines ? GL_LINES : GL_TRIANGLES) };
+        GLsizei IndexCount{ static_cast<GLsizei>(CurrentMesh->GetIndices().size()) };
+        glDrawElements(DrawMode, IndexCount, GL_UNSIGNED_INT, nullptr);
+
+        CurrentMesh->Unbind();
+    }
+}
+
+void Renderer::Present() const {
+    glfwSwapBuffers(mWindow);
+}
+
+void Renderer::PollEvents() const {
+    glfwPollEvents();
 }
 
 void Renderer::Shutdown() {
@@ -263,119 +381,4 @@ unsigned int Renderer::CreateShader(unsigned int ShaderType, const std::string& 
     }
 
     return CreatedShader;
-}
-
-void Renderer::ProcessInput(Scene& CurrentScene) const {
-    if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
-    }
-
-    Camera& MainCamera{ CurrentScene.GetMainCamera() };
-    float MoveSpeed{ 0.02F };
-    float RotationSpeed{ 0.01F };
-
-    if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, MoveSpeed });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_Q) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, MoveSpeed, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_E) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, -MoveSpeed, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ -RotationSpeed, 0.0F, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ RotationSpeed, 0.0F, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ 0.0F, -RotationSpeed, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ 0.0F, RotationSpeed, 0.0F });
-    }
-}
-
-void Renderer::RenderFrame(const Scene& CurrentScene) const {
-    const Camera& MainCamera{ CurrentScene.GetMainCamera() };
-
-    float ClearRed{};
-    float ClearGreen{};
-    float ClearBlue{};
-    float ClearAlpha{};
-    MainCamera.GetClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
-
-    glClearColor(ClearRed, ClearGreen, ClearBlue, ClearAlpha);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    float AspectRatio{ static_cast<float>(mWidth) / static_cast<float>(mHeight) };
-    glm::mat4 ProjectionMatrix{ glm::perspective(glm::radians(60.0F), AspectRatio, 0.1F, 100.0F) };
-    glm::mat4 ViewMatrix{ MainCamera.GetViewMatrix() };
-
-    glUseProgram(mShaderProgram);
-
-    int ModelLocation{ glGetUniformLocation(mShaderProgram, "UModel") };
-    int ViewLocation{ glGetUniformLocation(mShaderProgram, "UView") };
-    int ProjectionLocation{ glGetUniformLocation(mShaderProgram, "UProjection") };
-    int ColorLocation{ glGetUniformLocation(mShaderProgram, "UColor") };
-
-    glUniformMatrix4fv(ViewLocation, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
-    glUniformMatrix4fv(ProjectionLocation, 1, GL_FALSE, glm::value_ptr(ProjectionMatrix));
-
-    std::size_t GameObjectCount{ CurrentScene.GetGameObjectCount() };
-    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
-        const GameObject* CurrentObject{ CurrentScene.GetGameObject(ObjectIndex) };
-
-        if (CurrentObject == nullptr) {
-            continue;
-        }
-
-        if (!CurrentObject->GetIsActive()) {
-            continue;
-        }
-
-        const std::shared_ptr<Mesh>& CurrentMesh{ CurrentObject->GetMesh() };
-        if (CurrentMesh == nullptr) {
-            continue;
-        }
-
-        CurrentMesh->EnsureUploaded();
-
-        glm::mat4 ModelMatrix{ CurrentObject->GetTransform().GetWorldMatrix() };
-        glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
-
-        if (CurrentMesh->GetTopology() == MeshTopology::Lines) {
-            glUniform3f(ColorLocation, 0.55F, 0.55F, 0.55F);
-        }
-        else {
-            glUniform3f(ColorLocation, 0.90F, 0.70F, 0.20F);
-        }
-
-        CurrentMesh->Bind();
-
-        unsigned int DrawMode{ static_cast<unsigned int>(CurrentMesh->GetTopology() == MeshTopology::Lines ? GL_LINES : GL_TRIANGLES) };
-        GLsizei IndexCount{ static_cast<GLsizei>(CurrentMesh->GetIndices().size()) };
-        glDrawElements(DrawMode, IndexCount, GL_UNSIGNED_INT, nullptr);
-
-        CurrentMesh->Unbind();
-    }
 }
