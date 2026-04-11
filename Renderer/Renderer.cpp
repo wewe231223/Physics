@@ -172,19 +172,19 @@ void Renderer::ProcessInput(Scene& CurrentScene) const {
     }
 
     if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ -RotationSpeed, 0.0F, 0.0F });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
         MainCamera.Rotate(glm::vec3{ RotationSpeed, 0.0F, 0.0F });
     }
 
+    if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        MainCamera.Rotate(glm::vec3{ -RotationSpeed, 0.0F, 0.0F });
+    }
+
     if (glfwGetKey(mWindow, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ 0.0F, -RotationSpeed, 0.0F });
+        MainCamera.Rotate(glm::vec3{ 0.0F, RotationSpeed, 0.0F });
     }
 
     if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        MainCamera.Rotate(glm::vec3{ 0.0F, RotationSpeed, 0.0F });
+        MainCamera.Rotate(glm::vec3{ 0.0F, -RotationSpeed, 0.0F });
     }
 }
 
