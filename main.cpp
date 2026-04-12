@@ -64,6 +64,14 @@ int main() {
 		SquarePyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, DropStartHeight, 2.0F });
 	}
 
+	std::shared_ptr<Mesh> TerrainMesh{ std::make_shared<Mesh>(MeshFactory::CreateTerrainFromHeightMapPng("Resources/Heightmap_01_Mountains.png", 256.0F, 1.F)) };
+	if (!TerrainMesh->GetVertices().empty()) {
+		GameObject TerrainObject{ "TerrainPhysics" };
+		TerrainObject.SetMesh(TerrainMesh);
+		TerrainObject.GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
+		MainScene.AddGameObject(std::move(TerrainObject));
+	}
+
 	MainPhysicsWorld.ClearActors();
 	std::size_t PhysicsObjectCount{ MainScene.GetGameObjectCount() };
 
@@ -105,14 +113,6 @@ int main() {
 		BoundingBoxObject.SetMesh(BoundingBoxMesh);
 		std::size_t BoundingBoxObjectIndex{ MainScene.AddGameObject(std::move(BoundingBoxObject)) };
 		BoundingBoxObjectPairs.push_back(std::pair<std::size_t, std::size_t>{ ObjectIndex, BoundingBoxObjectIndex });
-	}
-
-	std::shared_ptr<Mesh> TerrainMesh{ std::make_shared<Mesh>(MeshFactory::CreateTerrainFromHeightMapPng("Resources/Heightmap_01_Mountains.png", 256.0F, 1.F)) };
-	if (!TerrainMesh->GetVertices().empty()) {
-		GameObject TerrainObject{ "TerrainRenderOnly" };
-		TerrainObject.SetMesh(TerrainMesh);
-		TerrainObject.GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
-		MainScene.AddGameObject(std::move(TerrainObject));
 	}
 
 	Renderer MainRenderer{};

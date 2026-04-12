@@ -1,6 +1,7 @@
 #include "PhysicsWorld.h"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 #undef min 
@@ -244,8 +245,17 @@ bool PhysicsWorld::ResolveTerrainCollision(const DirectX::BoundingOrientedBox& P
         const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(CurrentActor) };
         DirectX::SimpleMath::Vector3 TerrainPosition{ TerrainActor->GetPosition() };
         DirectX::SimpleMath::Vector3 TerrainScale{ TerrainActor->GetScale() };
-        float TerrainHalfExtentX{ TerrainActor->GetHalfExtentX() * TerrainScale.x };
-        float TerrainHalfExtentZ{ TerrainActor->GetHalfExtentZ() * TerrainScale.z };
+        float TerrainHalfExtentX{ TerrainActor->GetHalfExtentX() * std::abs(TerrainScale.x) };
+        float TerrainHalfExtentZ{ TerrainActor->GetHalfExtentZ() * std::abs(TerrainScale.z) };
+        std::uint32_t TerrainHeightFieldWidth{ TerrainActor->GetHeightFieldWidth() };
+        std::uint32_t TerrainHeightFieldHeight{ TerrainActor->GetHeightFieldHeight() };
+        float TerrainHeightFieldCellSpacing{ TerrainActor->GetHeightFieldCellSpacing() };
+        if (TerrainHeightFieldWidth > 1U && TerrainHeightFieldHeight > 1U && TerrainHeightFieldCellSpacing > 0.0F) {
+            float HeightFieldHalfExtentX{ (static_cast<float>(TerrainHeightFieldWidth - 1U) * TerrainHeightFieldCellSpacing * 0.5F) * std::abs(TerrainScale.x) };
+            float HeightFieldHalfExtentZ{ (static_cast<float>(TerrainHeightFieldHeight - 1U) * TerrainHeightFieldCellSpacing * 0.5F) * std::abs(TerrainScale.z) };
+            TerrainHalfExtentX = std::max(TerrainHalfExtentX, HeightFieldHalfExtentX);
+            TerrainHalfExtentZ = std::max(TerrainHalfExtentZ, HeightFieldHalfExtentZ);
+        }
         float TerrainMinimumX{ TerrainPosition.x - TerrainHalfExtentX };
         float TerrainMaximumX{ TerrainPosition.x + TerrainHalfExtentX };
         float TerrainMinimumZ{ TerrainPosition.z - TerrainHalfExtentZ };

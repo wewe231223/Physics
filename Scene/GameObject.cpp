@@ -122,7 +122,8 @@ const glm::mat4& GameObject::GetWorldMatrix() const {
 }
 
 bool GameObject::IsTerrainObject() const {
-    bool IsTerrain{ mMesh == nullptr || mName == "Grid" };
+    bool HasTerrainSampleDesc{ mMesh != nullptr && mMesh->HasTerrainSampleDesc() };
+    bool IsTerrain{ mMesh == nullptr || mName == "Grid" || HasTerrainSampleDesc };
     return IsTerrain;
 }
 

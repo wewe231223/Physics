@@ -149,19 +149,19 @@ void Renderer::ProcessInput(Scene& CurrentScene) const {
     float RotationSpeed{ 0.01F };
 
     if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
-    }
-
-    if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
         MainCamera.Move(glm::vec3{ 0.0F, 0.0F, MoveSpeed });
     }
 
+    if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
+        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
+    }
+
     if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
+        MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
     }
 
     if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
+        MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
     }
 
     if (glfwGetKey(mWindow, GLFW_KEY_Q) == GLFW_PRESS) {
