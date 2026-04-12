@@ -1,7 +1,6 @@
 #include "MeshFactory.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "TerrainHeightMapLoader.h"
+#include "TerrainMeshBuilder.h"
 
 #include <cmath>
 #include <cstdint>
@@ -260,81 +259,28 @@ Mesh MeshFactory::CreateBoundingBox() {
 }
 
 Mesh MeshFactory::CreateTerrainFromHeightMapPng(const std::string& FilePath, float MaxHeight, float CellSpacing) {
-    int ImageWidth{};
-    int ImageHeight{};
-    int ImageChannels{};
-    unsigned char* ImageData{ stbi_load(FilePath.c_str(), &ImageWidth, &ImageHeight, &ImageChannels, 1) };
-
-    if (ImageData == nullptr) {
+    if (MaxHeight <= 0.0F || CellSpacing <= 0.0F || FilePath.empty() == true) {
         Mesh FallbackMesh{ CreateFlatTerrainMesh(64, 48, CellSpacing) };
         return FallbackMesh;
     }
 
-    if (ImageWidth < 2 || ImageHeight < 2) {
-        stbi_image_free(ImageData);
+    TerrainHeightMapLoader HeightMapLoader{};
+    TerrainMeshBuilder MeshBuilder{};
+
+    TerrainBuildDesc BuildDesc{};
+    BuildDesc.HeightMapPath = FilePath;
+    BuildDesc.MaxHeight = MaxHeight;
+    BuildDesc.CellSpacing = CellSpacing;
+    BuildDesc.CenterOrigin = true;
+
+    HeightFieldData HeightField{};
+    try {
+        HeightField = HeightMapLoader.LoadHeightField(BuildDesc.HeightMapPath);
+        Mesh BuiltTerrainMesh{ MeshBuilder.Build(HeightField, BuildDesc) };
+        return BuiltTerrainMesh;
+    }
+    catch (...) {
         Mesh FallbackMesh{ CreateFlatTerrainMesh(64, 48, CellSpacing) };
         return FallbackMesh;
     }
-
-    std::uint32_t VertexCountX{ static_cast<std::uint32_t>(ImageWidth) };
-    std::uint32_t VertexCountY{ static_cast<std::uint32_t>(ImageHeight) };
-    std::uint32_t QuadCountX{ VertexCountX - 1U };
-    std::uint32_t QuadCountY{ VertexCountY - 1U };
-    std::size_t VertexCount{ static_cast<std::size_t>(VertexCountX) * static_cast<std::size_t>(VertexCountY) };
-    std::size_t IndexCount{ static_cast<std::size_t>(QuadCountX) * static_cast<std::size_t>(QuadCountY) * 6ULL };
-    float OffsetX{ (static_cast<float>(VertexCountX) - 1.0F) * CellSpacing * 0.5F };
-    float OffsetZ{ (static_cast<float>(VertexCountY) - 1.0F) * CellSpacing * 0.5F };
-
-    std::vector<glm::vec3> Vertices{};
-    std::vector<glm::vec3> Colors{};
-    std::vector<unsigned int> Indices{};
-    Vertices.resize(VertexCount);
-    Colors.resize(VertexCount);
-    Indices.resize(IndexCount);
-
-    for (std::uint32_t GridY{ 0U }; GridY < VertexCountY; ++GridY) {
-        for (std::uint32_t GridX{ 0U }; GridX < VertexCountX; ++GridX) {
-            std::uint32_t VertexIndex{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
-            std::uint32_t PixelIndex{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
-            float NormalizedHeight{ static_cast<float>(ImageData[PixelIndex]) / 255.0F };
-            float HeightValue{ NormalizedHeight * MaxHeight };
-            float PositionX{ static_cast<float>(GridX) * CellSpacing - OffsetX };
-            float PositionZ{ static_cast<float>(GridY) * CellSpacing - OffsetZ };
-            Vertices[VertexIndex] = glm::vec3{ PositionX, HeightValue, PositionZ };
-            Colors[VertexIndex] = glm::vec3{ 0.10F + NormalizedHeight * 0.25F, 0.30F + NormalizedHeight * 0.55F, 0.10F + NormalizedHeight * 0.20F };
-        }
-    }
-
-    std::size_t IndexWriteCursor{};
-    for (std::uint32_t GridY{ 0U }; GridY < QuadCountY; ++GridY) {
-        for (std::uint32_t GridX{ 0U }; GridX < QuadCountX; ++GridX) {
-            std::uint32_t Index0{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
-            std::uint32_t Index1{ CalculateLinearIndex(VertexCountX, GridX + 1U, GridY) };
-            std::uint32_t Index2{ CalculateLinearIndex(VertexCountX, GridX, GridY + 1U) };
-            std::uint32_t Index3{ CalculateLinearIndex(VertexCountX, GridX + 1U, GridY + 1U) };
-            Indices[IndexWriteCursor] = Index0;
-            ++IndexWriteCursor;
-            Indices[IndexWriteCursor] = Index2;
-            ++IndexWriteCursor;
-            Indices[IndexWriteCursor] = Index1;
-            ++IndexWriteCursor;
-
-            Indices[IndexWriteCursor] = Index1;
-            ++IndexWriteCursor;
-            Indices[IndexWriteCursor] = Index2;
-            ++IndexWriteCursor;
-            Indices[IndexWriteCursor] = Index3;
-            ++IndexWriteCursor;
-        }
-    }
-
-    stbi_image_free(ImageData);
-
-    Mesh CreatedMesh{};
-    CreatedMesh.SetVertices(Vertices);
-    CreatedMesh.SetColors(Colors);
-    CreatedMesh.SetIndices(Indices);
-    CreatedMesh.SetTopology(MeshTopology::Triangles);
-
-    return CreatedMesh;
 }

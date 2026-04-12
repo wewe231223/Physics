@@ -146,6 +146,9 @@
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Mesh.cpp" />
     <ClCompile Include="Scene\MeshFactory.cpp" />
+    <ClCompile Include="Scene\TerrainHeightMapLoader.cpp" />
+    <ClCompile Include="Scene\TerrainMeshBuilder.cpp" />
+    <ClCompile Include="Scene\TerrainMeshTypes.cpp" />
     <ClCompile Include="Scene\Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -156,6 +159,9 @@
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Mesh.h" />
     <ClInclude Include="Scene\MeshFactory.h" />
+    <ClInclude Include="Scene\TerrainHeightMapLoader.h" />
+    <ClInclude Include="Scene\TerrainMeshBuilder.h" />
+    <ClInclude Include="Scene\TerrainMeshTypes.h" />
     <ClInclude Include="Scene\Transform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -35,6 +35,15 @@
     <ClCompile Include="Scene\MeshFactory.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\TerrainHeightMapLoader.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\TerrainMeshBuilder.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\TerrainMeshTypes.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
     <ClCompile Include="Scene\Transform.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -60,6 +69,15 @@
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\MeshFactory.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\TerrainHeightMapLoader.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\TerrainMeshBuilder.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\TerrainMeshTypes.h">
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\Transform.h">
