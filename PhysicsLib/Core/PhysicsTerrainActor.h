@@ -11,9 +11,6 @@
 class PhysicsTerrainActor final : public PhysicsActor {
 public:
     struct ActorDesc {
-        std::string Name{};
-        bool IsActive{};
-        PhysicsActorFlags Flags{};
         DirectX::SimpleMath::Vector3 Position{};
         DirectX::SimpleMath::Vector3 Rotation{};
         DirectX::SimpleMath::Vector3 Scale{};
@@ -39,33 +36,8 @@ public:
     explicit PhysicsTerrainActor(const ActorDesc& Desc);
 
 public:
-    void SetPosition(const DirectX::SimpleMath::Vector3& Position);
-    const DirectX::SimpleMath::Vector3& GetPosition() const;
-
-    void SetRotation(const DirectX::SimpleMath::Vector3& Rotation);
-    const DirectX::SimpleMath::Vector3& GetRotation() const;
-
-    void SetScale(const DirectX::SimpleMath::Vector3& Scale);
-    const DirectX::SimpleMath::Vector3& GetScale() const;
-
-    void SetHalfExtentX(float HalfExtentX);
-    float GetHalfExtentX() const;
-
-    void SetHalfExtentZ(float HalfExtentZ);
-    float GetHalfExtentZ() const;
-
-    void SetHeightFieldWidth(std::uint32_t HeightFieldWidth);
-    std::uint32_t GetHeightFieldWidth() const;
-    void SetHeightFieldHeight(std::uint32_t HeightFieldHeight);
-    std::uint32_t GetHeightFieldHeight() const;
-    void SetHeightFieldCellSpacing(float HeightFieldCellSpacing);
-    float GetHeightFieldCellSpacing() const;
-    void SetHeightFieldMaxHeight(float HeightFieldMaxHeight);
-    float GetHeightFieldMaxHeight() const;
-    void SetHeightFieldCenterOrigin(bool HeightFieldCenterOrigin);
-    bool GetHeightFieldCenterOrigin() const;
-    void SetHeightFieldValues(const std::vector<float>& HeightFieldValues);
-    const std::vector<float>& GetHeightFieldValues() const;
+    void SetActorDesc(const ActorDesc& Desc);
+    ActorDesc GetActorDesc() const;
 
     bool TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const;
 

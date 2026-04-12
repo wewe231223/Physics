@@ -186,9 +186,6 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
     }
 
     PhysicsTerrainActor::ActorDesc ActorDesc{
-        mName,
-        mIsActive,
-        PhysicsActor::PhysicsActorFlags::Static,
         DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z },
         DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z },
         DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z },
@@ -224,9 +221,10 @@ void GameObject::PullTransformFromPhysicsActor() {
 
     if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Terrain) {
         const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(mPhysicsActor) };
-        DirectX::SimpleMath::Vector3 Position{ TerrainActor->GetPosition() };
-        DirectX::SimpleMath::Vector3 Rotation{ TerrainActor->GetRotation() };
-        DirectX::SimpleMath::Vector3 Scale{ TerrainActor->GetScale() };
+        PhysicsTerrainActor::ActorDesc TerrainDesc{ TerrainActor->GetActorDesc() };
+        DirectX::SimpleMath::Vector3 Position{ TerrainDesc.Position };
+        DirectX::SimpleMath::Vector3 Rotation{ TerrainDesc.Rotation };
+        DirectX::SimpleMath::Vector3 Scale{ TerrainDesc.Scale };
 
         mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
         mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });

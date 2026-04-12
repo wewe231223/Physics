@@ -142,7 +142,7 @@ PhysicsTerrainActor::PhysicsTerrainActor(std::string Name)
 }
 
 PhysicsTerrainActor::PhysicsTerrainActor(const ActorDesc& Desc)
-    : PhysicsActor{ Desc.Name },
+    : PhysicsActor{},
       mPosition{ Desc.Position },
       mRotation{ Desc.Rotation },
       mScale{ Desc.Scale },
@@ -154,98 +154,42 @@ PhysicsTerrainActor::PhysicsTerrainActor(const ActorDesc& Desc)
       mHeightFieldMaxHeight{ Desc.HeightFieldMaxHeight },
       mHeightFieldCenterOrigin{ Desc.HeightFieldCenterOrigin },
       mHeightFieldValues{ Desc.HeightFieldValues } {
-    SetIsActive(Desc.IsActive);
-    SetMass(0.0F);
-    SetFlags(Desc.Flags | PhysicsActorFlags::Static);
     SetActorType(PhysicsActorType::Terrain);
+    SetFlags(GetFlags() | PhysicsActorFlags::Static);
+    SetMass(0.0F);
+    SetActorDesc(Desc);
 }
 
-void PhysicsTerrainActor::SetPosition(const DirectX::SimpleMath::Vector3& Position) {
-    mPosition = Position;
+void PhysicsTerrainActor::SetActorDesc(const ActorDesc& Desc) {
+    mPosition = Desc.Position;
+    mRotation = Desc.Rotation;
+    mScale = Desc.Scale;
+    mHalfExtentX = Desc.HalfExtentX;
+    mHalfExtentZ = Desc.HalfExtentZ;
+    mHeightFieldWidth = Desc.HeightFieldWidth;
+    mHeightFieldHeight = Desc.HeightFieldHeight;
+    mHeightFieldCellSpacing = Desc.HeightFieldCellSpacing;
+    mHeightFieldMaxHeight = Desc.HeightFieldMaxHeight;
+    mHeightFieldCenterOrigin = Desc.HeightFieldCenterOrigin;
+    mHeightFieldValues = Desc.HeightFieldValues;
 }
 
-const DirectX::SimpleMath::Vector3& PhysicsTerrainActor::GetPosition() const {
-    return mPosition;
-}
+PhysicsTerrainActor::ActorDesc PhysicsTerrainActor::GetActorDesc() const {
+    ActorDesc Desc{
+        mPosition,
+        mRotation,
+        mScale,
+        mHalfExtentX,
+        mHalfExtentZ,
+        mHeightFieldWidth,
+        mHeightFieldHeight,
+        mHeightFieldCellSpacing,
+        mHeightFieldMaxHeight,
+        mHeightFieldCenterOrigin,
+        mHeightFieldValues
+    };
 
-void PhysicsTerrainActor::SetRotation(const DirectX::SimpleMath::Vector3& Rotation) {
-    mRotation = Rotation;
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsTerrainActor::GetRotation() const {
-    return mRotation;
-}
-
-void PhysicsTerrainActor::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
-    mScale = Scale;
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsTerrainActor::GetScale() const {
-    return mScale;
-}
-
-void PhysicsTerrainActor::SetHalfExtentX(float HalfExtentX) {
-    mHalfExtentX = HalfExtentX;
-}
-
-float PhysicsTerrainActor::GetHalfExtentX() const {
-    return mHalfExtentX;
-}
-
-void PhysicsTerrainActor::SetHalfExtentZ(float HalfExtentZ) {
-    mHalfExtentZ = HalfExtentZ;
-}
-
-float PhysicsTerrainActor::GetHalfExtentZ() const {
-    return mHalfExtentZ;
-}
-
-void PhysicsTerrainActor::SetHeightFieldWidth(std::uint32_t HeightFieldWidth) {
-    mHeightFieldWidth = HeightFieldWidth;
-}
-
-std::uint32_t PhysicsTerrainActor::GetHeightFieldWidth() const {
-    return mHeightFieldWidth;
-}
-
-void PhysicsTerrainActor::SetHeightFieldHeight(std::uint32_t HeightFieldHeight) {
-    mHeightFieldHeight = HeightFieldHeight;
-}
-
-std::uint32_t PhysicsTerrainActor::GetHeightFieldHeight() const {
-    return mHeightFieldHeight;
-}
-
-void PhysicsTerrainActor::SetHeightFieldCellSpacing(float HeightFieldCellSpacing) {
-    mHeightFieldCellSpacing = HeightFieldCellSpacing;
-}
-
-float PhysicsTerrainActor::GetHeightFieldCellSpacing() const {
-    return mHeightFieldCellSpacing;
-}
-
-void PhysicsTerrainActor::SetHeightFieldMaxHeight(float HeightFieldMaxHeight) {
-    mHeightFieldMaxHeight = HeightFieldMaxHeight;
-}
-
-float PhysicsTerrainActor::GetHeightFieldMaxHeight() const {
-    return mHeightFieldMaxHeight;
-}
-
-void PhysicsTerrainActor::SetHeightFieldCenterOrigin(bool HeightFieldCenterOrigin) {
-    mHeightFieldCenterOrigin = HeightFieldCenterOrigin;
-}
-
-bool PhysicsTerrainActor::GetHeightFieldCenterOrigin() const {
-    return mHeightFieldCenterOrigin;
-}
-
-void PhysicsTerrainActor::SetHeightFieldValues(const std::vector<float>& HeightFieldValues) {
-    mHeightFieldValues = HeightFieldValues;
-}
-
-const std::vector<float>& PhysicsTerrainActor::GetHeightFieldValues() const {
-    return mHeightFieldValues;
+    return Desc;
 }
 
 bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const {

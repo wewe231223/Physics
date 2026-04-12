@@ -243,13 +243,14 @@ bool PhysicsWorld::ResolveTerrainCollision(const DirectX::BoundingOrientedBox& P
         }
 
         const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(CurrentActor) };
-        DirectX::SimpleMath::Vector3 TerrainPosition{ TerrainActor->GetPosition() };
-        DirectX::SimpleMath::Vector3 TerrainScale{ TerrainActor->GetScale() };
-        float TerrainHalfExtentX{ TerrainActor->GetHalfExtentX() * std::abs(TerrainScale.x) };
-        float TerrainHalfExtentZ{ TerrainActor->GetHalfExtentZ() * std::abs(TerrainScale.z) };
-        std::uint32_t TerrainHeightFieldWidth{ TerrainActor->GetHeightFieldWidth() };
-        std::uint32_t TerrainHeightFieldHeight{ TerrainActor->GetHeightFieldHeight() };
-        float TerrainHeightFieldCellSpacing{ TerrainActor->GetHeightFieldCellSpacing() };
+        PhysicsTerrainActor::ActorDesc TerrainDesc{ TerrainActor->GetActorDesc() };
+        DirectX::SimpleMath::Vector3 TerrainPosition{ TerrainDesc.Position };
+        DirectX::SimpleMath::Vector3 TerrainScale{ TerrainDesc.Scale };
+        float TerrainHalfExtentX{ TerrainDesc.HalfExtentX * std::abs(TerrainScale.x) };
+        float TerrainHalfExtentZ{ TerrainDesc.HalfExtentZ * std::abs(TerrainScale.z) };
+        std::uint32_t TerrainHeightFieldWidth{ TerrainDesc.HeightFieldWidth };
+        std::uint32_t TerrainHeightFieldHeight{ TerrainDesc.HeightFieldHeight };
+        float TerrainHeightFieldCellSpacing{ TerrainDesc.HeightFieldCellSpacing };
         if (TerrainHeightFieldWidth > 1U && TerrainHeightFieldHeight > 1U && TerrainHeightFieldCellSpacing > 0.0F) {
             float HeightFieldHalfExtentX{ (static_cast<float>(TerrainHeightFieldWidth - 1U) * TerrainHeightFieldCellSpacing * 0.5F) * std::abs(TerrainScale.x) };
             float HeightFieldHalfExtentZ{ (static_cast<float>(TerrainHeightFieldHeight - 1U) * TerrainHeightFieldCellSpacing * 0.5F) * std::abs(TerrainScale.z) };
