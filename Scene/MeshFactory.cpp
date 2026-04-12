@@ -277,6 +277,14 @@ Mesh MeshFactory::CreateTerrainFromHeightMapPng(const std::string& FilePath, flo
     try {
         HeightField = HeightMapLoader.LoadHeightField(BuildDesc.HeightMapPath);
         Mesh BuiltTerrainMesh{ MeshBuilder.Build(HeightField, BuildDesc) };
+        Mesh::TerrainSampleDesc TerrainSampleDescValue{};
+        TerrainSampleDescValue.Width = HeightField.Width;
+        TerrainSampleDescValue.Height = HeightField.Height;
+        TerrainSampleDescValue.CellSpacing = BuildDesc.CellSpacing;
+        TerrainSampleDescValue.MaxHeight = BuildDesc.MaxHeight;
+        TerrainSampleDescValue.CenterOrigin = BuildDesc.CenterOrigin;
+        TerrainSampleDescValue.HeightValues = HeightField.HeightValues;
+        BuiltTerrainMesh.SetTerrainSampleDesc(TerrainSampleDescValue);
         return BuiltTerrainMesh;
     }
     catch (...) {

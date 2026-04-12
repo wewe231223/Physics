@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <cstdint>
 
 #include <glm/vec3.hpp>
 #include <DirectXCollision.h>
@@ -11,6 +12,16 @@ enum class MeshTopology {
 };
 
 class Mesh final {
+public:
+    struct TerrainSampleDesc final {
+        std::uint32_t Width{};
+        std::uint32_t Height{};
+        float CellSpacing{};
+        float MaxHeight{};
+        bool CenterOrigin{};
+        std::vector<float> HeightValues{};
+    };
+
 public:
     Mesh();
     ~Mesh();
@@ -32,6 +43,11 @@ public:
     MeshTopology GetTopology() const;
     const DirectX::BoundingOrientedBox& GetBoundingBox() const;
 
+    void SetTerrainSampleDesc(const TerrainSampleDesc& TerrainSampleDescValue);
+    void ClearTerrainSampleDesc();
+    bool HasTerrainSampleDesc() const;
+    const TerrainSampleDesc& GetTerrainSampleDesc() const;
+
     void EnsureUploaded();
     void Bind() const;
     void Unbind() const;
@@ -51,4 +67,6 @@ private:
     unsigned int mColorBufferObject;
     unsigned int mElementBufferObject;
     bool mIsUploaded;
+    bool mHasTerrainSampleDesc;
+    TerrainSampleDesc mTerrainSampleDesc;
 };

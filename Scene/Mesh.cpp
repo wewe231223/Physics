@@ -25,7 +25,9 @@ Mesh::Mesh()
       mVertexBufferObject{},
       mColorBufferObject{},
       mElementBufferObject{},
-      mIsUploaded{} {
+      mIsUploaded{},
+      mHasTerrainSampleDesc{},
+      mTerrainSampleDesc{} {
 }
 
 Mesh::~Mesh() {
@@ -42,7 +44,9 @@ Mesh::Mesh(const Mesh& Other)
       mVertexBufferObject{},
       mColorBufferObject{},
       mElementBufferObject{},
-      mIsUploaded{} {
+      mIsUploaded{},
+      mHasTerrainSampleDesc{ Other.mHasTerrainSampleDesc },
+      mTerrainSampleDesc{ Other.mTerrainSampleDesc } {
 }
 
 Mesh& Mesh::operator=(const Mesh& Other) {
@@ -62,6 +66,8 @@ Mesh& Mesh::operator=(const Mesh& Other) {
     mColorBufferObject = 0U;
     mElementBufferObject = 0U;
     mIsUploaded = false;
+    mHasTerrainSampleDesc = Other.mHasTerrainSampleDesc;
+    mTerrainSampleDesc = Other.mTerrainSampleDesc;
 
     return *this;
 }
@@ -76,7 +82,9 @@ Mesh::Mesh(Mesh&& Other) noexcept
       mVertexBufferObject{ Other.mVertexBufferObject },
       mColorBufferObject{ Other.mColorBufferObject },
       mElementBufferObject{ Other.mElementBufferObject },
-      mIsUploaded{ Other.mIsUploaded } {
+      mIsUploaded{ Other.mIsUploaded },
+      mHasTerrainSampleDesc{ Other.mHasTerrainSampleDesc },
+      mTerrainSampleDesc{ std::move(Other.mTerrainSampleDesc) } {
     Other.mTopology = MeshTopology::Triangles;
     Other.mBoundingBox = MakeDefaultBoundingOrientedBox();
     Other.mVertexArrayObject = 0U;
@@ -84,6 +92,8 @@ Mesh::Mesh(Mesh&& Other) noexcept
     Other.mColorBufferObject = 0U;
     Other.mElementBufferObject = 0U;
     Other.mIsUploaded = false;
+    Other.mHasTerrainSampleDesc = false;
+    Other.mTerrainSampleDesc = TerrainSampleDesc{};
 }
 
 Mesh& Mesh::operator=(Mesh&& Other) noexcept {
@@ -103,6 +113,8 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
     mColorBufferObject = Other.mColorBufferObject;
     mElementBufferObject = Other.mElementBufferObject;
     mIsUploaded = Other.mIsUploaded;
+    mHasTerrainSampleDesc = Other.mHasTerrainSampleDesc;
+    mTerrainSampleDesc = std::move(Other.mTerrainSampleDesc);
 
     Other.mTopology = MeshTopology::Triangles;
     Other.mBoundingBox = MakeDefaultBoundingOrientedBox();
@@ -111,6 +123,8 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
     Other.mColorBufferObject = 0U;
     Other.mElementBufferObject = 0U;
     Other.mIsUploaded = false;
+    Other.mHasTerrainSampleDesc = false;
+    Other.mTerrainSampleDesc = TerrainSampleDesc{};
 
     return *this;
 }
@@ -156,6 +170,24 @@ MeshTopology Mesh::GetTopology() const {
 
 const DirectX::BoundingOrientedBox& Mesh::GetBoundingBox() const {
     return mBoundingBox;
+}
+
+void Mesh::SetTerrainSampleDesc(const TerrainSampleDesc& TerrainSampleDescValue) {
+    mTerrainSampleDesc = TerrainSampleDescValue;
+    mHasTerrainSampleDesc = true;
+}
+
+void Mesh::ClearTerrainSampleDesc() {
+    mTerrainSampleDesc = TerrainSampleDesc{};
+    mHasTerrainSampleDesc = false;
+}
+
+bool Mesh::HasTerrainSampleDesc() const {
+    return mHasTerrainSampleDesc;
+}
+
+const Mesh::TerrainSampleDesc& Mesh::GetTerrainSampleDesc() const {
+    return mTerrainSampleDesc;
 }
 
 void Mesh::EnsureUploaded() {

@@ -1,5 +1,6 @@
 #include "GameObject.h"
 
+#include <cstdint>
 #include <utility>
 
 GameObject::GameObject()
@@ -161,11 +162,26 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
 
     float HalfExtentX{ 0.5F };
     float HalfExtentZ{ 0.5F };
+    std::uint32_t HeightFieldWidth{};
+    std::uint32_t HeightFieldHeight{};
+    float HeightFieldCellSpacing{ 1.0F };
+    float HeightFieldMaxHeight{ 1.0F };
+    bool HeightFieldCenterOrigin{ true };
+    std::vector<float> HeightFieldValues{};
 
     if (mMesh != nullptr) {
         DirectX::BoundingOrientedBox LocalBoundingBox{ mMesh->GetBoundingBox() };
         HalfExtentX = LocalBoundingBox.Extents.x;
         HalfExtentZ = LocalBoundingBox.Extents.z;
+        if (mMesh->HasTerrainSampleDesc()) {
+            const Mesh::TerrainSampleDesc& TerrainSampleDescValue{ mMesh->GetTerrainSampleDesc() };
+            HeightFieldWidth = TerrainSampleDescValue.Width;
+            HeightFieldHeight = TerrainSampleDescValue.Height;
+            HeightFieldCellSpacing = TerrainSampleDescValue.CellSpacing;
+            HeightFieldMaxHeight = TerrainSampleDescValue.MaxHeight;
+            HeightFieldCenterOrigin = TerrainSampleDescValue.CenterOrigin;
+            HeightFieldValues = TerrainSampleDescValue.HeightValues;
+        }
     }
 
     PhysicsTerrainActor::ActorDesc ActorDesc{
@@ -176,7 +192,13 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
         DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z },
         DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z },
         HalfExtentX,
-        HalfExtentZ
+        HalfExtentZ,
+        HeightFieldWidth,
+        HeightFieldHeight,
+        HeightFieldCellSpacing,
+        HeightFieldMaxHeight,
+        HeightFieldCenterOrigin,
+        HeightFieldValues
     };
 
     return ActorDesc;

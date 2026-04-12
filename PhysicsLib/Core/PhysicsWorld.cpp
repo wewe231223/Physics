@@ -215,13 +215,19 @@ bool PhysicsWorld::ResolveTerrainCollision(const DirectX::BoundingOrientedBox& P
     float DynamicMinimumY{ DynamicCorners[0].y };
     float DynamicMinimumZ{ DynamicCorners[0].z };
     float DynamicMaximumZ{ DynamicCorners[0].z };
+    float DynamicCenterX{ DynamicCorners[0].x };
+    float DynamicCenterZ{ DynamicCorners[0].z };
     for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
         DynamicMinimumX = std::min(DynamicMinimumX, DynamicCorners[CornerIndex].x);
         DynamicMaximumX = std::max(DynamicMaximumX, DynamicCorners[CornerIndex].x);
         DynamicMinimumY = std::min(DynamicMinimumY, DynamicCorners[CornerIndex].y);
         DynamicMinimumZ = std::min(DynamicMinimumZ, DynamicCorners[CornerIndex].z);
         DynamicMaximumZ = std::max(DynamicMaximumZ, DynamicCorners[CornerIndex].z);
+        DynamicCenterX += DynamicCorners[CornerIndex].x;
+        DynamicCenterZ += DynamicCorners[CornerIndex].z;
     }
+    DynamicCenterX /= 8.0F;
+    DynamicCenterZ /= 8.0F;
 
     bool HasCollision{};
     std::size_t ActorCount{ mActors.size() };
@@ -250,7 +256,25 @@ bool PhysicsWorld::ResolveTerrainCollision(const DirectX::BoundingOrientedBox& P
             continue;
         }
 
+        float CollisionSampleX[5]{ DynamicMinimumX, DynamicMaximumX, DynamicMinimumX, DynamicMaximumX, DynamicCenterX };
+        float CollisionSampleZ[5]{ DynamicMinimumZ, DynamicMinimumZ, DynamicMaximumZ, DynamicMaximumZ, DynamicCenterZ };
         float TerrainTopY{ TerrainPosition.y };
+        bool HasValidSurfaceHeight{};
+        for (std::size_t SampleIndex{ 0U }; SampleIndex < 5U; ++SampleIndex) {
+            float SampledSurfaceHeight{};
+            bool HasSurfaceHeight{ TerrainActor->TryGetSurfaceHeightAtWorldPosition(CollisionSampleX[SampleIndex], CollisionSampleZ[SampleIndex], SampledSurfaceHeight) };
+            if (!HasSurfaceHeight) {
+                continue;
+            }
+
+            TerrainTopY = std::max(TerrainTopY, SampledSurfaceHeight);
+            HasValidSurfaceHeight = true;
+        }
+
+        if (!HasValidSurfaceHeight) {
+            continue;
+        }
+
         if (DynamicMinimumY <= TerrainTopY) {
             float PenetrationDepth{ TerrainTopY - DynamicMinimumY };
             CorrectedPosition.y += PenetrationDepth;

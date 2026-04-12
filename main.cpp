@@ -28,7 +28,7 @@ int main() {
 
 	Camera& MainCamera{ MainScene.GetMainCamera() };
 	MainCamera.SetClearColor(0.1F, 0.2F, 0.3F, 1.0F);
-	MainCamera.GetTransform().SetPosition(glm::vec3{ 0.0F, 3.0F, 8.0F });
+	MainCamera.GetTransform().SetPosition(glm::vec3{ 0.0F, 150.0F, 8.0F });
 	MainCamera.GetTransform().SetRotation(glm::vec3{ -0.35F, 0.0F, 0.0F });
 
 	std::size_t GridIndex{ MainScene.CreatePrimitiveGameObject("Grid", PrimitiveMeshType::Grid) };
@@ -42,7 +42,7 @@ int main() {
 		GridObject->GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
 	}
 
-	float DropStartHeight{ 5.0F };
+	float DropStartHeight{ 150.0F };
 
 	GameObject* CubeObject{ MainScene.GetGameObject(CubeIndex) };
 	if (CubeObject != nullptr) {
