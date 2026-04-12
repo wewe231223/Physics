@@ -42,24 +42,26 @@ int main() {
 		GridObject->GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
 	}
 
+	float DropStartHeight{ 5.0F };
+
 	GameObject* CubeObject{ MainScene.GetGameObject(CubeIndex) };
 	if (CubeObject != nullptr) {
-		CubeObject->GetTransform().SetPosition(glm::vec3{ -2.0F, 0.5F, 0.0F });
+		CubeObject->GetTransform().SetPosition(glm::vec3{ -2.0F, DropStartHeight, 0.0F });
 	}
 
 	GameObject* SphereObject{ MainScene.GetGameObject(SphereIndex) };
 	if (SphereObject != nullptr) {
-		SphereObject->GetTransform().SetPosition(glm::vec3{ 2.0F, 0.5F, 0.0F });
+		SphereObject->GetTransform().SetPosition(glm::vec3{ 2.0F, DropStartHeight, 0.0F });
 	}
 
 	GameObject* TriangularPyramidObject{ MainScene.GetGameObject(TriangularPyramidIndex) };
 	if (TriangularPyramidObject != nullptr) {
-		TriangularPyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, 0.5F, -2.0F });
+		TriangularPyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, DropStartHeight, -2.0F });
 	}
 
 	GameObject* SquarePyramidObject{ MainScene.GetGameObject(SquarePyramidIndex) };
 	if (SquarePyramidObject != nullptr) {
-		SquarePyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, 0.5F, 2.0F });
+		SquarePyramidObject->GetTransform().SetPosition(glm::vec3{ 0.0F, DropStartHeight, 2.0F });
 	}
 
 	MainPhysicsWorld.ClearActors();
