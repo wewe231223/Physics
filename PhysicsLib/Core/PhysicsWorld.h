@@ -9,6 +9,8 @@
 
 #include "PhysicsActor.h"
 #include "PhysicsDynamicActor.h"
+#include "PhysicsKinematicActor.h"
+#include "PhysicsStaticActor.h"
 #include "PhysicsTerrainActor.h"
 
 class PhysicsWorld final {
@@ -32,6 +34,7 @@ public:
     void Initialize(const WorldSettings& Settings);
 
     PhysicsDynamicActor* CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc);
+    PhysicsKinematicActor* CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc);
     PhysicsTerrainActor* CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc);
     void AddActor(std::unique_ptr<PhysicsActor> Actor);
     void ClearActors();
@@ -47,8 +50,8 @@ public:
     void Update(float DeltaTime);
 
 private:
-    void IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) const;
-    bool ResolveTerrainCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
+    void IntegrateDynamicActor(PhysicsDynamicActor& Actor, float DeltaTime) const;
+    bool ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
 
 private:
     WorldSettings mSettings;

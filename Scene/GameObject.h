@@ -4,6 +4,7 @@
 #include "Transform.h"
 #include "PhysicsLib/Core/PhysicsActor.h"
 #include "PhysicsLib/Core/PhysicsDynamicActor.h"
+#include "PhysicsLib/Core/PhysicsKinematicActor.h"
 #include "PhysicsLib/Core/PhysicsTerrainActor.h"
 
 #include <memory>

@@ -12,6 +12,12 @@
     <ClCompile Include="Core\PhysicsDynamicActor.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\PhysicsKinematicActor.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PhysicsStaticActor.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
     <ClCompile Include="Core\PhysicsTerrainActor.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -24,6 +30,12 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\PhysicsDynamicActor.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PhysicsKinematicActor.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PhysicsStaticActor.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\PhysicsTerrainActor.h">

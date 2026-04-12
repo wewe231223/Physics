@@ -107,7 +107,7 @@ int main() {
 			continue;
 		}
 
-		if (SourceObject->GetPhysicsActor()->GetActorType() == PhysicsActor::PhysicsActorType::Terrain) {
+		if (SourceObject->GetPhysicsActor()->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
 			continue;
 		}
 

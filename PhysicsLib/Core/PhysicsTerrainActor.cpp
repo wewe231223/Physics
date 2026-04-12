@@ -1,14 +1,14 @@
-#include <utility>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <utility>
 
 #include "PhysicsTerrainActor.h"
 
-#undef min 
-#undef max 
+#undef min
+#undef max
 
 PhysicsTerrainActor::PhysicsTerrainActor()
-    : PhysicsActor{},
+    : PhysicsStaticActor{},
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
@@ -20,16 +20,13 @@ PhysicsTerrainActor::PhysicsTerrainActor()
       mHeightFieldMaxHeight{ 1.0F },
       mHeightFieldCenterOrigin{ true },
       mHeightFieldValues{} {
-    SetActorType(PhysicsActorType::Terrain);
-    SetFlags(GetFlags() | PhysicsActorFlags::Static);
-    SetMass(0.0F);
 }
 
 PhysicsTerrainActor::~PhysicsTerrainActor() {
 }
 
 PhysicsTerrainActor::PhysicsTerrainActor(const PhysicsTerrainActor& Other)
-    : PhysicsActor{ Other },
+    : PhysicsStaticActor{ Other },
       mPosition{ Other.mPosition },
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
@@ -48,7 +45,7 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(const PhysicsTerrainActor& O
         return *this;
     }
 
-    PhysicsActor::operator=(Other);
+    PhysicsStaticActor::operator=(Other);
     mPosition = Other.mPosition;
     mRotation = Other.mRotation;
     mScale = Other.mScale;
@@ -65,7 +62,7 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(const PhysicsTerrainActor& O
 }
 
 PhysicsTerrainActor::PhysicsTerrainActor(PhysicsTerrainActor&& Other) noexcept
-    : PhysicsActor{ std::move(Other) },
+    : PhysicsStaticActor{ std::move(Other) },
       mPosition{ Other.mPosition },
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
@@ -77,17 +74,6 @@ PhysicsTerrainActor::PhysicsTerrainActor(PhysicsTerrainActor&& Other) noexcept
       mHeightFieldMaxHeight{ Other.mHeightFieldMaxHeight },
       mHeightFieldCenterOrigin{ Other.mHeightFieldCenterOrigin },
       mHeightFieldValues{ std::move(Other.mHeightFieldValues) } {
-    Other.mPosition = DirectX::SimpleMath::Vector3{};
-    Other.mRotation = DirectX::SimpleMath::Vector3{};
-    Other.mScale = DirectX::SimpleMath::Vector3{};
-    Other.mHalfExtentX = 0.0F;
-    Other.mHalfExtentZ = 0.0F;
-    Other.mHeightFieldWidth = 0U;
-    Other.mHeightFieldHeight = 0U;
-    Other.mHeightFieldCellSpacing = 1.0F;
-    Other.mHeightFieldMaxHeight = 1.0F;
-    Other.mHeightFieldCenterOrigin = true;
-    Other.mHeightFieldValues.clear();
 }
 
 PhysicsTerrainActor& PhysicsTerrainActor::operator=(PhysicsTerrainActor&& Other) noexcept {
@@ -95,7 +81,7 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(PhysicsTerrainActor&& Other)
         return *this;
     }
 
-    PhysicsActor::operator=(std::move(Other));
+    PhysicsStaticActor::operator=(std::move(Other));
     mPosition = Other.mPosition;
     mRotation = Other.mRotation;
     mScale = Other.mScale;
@@ -108,41 +94,11 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(PhysicsTerrainActor&& Other)
     mHeightFieldCenterOrigin = Other.mHeightFieldCenterOrigin;
     mHeightFieldValues = std::move(Other.mHeightFieldValues);
 
-    Other.mPosition = DirectX::SimpleMath::Vector3{};
-    Other.mRotation = DirectX::SimpleMath::Vector3{};
-    Other.mScale = DirectX::SimpleMath::Vector3{};
-    Other.mHalfExtentX = 0.0F;
-    Other.mHalfExtentZ = 0.0F;
-    Other.mHeightFieldWidth = 0U;
-    Other.mHeightFieldHeight = 0U;
-    Other.mHeightFieldCellSpacing = 1.0F;
-    Other.mHeightFieldMaxHeight = 1.0F;
-    Other.mHeightFieldCenterOrigin = true;
-    Other.mHeightFieldValues.clear();
-
     return *this;
 }
 
-PhysicsTerrainActor::PhysicsTerrainActor(std::string Name)
-    : PhysicsActor{ std::move(Name) },
-      mPosition{},
-      mRotation{},
-      mScale{ 1.0F, 1.0F, 1.0F },
-      mHalfExtentX{ 0.5F },
-      mHalfExtentZ{ 0.5F },
-      mHeightFieldWidth{},
-      mHeightFieldHeight{},
-      mHeightFieldCellSpacing{ 1.0F },
-      mHeightFieldMaxHeight{ 1.0F },
-      mHeightFieldCenterOrigin{ true },
-      mHeightFieldValues{} {
-    SetActorType(PhysicsActorType::Terrain);
-    SetFlags(GetFlags() | PhysicsActorFlags::Static);
-    SetMass(0.0F);
-}
-
 PhysicsTerrainActor::PhysicsTerrainActor(const ActorDesc& Desc)
-    : PhysicsActor{},
+    : PhysicsStaticActor{},
       mPosition{ Desc.Position },
       mRotation{ Desc.Rotation },
       mScale{ Desc.Scale },
@@ -154,10 +110,6 @@ PhysicsTerrainActor::PhysicsTerrainActor(const ActorDesc& Desc)
       mHeightFieldMaxHeight{ Desc.HeightFieldMaxHeight },
       mHeightFieldCenterOrigin{ Desc.HeightFieldCenterOrigin },
       mHeightFieldValues{ Desc.HeightFieldValues } {
-    SetActorType(PhysicsActorType::Terrain);
-    SetFlags(GetFlags() | PhysicsActorFlags::Static);
-    SetMass(0.0F);
-    SetActorDesc(Desc);
 }
 
 void PhysicsTerrainActor::SetActorDesc(const ActorDesc& Desc) {
@@ -175,20 +127,7 @@ void PhysicsTerrainActor::SetActorDesc(const ActorDesc& Desc) {
 }
 
 PhysicsTerrainActor::ActorDesc PhysicsTerrainActor::GetActorDesc() const {
-    ActorDesc Desc{
-        mPosition,
-        mRotation,
-        mScale,
-        mHalfExtentX,
-        mHalfExtentZ,
-        mHeightFieldWidth,
-        mHeightFieldHeight,
-        mHeightFieldCellSpacing,
-        mHeightFieldMaxHeight,
-        mHeightFieldCenterOrigin,
-        mHeightFieldValues
-    };
-
+    ActorDesc Desc{ mPosition, mRotation, mScale, mHalfExtentX, mHalfExtentZ, mHeightFieldWidth, mHeightFieldHeight, mHeightFieldCellSpacing, mHeightFieldMaxHeight, mHeightFieldCenterOrigin, mHeightFieldValues };
     return Desc;
 }
 
@@ -208,6 +147,80 @@ bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float
 
     DirectX::SimpleMath::Vector3 WorldPoint{ DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3{ LocalPoint.x, LocalHeight, LocalPoint.z }, WorldMatrix) };
     OutWorldHeight = WorldPoint.y;
+    return true;
+}
+
+bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+    DirectX::XMFLOAT3 DynamicCorners[8]{};
+    PredictedWorldBoundingBox.GetCorners(DynamicCorners);
+    float DynamicMinimumX{ DynamicCorners[0].x };
+    float DynamicMaximumX{ DynamicCorners[0].x };
+    float DynamicMinimumY{ DynamicCorners[0].y };
+    float DynamicMinimumZ{ DynamicCorners[0].z };
+    float DynamicMaximumZ{ DynamicCorners[0].z };
+    float DynamicCenterX{ DynamicCorners[0].x };
+    float DynamicCenterZ{ DynamicCorners[0].z };
+
+    for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
+        DynamicMinimumX = std::min(DynamicMinimumX, DynamicCorners[CornerIndex].x);
+        DynamicMaximumX = std::max(DynamicMaximumX, DynamicCorners[CornerIndex].x);
+        DynamicMinimumY = std::min(DynamicMinimumY, DynamicCorners[CornerIndex].y);
+        DynamicMinimumZ = std::min(DynamicMinimumZ, DynamicCorners[CornerIndex].z);
+        DynamicMaximumZ = std::max(DynamicMaximumZ, DynamicCorners[CornerIndex].z);
+        DynamicCenterX += DynamicCorners[CornerIndex].x;
+        DynamicCenterZ += DynamicCorners[CornerIndex].z;
+    }
+
+    DynamicCenterX /= 8.0F;
+    DynamicCenterZ /= 8.0F;
+
+    float TerrainHalfExtentX{ mHalfExtentX * std::abs(mScale.x) };
+    float TerrainHalfExtentZ{ mHalfExtentZ * std::abs(mScale.z) };
+
+    if (mHeightFieldWidth > 1U && mHeightFieldHeight > 1U && mHeightFieldCellSpacing > 0.0F) {
+        float HeightFieldHalfExtentX{ (static_cast<float>(mHeightFieldWidth - 1U) * mHeightFieldCellSpacing * 0.5F) * std::abs(mScale.x) };
+        float HeightFieldHalfExtentZ{ (static_cast<float>(mHeightFieldHeight - 1U) * mHeightFieldCellSpacing * 0.5F) * std::abs(mScale.z) };
+        TerrainHalfExtentX = std::max(TerrainHalfExtentX, HeightFieldHalfExtentX);
+        TerrainHalfExtentZ = std::max(TerrainHalfExtentZ, HeightFieldHalfExtentZ);
+    }
+
+    float TerrainMinimumX{ mPosition.x - TerrainHalfExtentX };
+    float TerrainMaximumX{ mPosition.x + TerrainHalfExtentX };
+    float TerrainMinimumZ{ mPosition.z - TerrainHalfExtentZ };
+    float TerrainMaximumZ{ mPosition.z + TerrainHalfExtentZ };
+    bool IsOverlappingX{ DynamicMaximumX >= TerrainMinimumX && DynamicMinimumX <= TerrainMaximumX };
+    bool IsOverlappingZ{ DynamicMaximumZ >= TerrainMinimumZ && DynamicMinimumZ <= TerrainMaximumZ };
+    if (!IsOverlappingX || !IsOverlappingZ) {
+        return false;
+    }
+
+    float CollisionSampleX[5]{ DynamicMinimumX, DynamicMaximumX, DynamicMinimumX, DynamicMaximumX, DynamicCenterX };
+    float CollisionSampleZ[5]{ DynamicMinimumZ, DynamicMinimumZ, DynamicMaximumZ, DynamicMaximumZ, DynamicCenterZ };
+    float TerrainTopY{ mPosition.y };
+    bool HasValidSurfaceHeight{};
+
+    for (std::size_t SampleIndex{ 0U }; SampleIndex < 5U; ++SampleIndex) {
+        float SampledSurfaceHeight{};
+        bool HasSurfaceHeight{ TryGetSurfaceHeightAtWorldPosition(CollisionSampleX[SampleIndex], CollisionSampleZ[SampleIndex], SampledSurfaceHeight) };
+        if (!HasSurfaceHeight) {
+            continue;
+        }
+
+        TerrainTopY = std::max(TerrainTopY, SampledSurfaceHeight);
+        HasValidSurfaceHeight = true;
+    }
+
+    if (!HasValidSurfaceHeight) {
+        return false;
+    }
+
+    if (DynamicMinimumY > TerrainTopY) {
+        return false;
+    }
+
+    float PenetrationDepth{ TerrainTopY - DynamicMinimumY };
+    CorrectedPosition.y += PenetrationDepth;
+    CorrectedVelocity.y = 0.0F;
     return true;
 }
 

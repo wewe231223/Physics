@@ -21,12 +21,16 @@
   <ItemGroup>
     <ClCompile Include="Core\PhysicsActor.cpp" />
     <ClCompile Include="Core\PhysicsDynamicActor.cpp" />
+    <ClCompile Include="Core\PhysicsKinematicActor.cpp" />
+    <ClCompile Include="Core\PhysicsStaticActor.cpp" />
     <ClCompile Include="Core\PhysicsTerrainActor.cpp" />
     <ClCompile Include="Core\PhysicsWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\PhysicsActor.h" />
     <ClInclude Include="Core\PhysicsDynamicActor.h" />
+    <ClInclude Include="Core\PhysicsKinematicActor.h" />
+    <ClInclude Include="Core\PhysicsStaticActor.h" />
     <ClInclude Include="Core\PhysicsTerrainActor.h" />
     <ClInclude Include="Core\PhysicsWorld.h" />
   </ItemGroup>

@@ -1,14 +1,15 @@
 #pragma once
 
 #include <SimpleMath/SimpleMath.h>
+#include <DirectXCollision.h>
+
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <vector>
 
-#include "PhysicsActor.h"
+#include "PhysicsStaticActor.h"
 
-class PhysicsTerrainActor final : public PhysicsActor {
+class PhysicsTerrainActor final : public PhysicsStaticActor {
 public:
     struct ActorDesc {
         DirectX::SimpleMath::Vector3 Position{};
@@ -32,7 +33,6 @@ public:
     PhysicsTerrainActor(PhysicsTerrainActor&& Other) noexcept;
     PhysicsTerrainActor& operator=(PhysicsTerrainActor&& Other) noexcept;
 
-    explicit PhysicsTerrainActor(std::string Name);
     explicit PhysicsTerrainActor(const ActorDesc& Desc);
 
 public:
@@ -40,6 +40,7 @@ public:
     ActorDesc GetActorDesc() const;
 
     bool TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const;
+    bool ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const override;
 
 private:
     bool TryGetSurfaceHeightAtLocalPosition(float LocalX, float LocalZ, float& OutLocalHeight) const;

@@ -4,7 +4,6 @@
 #include <cmath>
 #include <utility>
 
-#undef min 
 #undef max 
 
 PhysicsWorld::PhysicsWorld()
@@ -27,9 +26,17 @@ PhysicsWorld::PhysicsWorld(const PhysicsWorld& Other)
             continue;
         }
 
-        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Terrain) {
-            const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(SourceActor) };
-            mActors.push_back(std::make_unique<PhysicsTerrainActor>(*TerrainActor));
+        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
+            const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(SourceActor) };
+            if (TerrainActor != nullptr) {
+                mActors.push_back(std::make_unique<PhysicsTerrainActor>(*TerrainActor));
+            }
+            continue;
+        }
+
+        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
+            const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(SourceActor) };
+            mActors.push_back(std::make_unique<PhysicsKinematicActor>(*KinematicActor));
             continue;
         }
 
@@ -54,9 +61,17 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
             continue;
         }
 
-        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Terrain) {
-            const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(SourceActor) };
-            mActors.push_back(std::make_unique<PhysicsTerrainActor>(*TerrainActor));
+        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
+            const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(SourceActor) };
+            if (TerrainActor != nullptr) {
+                mActors.push_back(std::make_unique<PhysicsTerrainActor>(*TerrainActor));
+            }
+            continue;
+        }
+
+        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
+            const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(SourceActor) };
+            mActors.push_back(std::make_unique<PhysicsKinematicActor>(*KinematicActor));
             continue;
         }
 
@@ -104,6 +119,13 @@ void PhysicsWorld::Initialize(const WorldSettings& Settings) {
 PhysicsDynamicActor* PhysicsWorld::CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc) {
     std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsDynamicActor>(Desc) };
     PhysicsDynamicActor* CreatedActor{ static_cast<PhysicsDynamicActor*>(NewActor.get()) };
+    mActors.push_back(std::move(NewActor));
+    return CreatedActor;
+}
+
+PhysicsKinematicActor* PhysicsWorld::CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc) {
+    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsKinematicActor>(Desc) };
+    PhysicsKinematicActor* CreatedActor{ static_cast<PhysicsKinematicActor*>(NewActor.get()) };
     mActors.push_back(std::move(NewActor));
     return CreatedActor;
 }
@@ -165,7 +187,7 @@ void PhysicsWorld::StepSimulation() {
         }
 
         PhysicsDynamicActor* DynamicActor{ static_cast<PhysicsDynamicActor*>(CurrentActor) };
-        IntegrateActor(*DynamicActor, mSettings.FixedTimeStep);
+        IntegrateDynamicActor(*DynamicActor, mSettings.FixedTimeStep);
     }
 }
 
@@ -178,12 +200,8 @@ void PhysicsWorld::Update(float DeltaTime) {
     }
 }
 
-void PhysicsWorld::IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) const {
+void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float DeltaTime) const {
     if (!Actor.GetIsActive()) {
-        return;
-    }
-
-    if (Actor.HasFlag(PhysicsActor::PhysicsActorFlags::Static)) {
         return;
     }
 
@@ -191,7 +209,15 @@ void PhysicsWorld::IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) c
         return;
     }
 
-    DirectX::SimpleMath::Vector3 NextVelocity{ Actor.GetVelocity() + (mSettings.Gravity * DeltaTime) };
+    if (Actor.GetIsSleeping()) {
+        return;
+    }
+
+    DirectX::SimpleMath::Vector3 TotalAcceleration{ mSettings.Gravity + Actor.GetAcceleration() };
+    DirectX::SimpleMath::Vector3 NextVelocity{ Actor.GetVelocity() + (TotalAcceleration * DeltaTime) };
+    float DampingFactor{ std::max(0.0F, 1.0F - (Actor.GetLinearDamping() * DeltaTime)) };
+    NextVelocity *= DampingFactor;
+
     DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
     DirectX::BoundingOrientedBox PredictedWorldBoundingBox{};
     DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Actor.GetScale()) };
@@ -202,96 +228,30 @@ void PhysicsWorld::IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) c
 
     DirectX::SimpleMath::Vector3 CorrectedPosition{ NextPosition };
     DirectX::SimpleMath::Vector3 CorrectedVelocity{ NextVelocity };
-    ResolveTerrainCollision(PredictedWorldBoundingBox, CorrectedPosition, CorrectedVelocity);
+    ResolveStaticCollisions(PredictedWorldBoundingBox, CorrectedPosition, CorrectedVelocity);
 
     Actor.SetVelocity(CorrectedVelocity);
     Actor.SetPosition(CorrectedPosition);
+    Actor.UpdateSleepState();
 }
 
-bool PhysicsWorld::ResolveTerrainCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
-    DirectX::XMFLOAT3 DynamicCorners[8]{};
-    PredictedWorldBoundingBox.GetCorners(DynamicCorners);
-    float DynamicMinimumX{ DynamicCorners[0].x };
-    float DynamicMaximumX{ DynamicCorners[0].x };
-    float DynamicMinimumY{ DynamicCorners[0].y };
-    float DynamicMinimumZ{ DynamicCorners[0].z };
-    float DynamicMaximumZ{ DynamicCorners[0].z };
-    float DynamicCenterX{ DynamicCorners[0].x };
-    float DynamicCenterZ{ DynamicCorners[0].z };
-    for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
-        DynamicMinimumX = std::min(DynamicMinimumX, DynamicCorners[CornerIndex].x);
-        DynamicMaximumX = std::max(DynamicMaximumX, DynamicCorners[CornerIndex].x);
-        DynamicMinimumY = std::min(DynamicMinimumY, DynamicCorners[CornerIndex].y);
-        DynamicMinimumZ = std::min(DynamicMinimumZ, DynamicCorners[CornerIndex].z);
-        DynamicMaximumZ = std::max(DynamicMaximumZ, DynamicCorners[CornerIndex].z);
-        DynamicCenterX += DynamicCorners[CornerIndex].x;
-        DynamicCenterZ += DynamicCorners[CornerIndex].z;
-    }
-    DynamicCenterX /= 8.0F;
-    DynamicCenterZ /= 8.0F;
-
+bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
     bool HasCollision{};
     std::size_t ActorCount{ mActors.size() };
+
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
         const PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
         if (CurrentActor == nullptr) {
             continue;
         }
 
-        if (CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Terrain) {
+        if (CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Static) {
             continue;
         }
 
-        const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(CurrentActor) };
-        PhysicsTerrainActor::ActorDesc TerrainDesc{ TerrainActor->GetActorDesc() };
-        DirectX::SimpleMath::Vector3 TerrainPosition{ TerrainDesc.Position };
-        DirectX::SimpleMath::Vector3 TerrainScale{ TerrainDesc.Scale };
-        float TerrainHalfExtentX{ TerrainDesc.HalfExtentX * std::abs(TerrainScale.x) };
-        float TerrainHalfExtentZ{ TerrainDesc.HalfExtentZ * std::abs(TerrainScale.z) };
-        std::uint32_t TerrainHeightFieldWidth{ TerrainDesc.HeightFieldWidth };
-        std::uint32_t TerrainHeightFieldHeight{ TerrainDesc.HeightFieldHeight };
-        float TerrainHeightFieldCellSpacing{ TerrainDesc.HeightFieldCellSpacing };
-        if (TerrainHeightFieldWidth > 1U && TerrainHeightFieldHeight > 1U && TerrainHeightFieldCellSpacing > 0.0F) {
-            float HeightFieldHalfExtentX{ (static_cast<float>(TerrainHeightFieldWidth - 1U) * TerrainHeightFieldCellSpacing * 0.5F) * std::abs(TerrainScale.x) };
-            float HeightFieldHalfExtentZ{ (static_cast<float>(TerrainHeightFieldHeight - 1U) * TerrainHeightFieldCellSpacing * 0.5F) * std::abs(TerrainScale.z) };
-            TerrainHalfExtentX = std::max(TerrainHalfExtentX, HeightFieldHalfExtentX);
-            TerrainHalfExtentZ = std::max(TerrainHalfExtentZ, HeightFieldHalfExtentZ);
-        }
-        float TerrainMinimumX{ TerrainPosition.x - TerrainHalfExtentX };
-        float TerrainMaximumX{ TerrainPosition.x + TerrainHalfExtentX };
-        float TerrainMinimumZ{ TerrainPosition.z - TerrainHalfExtentZ };
-        float TerrainMaximumZ{ TerrainPosition.z + TerrainHalfExtentZ };
-        bool IsOverlappingX{ DynamicMaximumX >= TerrainMinimumX && DynamicMinimumX <= TerrainMaximumX };
-        bool IsOverlappingZ{ DynamicMaximumZ >= TerrainMinimumZ && DynamicMinimumZ <= TerrainMaximumZ };
-        if (!IsOverlappingX || !IsOverlappingZ) {
-            continue;
-        }
-
-        float CollisionSampleX[5]{ DynamicMinimumX, DynamicMaximumX, DynamicMinimumX, DynamicMaximumX, DynamicCenterX };
-        float CollisionSampleZ[5]{ DynamicMinimumZ, DynamicMinimumZ, DynamicMaximumZ, DynamicMaximumZ, DynamicCenterZ };
-        float TerrainTopY{ TerrainPosition.y };
-        bool HasValidSurfaceHeight{};
-        for (std::size_t SampleIndex{ 0U }; SampleIndex < 5U; ++SampleIndex) {
-            float SampledSurfaceHeight{};
-            bool HasSurfaceHeight{ TerrainActor->TryGetSurfaceHeightAtWorldPosition(CollisionSampleX[SampleIndex], CollisionSampleZ[SampleIndex], SampledSurfaceHeight) };
-            if (!HasSurfaceHeight) {
-                continue;
-            }
-
-            TerrainTopY = std::max(TerrainTopY, SampledSurfaceHeight);
-            HasValidSurfaceHeight = true;
-        }
-
-        if (!HasValidSurfaceHeight) {
-            continue;
-        }
-
-        if (DynamicMinimumY <= TerrainTopY) {
-            float PenetrationDepth{ TerrainTopY - DynamicMinimumY };
-            CorrectedPosition.y += PenetrationDepth;
-            CorrectedVelocity.y = 0.0F;
-            HasCollision = true;
-        }
+        const PhysicsStaticActor* StaticActor{ static_cast<const PhysicsStaticActor*>(CurrentActor) };
+        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(PredictedWorldBoundingBox, CorrectedPosition, CorrectedVelocity) };
+        HasCollision = HasCollision || CurrentCollision;
     }
 
     return HasCollision;

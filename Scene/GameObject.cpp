@@ -141,18 +141,7 @@ PhysicsDynamicActor::ActorDesc GameObject::GetPhysicsDynamicActorDesc() const {
         ActorBoundingBox = mMesh->GetBoundingBox();
     }
 
-    PhysicsDynamicActor::ActorDesc ActorDesc{
-        mName,
-        mIsActive,
-        1.0F,
-        PhysicsActor::PhysicsActorFlags::None,
-        ActorBoundingBox,
-        DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z },
-        DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z },
-        DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z },
-        DirectX::SimpleMath::Vector3{}
-    };
-
+    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, 1.0F, PhysicsActor::PhysicsActorFlags::None, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
     return ActorDesc;
 }
 
@@ -185,20 +174,7 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
         }
     }
 
-    PhysicsTerrainActor::ActorDesc ActorDesc{
-        DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z },
-        DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z },
-        DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z },
-        HalfExtentX,
-        HalfExtentZ,
-        HeightFieldWidth,
-        HeightFieldHeight,
-        HeightFieldCellSpacing,
-        HeightFieldMaxHeight,
-        HeightFieldCenterOrigin,
-        HeightFieldValues
-    };
-
+    PhysicsTerrainActor::ActorDesc ActorDesc{ DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, HalfExtentX, HalfExtentZ, HeightFieldWidth, HeightFieldHeight, HeightFieldCellSpacing, HeightFieldMaxHeight, HeightFieldCenterOrigin, HeightFieldValues };
     return ActorDesc;
 }
 
@@ -219,13 +195,23 @@ void GameObject::PullTransformFromPhysicsActor() {
         return;
     }
 
-    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Terrain) {
+    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
         const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(mPhysicsActor) };
         PhysicsTerrainActor::ActorDesc TerrainDesc{ TerrainActor->GetActorDesc() };
         DirectX::SimpleMath::Vector3 Position{ TerrainDesc.Position };
         DirectX::SimpleMath::Vector3 Rotation{ TerrainDesc.Rotation };
         DirectX::SimpleMath::Vector3 Scale{ TerrainDesc.Scale };
+        mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
+        mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
+        mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
+        return;
+    }
 
+    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
+        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(mPhysicsActor) };
+        DirectX::SimpleMath::Vector3 Position{ KinematicActor->GetPosition() };
+        DirectX::SimpleMath::Vector3 Rotation{ KinematicActor->GetRotation() };
+        DirectX::SimpleMath::Vector3 Scale{ KinematicActor->GetScale() };
         mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
         mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
         mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
@@ -236,7 +222,6 @@ void GameObject::PullTransformFromPhysicsActor() {
     DirectX::SimpleMath::Vector3 Position{ DynamicActor->GetPosition() };
     DirectX::SimpleMath::Vector3 Rotation{ DynamicActor->GetRotation() };
     DirectX::SimpleMath::Vector3 Scale{ DynamicActor->GetScale() };
-
     mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
     mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
     mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });

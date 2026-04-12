@@ -15,12 +15,14 @@ public:
         None = 0U,
         Static = 1U << 0U,
         Kinematic = 1U << 1U,
-        Trigger = 1U << 2U
+        Trigger = 1U << 2U,
+        Sleeping = 1U << 3U
     };
 
     enum class PhysicsActorType : std::uint32_t {
         Dynamic = 0U,
-        Terrain = 1U
+        Kinematic = 1U,
+        Static = 2U
     };
 
 public:

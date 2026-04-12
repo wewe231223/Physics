@@ -2,7 +2,7 @@
 #include <cmath>
 #include <utility>
 
-#include "PhysicsDynamicActor.h"
+#include "PhysicsKinematicActor.h"
 
 #undef max 
 
@@ -16,7 +16,7 @@ namespace {
     }
 }
 
-PhysicsDynamicActor::PhysicsDynamicActor()
+PhysicsKinematicActor::PhysicsKinematicActor()
     : PhysicsActor{},
       mLocalBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mWorldBoundingBox{ MakeDefaultBoundingOrientedBox() },
@@ -25,22 +25,22 @@ PhysicsDynamicActor::PhysicsDynamicActor()
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
-      mAcceleration{},
       mFriction{ 0.6F },
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
       mIsSleeping{},
-      mSleepThreshold{ 0.05F },
+      mSleepThreshold{ 0.0F },
       mBoundingBoxFatMargin{ 0.1F } {
-    SetActorType(PhysicsActorType::Dynamic);
+    SetActorType(PhysicsActorType::Kinematic);
+    SetFlags(GetFlags() | PhysicsActorFlags::Kinematic);
     UpdateWorldBoundingBox();
 }
 
-PhysicsDynamicActor::~PhysicsDynamicActor() {
+PhysicsKinematicActor::~PhysicsKinematicActor() {
 }
 
-PhysicsDynamicActor::PhysicsDynamicActor(const PhysicsDynamicActor& Other)
+PhysicsKinematicActor::PhysicsKinematicActor(const PhysicsKinematicActor& Other)
     : PhysicsActor{ Other },
       mLocalBoundingBox{ Other.mLocalBoundingBox },
       mWorldBoundingBox{ Other.mWorldBoundingBox },
@@ -49,7 +49,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(const PhysicsDynamicActor& Other)
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
-      mAcceleration{ Other.mAcceleration },
       mFriction{ Other.mFriction },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
@@ -59,7 +58,7 @@ PhysicsDynamicActor::PhysicsDynamicActor(const PhysicsDynamicActor& Other)
       mBoundingBoxFatMargin{ Other.mBoundingBoxFatMargin } {
 }
 
-PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& Other) {
+PhysicsKinematicActor& PhysicsKinematicActor::operator=(const PhysicsKinematicActor& Other) {
     if (this == &Other) {
         return *this;
     }
@@ -72,7 +71,6 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& O
     mRotation = Other.mRotation;
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
-    mAcceleration = Other.mAcceleration;
     mFriction = Other.mFriction;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
@@ -84,7 +82,7 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& O
     return *this;
 }
 
-PhysicsDynamicActor::PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept
+PhysicsKinematicActor::PhysicsKinematicActor(PhysicsKinematicActor&& Other) noexcept
     : PhysicsActor{ std::move(Other) },
       mLocalBoundingBox{ Other.mLocalBoundingBox },
       mWorldBoundingBox{ Other.mWorldBoundingBox },
@@ -93,7 +91,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
-      mAcceleration{ Other.mAcceleration },
       mFriction{ Other.mFriction },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
@@ -103,7 +100,7 @@ PhysicsDynamicActor::PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept
       mBoundingBoxFatMargin{ Other.mBoundingBoxFatMargin } {
 }
 
-PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other) noexcept {
+PhysicsKinematicActor& PhysicsKinematicActor::operator=(PhysicsKinematicActor&& Other) noexcept {
     if (this == &Other) {
         return *this;
     }
@@ -116,7 +113,6 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other)
     mRotation = Other.mRotation;
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
-    mAcceleration = Other.mAcceleration;
     mFriction = Other.mFriction;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
@@ -128,7 +124,7 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other)
     return *this;
 }
 
-PhysicsDynamicActor::PhysicsDynamicActor(std::string Name)
+PhysicsKinematicActor::PhysicsKinematicActor(std::string Name)
     : PhysicsActor{ std::move(Name) },
       mLocalBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mWorldBoundingBox{ MakeDefaultBoundingOrientedBox() },
@@ -137,19 +133,19 @@ PhysicsDynamicActor::PhysicsDynamicActor(std::string Name)
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
-      mAcceleration{},
       mFriction{ 0.6F },
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
       mIsSleeping{},
-      mSleepThreshold{ 0.05F },
+      mSleepThreshold{ 0.0F },
       mBoundingBoxFatMargin{ 0.1F } {
-    SetActorType(PhysicsActorType::Dynamic);
+    SetActorType(PhysicsActorType::Kinematic);
+    SetFlags(GetFlags() | PhysicsActorFlags::Kinematic);
     UpdateWorldBoundingBox();
 }
 
-PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
+PhysicsKinematicActor::PhysicsKinematicActor(const ActorDesc& Desc)
     : PhysicsActor{ Desc.Name },
       mLocalBoundingBox{ Desc.LocalBoundingBox },
       mWorldBoundingBox{ Desc.LocalBoundingBox },
@@ -158,7 +154,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
       mRotation{ Desc.Rotation },
       mScale{ Desc.Scale },
       mVelocity{ Desc.Velocity },
-      mAcceleration{ Desc.Acceleration },
       mFriction{ Desc.Friction },
       mRestitution{ Desc.Restitution },
       mLinearDamping{ Desc.LinearDamping },
@@ -168,147 +163,123 @@ PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
       mBoundingBoxFatMargin{ Desc.BoundingBoxFatMargin } {
     SetIsActive(Desc.IsActive);
     SetMass(Desc.Mass);
-    SetFlags(Desc.Flags);
-    SetActorType(PhysicsActorType::Dynamic);
+    SetFlags(Desc.Flags | PhysicsActorFlags::Kinematic);
+    SetActorType(PhysicsActorType::Kinematic);
     UpdateWorldBoundingBox();
 }
 
-void PhysicsDynamicActor::SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox) {
+void PhysicsKinematicActor::SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox) {
     mLocalBoundingBox = LocalBoundingBox;
     UpdateWorldBoundingBox();
 }
 
-const DirectX::BoundingOrientedBox& PhysicsDynamicActor::GetLocalBoundingBox() const {
+const DirectX::BoundingOrientedBox& PhysicsKinematicActor::GetLocalBoundingBox() const {
     return mLocalBoundingBox;
 }
 
-const DirectX::BoundingOrientedBox& PhysicsDynamicActor::GetWorldBoundingBox() const {
+const DirectX::BoundingOrientedBox& PhysicsKinematicActor::GetWorldBoundingBox() const {
     return mWorldBoundingBox;
 }
 
-const DirectX::BoundingOrientedBox& PhysicsDynamicActor::GetFatWorldBoundingBox() const {
+const DirectX::BoundingOrientedBox& PhysicsKinematicActor::GetFatWorldBoundingBox() const {
     return mFatWorldBoundingBox;
 }
 
-void PhysicsDynamicActor::SetPosition(const DirectX::SimpleMath::Vector3& Position) {
+void PhysicsKinematicActor::SetPosition(const DirectX::SimpleMath::Vector3& Position) {
     mPosition = Position;
     UpdateWorldBoundingBox();
 }
 
-const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetPosition() const {
+const DirectX::SimpleMath::Vector3& PhysicsKinematicActor::GetPosition() const {
     return mPosition;
 }
 
-void PhysicsDynamicActor::SetRotation(const DirectX::SimpleMath::Vector3& Rotation) {
+void PhysicsKinematicActor::SetRotation(const DirectX::SimpleMath::Vector3& Rotation) {
     mRotation = Rotation;
     UpdateWorldBoundingBox();
 }
 
-const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetRotation() const {
+const DirectX::SimpleMath::Vector3& PhysicsKinematicActor::GetRotation() const {
     return mRotation;
 }
 
-void PhysicsDynamicActor::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
+void PhysicsKinematicActor::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
     mScale = Scale;
     UpdateWorldBoundingBox();
 }
 
-const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetScale() const {
+const DirectX::SimpleMath::Vector3& PhysicsKinematicActor::GetScale() const {
     return mScale;
 }
 
-void PhysicsDynamicActor::SetVelocity(const DirectX::SimpleMath::Vector3& Velocity) {
+void PhysicsKinematicActor::SetVelocity(const DirectX::SimpleMath::Vector3& Velocity) {
     mVelocity = Velocity;
 }
 
-const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetVelocity() const {
+const DirectX::SimpleMath::Vector3& PhysicsKinematicActor::GetVelocity() const {
     return mVelocity;
 }
 
-void PhysicsDynamicActor::SetAcceleration(const DirectX::SimpleMath::Vector3& Acceleration) {
-    mAcceleration = Acceleration;
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetAcceleration() const {
-    return mAcceleration;
-}
-
-void PhysicsDynamicActor::SetFriction(float Friction) {
+void PhysicsKinematicActor::SetFriction(float Friction) {
     mFriction = std::max(Friction, 0.0F);
 }
 
-float PhysicsDynamicActor::GetFriction() const {
+float PhysicsKinematicActor::GetFriction() const {
     return mFriction;
 }
 
-void PhysicsDynamicActor::SetRestitution(float Restitution) {
+void PhysicsKinematicActor::SetRestitution(float Restitution) {
     mRestitution = std::clamp(Restitution, 0.0F, 1.0F);
 }
 
-float PhysicsDynamicActor::GetRestitution() const {
+float PhysicsKinematicActor::GetRestitution() const {
     return mRestitution;
 }
 
-void PhysicsDynamicActor::SetLinearDamping(float LinearDamping) {
+void PhysicsKinematicActor::SetLinearDamping(float LinearDamping) {
     mLinearDamping = std::max(LinearDamping, 0.0F);
 }
 
-float PhysicsDynamicActor::GetLinearDamping() const {
+float PhysicsKinematicActor::GetLinearDamping() const {
     return mLinearDamping;
 }
 
-void PhysicsDynamicActor::SetAngularDamping(float AngularDamping) {
+void PhysicsKinematicActor::SetAngularDamping(float AngularDamping) {
     mAngularDamping = std::max(AngularDamping, 0.0F);
 }
 
-float PhysicsDynamicActor::GetAngularDamping() const {
+float PhysicsKinematicActor::GetAngularDamping() const {
     return mAngularDamping;
 }
 
-void PhysicsDynamicActor::SetSleepThreshold(float SleepThreshold) {
+void PhysicsKinematicActor::SetSleepThreshold(float SleepThreshold) {
     mSleepThreshold = std::max(SleepThreshold, 0.0F);
 }
 
-float PhysicsDynamicActor::GetSleepThreshold() const {
+float PhysicsKinematicActor::GetSleepThreshold() const {
     return mSleepThreshold;
 }
 
-void PhysicsDynamicActor::SetBoundingBoxFatMargin(float BoundingBoxFatMargin) {
+void PhysicsKinematicActor::SetBoundingBoxFatMargin(float BoundingBoxFatMargin) {
     mBoundingBoxFatMargin = std::max(BoundingBoxFatMargin, 0.0F);
     UpdateFatWorldBoundingBox();
 }
 
-float PhysicsDynamicActor::GetBoundingBoxFatMargin() const {
+float PhysicsKinematicActor::GetBoundingBoxFatMargin() const {
     return mBoundingBoxFatMargin;
 }
 
-void PhysicsDynamicActor::SetIsSleeping(bool IsSleeping) {
-    mIsSleeping = IsSleeping;
-    if (mIsSleeping) {
-        SetFlags(GetFlags() | PhysicsActorFlags::Sleeping);
-        mVelocity = DirectX::SimpleMath::Vector3{};
-        mAcceleration = DirectX::SimpleMath::Vector3{};
+void PhysicsKinematicActor::MoveToTarget(const DirectX::SimpleMath::Vector3& TargetPosition, float DeltaTime) {
+    if (DeltaTime <= 0.0F) {
         return;
     }
 
-    PhysicsActorFlags UpdatedFlags{ GetFlags() };
-    std::uint32_t UpdatedValue{ static_cast<std::uint32_t>(UpdatedFlags) & ~static_cast<std::uint32_t>(PhysicsActorFlags::Sleeping) };
-    SetFlags(static_cast<PhysicsActorFlags>(UpdatedValue));
+    mVelocity = (TargetPosition - mPosition) / DeltaTime;
+    mPosition = TargetPosition;
+    UpdateWorldBoundingBox();
 }
 
-bool PhysicsDynamicActor::GetIsSleeping() const {
-    return mIsSleeping;
-}
-
-void PhysicsDynamicActor::UpdateSleepState() {
-    float VelocityLengthSquared{ mVelocity.LengthSquared() };
-    float AccelerationLengthSquared{ mAcceleration.LengthSquared() };
-    float ThresholdSquared{ mSleepThreshold * mSleepThreshold };
-    bool ShouldSleep{ VelocityLengthSquared <= ThresholdSquared && AccelerationLengthSquared <= ThresholdSquared };
-    SetIsSleeping(ShouldSleep);
-}
-
-void PhysicsDynamicActor::UpdateWorldBoundingBox() {
+void PhysicsKinematicActor::UpdateWorldBoundingBox() {
     DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(mScale) };
     DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(mRotation.y, mRotation.x, mRotation.z) };
     DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(mPosition) };
@@ -317,7 +288,7 @@ void PhysicsDynamicActor::UpdateWorldBoundingBox() {
     UpdateFatWorldBoundingBox();
 }
 
-void PhysicsDynamicActor::UpdateFatWorldBoundingBox() {
+void PhysicsKinematicActor::UpdateFatWorldBoundingBox() {
     mFatWorldBoundingBox = mWorldBoundingBox;
     float VelocityBasedMargin{ std::sqrt(mVelocity.LengthSquared()) * 0.05F };
     float FinalMargin{ mBoundingBoxFatMargin + VelocityBasedMargin };

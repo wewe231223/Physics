@@ -7,7 +7,7 @@
 
 #include "PhysicsActor.h"
 
-class PhysicsDynamicActor final : public PhysicsActor {
+class PhysicsKinematicActor final : public PhysicsActor {
 public:
     struct ActorDesc {
         std::string Name;
@@ -19,7 +19,6 @@ public:
         DirectX::SimpleMath::Vector3 Rotation;
         DirectX::SimpleMath::Vector3 Scale;
         DirectX::SimpleMath::Vector3 Velocity;
-        DirectX::SimpleMath::Vector3 Acceleration;
         float Friction;
         float Restitution;
         float LinearDamping;
@@ -30,15 +29,15 @@ public:
     };
 
 public:
-    PhysicsDynamicActor();
-    ~PhysicsDynamicActor() override;
-    PhysicsDynamicActor(const PhysicsDynamicActor& Other);
-    PhysicsDynamicActor& operator=(const PhysicsDynamicActor& Other);
-    PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept;
-    PhysicsDynamicActor& operator=(PhysicsDynamicActor&& Other) noexcept;
+    PhysicsKinematicActor();
+    ~PhysicsKinematicActor() override;
+    PhysicsKinematicActor(const PhysicsKinematicActor& Other);
+    PhysicsKinematicActor& operator=(const PhysicsKinematicActor& Other);
+    PhysicsKinematicActor(PhysicsKinematicActor&& Other) noexcept;
+    PhysicsKinematicActor& operator=(PhysicsKinematicActor&& Other) noexcept;
 
-    explicit PhysicsDynamicActor(std::string Name);
-    explicit PhysicsDynamicActor(const ActorDesc& Desc);
+    explicit PhysicsKinematicActor(std::string Name);
+    explicit PhysicsKinematicActor(const ActorDesc& Desc);
 
 public:
     void SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox);
@@ -58,9 +57,6 @@ public:
     void SetVelocity(const DirectX::SimpleMath::Vector3& Velocity);
     const DirectX::SimpleMath::Vector3& GetVelocity() const;
 
-    void SetAcceleration(const DirectX::SimpleMath::Vector3& Acceleration);
-    const DirectX::SimpleMath::Vector3& GetAcceleration() const;
-
     void SetFriction(float Friction);
     float GetFriction() const;
 
@@ -79,10 +75,7 @@ public:
     void SetBoundingBoxFatMargin(float BoundingBoxFatMargin);
     float GetBoundingBoxFatMargin() const;
 
-    void SetIsSleeping(bool IsSleeping);
-    bool GetIsSleeping() const;
-
-    void UpdateSleepState();
+    void MoveToTarget(const DirectX::SimpleMath::Vector3& TargetPosition, float DeltaTime);
     void UpdateWorldBoundingBox();
 
 private:
@@ -96,7 +89,6 @@ private:
     DirectX::SimpleMath::Vector3 mRotation;
     DirectX::SimpleMath::Vector3 mScale;
     DirectX::SimpleMath::Vector3 mVelocity;
-    DirectX::SimpleMath::Vector3 mAcceleration;
     float mFriction;
     float mRestitution;
     float mLinearDamping;
