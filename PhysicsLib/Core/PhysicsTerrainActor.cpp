@@ -7,8 +7,8 @@ PhysicsTerrainActor::PhysicsTerrainActor()
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
-      mHalfExtentX{ 1.0F },
-      mHalfExtentZ{ 1.0F } {
+      mHalfExtentX{ 0.5F },
+      mHalfExtentZ{ 0.5F } {
     SetActorType(PhysicsActorType::Terrain);
     SetFlags(GetFlags() | PhysicsActorFlags::Static);
     SetMass(0.0F);
@@ -81,8 +81,8 @@ PhysicsTerrainActor::PhysicsTerrainActor(std::string Name)
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
-      mHalfExtentX{ 1.0F },
-      mHalfExtentZ{ 1.0F } {
+      mHalfExtentX{ 0.5F },
+      mHalfExtentZ{ 0.5F } {
     SetActorType(PhysicsActorType::Terrain);
     SetFlags(GetFlags() | PhysicsActorFlags::Static);
     SetMass(0.0F);

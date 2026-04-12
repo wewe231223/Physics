@@ -156,3 +156,21 @@ Mesh MeshFactory::CreateGrid(float HalfExtent, unsigned int DivisionCount) {
 
     return CreatedMesh;
 }
+
+Mesh MeshFactory::CreateBoundingBox() {
+    Mesh CreatedMesh{};
+    std::vector<glm::vec3> Vertices{
+        glm::vec3{ -0.5F, -0.5F, -0.5F }, glm::vec3{ 0.5F, -0.5F, -0.5F }, glm::vec3{ 0.5F, 0.5F, -0.5F }, glm::vec3{ -0.5F, 0.5F, -0.5F },
+        glm::vec3{ -0.5F, -0.5F, 0.5F }, glm::vec3{ 0.5F, -0.5F, 0.5F }, glm::vec3{ 0.5F, 0.5F, 0.5F }, glm::vec3{ -0.5F, 0.5F, 0.5F }
+    };
+    std::vector<unsigned int> Indices{
+        0U, 1U, 1U, 2U, 2U, 3U, 3U, 0U,
+        4U, 5U, 5U, 6U, 6U, 7U, 7U, 4U,
+        0U, 4U, 1U, 5U, 2U, 6U, 3U, 7U
+    };
+
+    CreatedMesh.SetVertices(Vertices);
+    CreatedMesh.SetIndices(Indices);
+    CreatedMesh.SetTopology(MeshTopology::Lines);
+    return CreatedMesh;
+}

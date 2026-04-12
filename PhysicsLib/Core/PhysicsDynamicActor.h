@@ -14,7 +14,7 @@ public:
         bool IsActive;
         float Mass;
         PhysicsActorFlags Flags;
-        DirectX::BoundingOrientedBox BoundingBoxValue;
+        DirectX::BoundingOrientedBox LocalBoundingBox;
         DirectX::SimpleMath::Vector3 Position;
         DirectX::SimpleMath::Vector3 Rotation;
         DirectX::SimpleMath::Vector3 Scale;
@@ -33,8 +33,9 @@ public:
     explicit PhysicsDynamicActor(const ActorDesc& Desc);
 
 public:
-    void SetBoundingBox(const DirectX::BoundingOrientedBox& BoundingBoxValue);
-    const DirectX::BoundingOrientedBox& GetBoundingBox() const;
+    void SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox);
+    const DirectX::BoundingOrientedBox& GetLocalBoundingBox() const;
+    const DirectX::BoundingOrientedBox& GetWorldBoundingBox() const;
 
     void SetPosition(const DirectX::SimpleMath::Vector3& Position);
     const DirectX::SimpleMath::Vector3& GetPosition() const;
@@ -48,8 +49,11 @@ public:
     void SetVelocity(const DirectX::SimpleMath::Vector3& Velocity);
     const DirectX::SimpleMath::Vector3& GetVelocity() const;
 
+    void UpdateWorldBoundingBox();
+
 private:
-    DirectX::BoundingOrientedBox mBoundingBox;
+    DirectX::BoundingOrientedBox mLocalBoundingBox;
+    DirectX::BoundingOrientedBox mWorldBoundingBox;
     DirectX::SimpleMath::Vector3 mPosition;
     DirectX::SimpleMath::Vector3 mRotation;
     DirectX::SimpleMath::Vector3 mScale;

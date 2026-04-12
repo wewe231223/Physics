@@ -22,12 +22,14 @@ DirectX::BoundingOrientedBox MakeEmptyBoundingOrientedBox() {
 
 PhysicsDynamicActor::PhysicsDynamicActor()
     : PhysicsActor{},
-      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
+      mLocalBoundingBox{ MakeDefaultBoundingOrientedBox() },
+      mWorldBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{} {
     SetActorType(PhysicsActorType::Dynamic);
+    UpdateWorldBoundingBox();
 }
 
 PhysicsDynamicActor::~PhysicsDynamicActor() {
@@ -35,7 +37,8 @@ PhysicsDynamicActor::~PhysicsDynamicActor() {
 
 PhysicsDynamicActor::PhysicsDynamicActor(const PhysicsDynamicActor& Other)
     : PhysicsActor{ Other },
-      mBoundingBox{ Other.mBoundingBox },
+      mLocalBoundingBox{ Other.mLocalBoundingBox },
+      mWorldBoundingBox{ Other.mWorldBoundingBox },
       mPosition{ Other.mPosition },
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
@@ -48,7 +51,8 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& O
     }
 
     PhysicsActor::operator=(Other);
-    mBoundingBox = Other.mBoundingBox;
+    mLocalBoundingBox = Other.mLocalBoundingBox;
+    mWorldBoundingBox = Other.mWorldBoundingBox;
     mPosition = Other.mPosition;
     mRotation = Other.mRotation;
     mScale = Other.mScale;
@@ -59,12 +63,14 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& O
 
 PhysicsDynamicActor::PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept
     : PhysicsActor{ std::move(Other) },
-      mBoundingBox{ Other.mBoundingBox },
+      mLocalBoundingBox{ Other.mLocalBoundingBox },
+      mWorldBoundingBox{ Other.mWorldBoundingBox },
       mPosition{ Other.mPosition },
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity } {
-    Other.mBoundingBox = MakeEmptyBoundingOrientedBox();
+    Other.mLocalBoundingBox = MakeEmptyBoundingOrientedBox();
+    Other.mWorldBoundingBox = MakeEmptyBoundingOrientedBox();
     Other.mPosition = DirectX::SimpleMath::Vector3{};
     Other.mRotation = DirectX::SimpleMath::Vector3{};
     Other.mScale = DirectX::SimpleMath::Vector3{};
@@ -77,13 +83,15 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other)
     }
 
     PhysicsActor::operator=(std::move(Other));
-    mBoundingBox = Other.mBoundingBox;
+    mLocalBoundingBox = Other.mLocalBoundingBox;
+    mWorldBoundingBox = Other.mWorldBoundingBox;
     mPosition = Other.mPosition;
     mRotation = Other.mRotation;
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
 
-    Other.mBoundingBox = MakeEmptyBoundingOrientedBox();
+    Other.mLocalBoundingBox = MakeEmptyBoundingOrientedBox();
+    Other.mWorldBoundingBox = MakeEmptyBoundingOrientedBox();
     Other.mPosition = DirectX::SimpleMath::Vector3{};
     Other.mRotation = DirectX::SimpleMath::Vector3{};
     Other.mScale = DirectX::SimpleMath::Vector3{};
@@ -94,17 +102,20 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other)
 
 PhysicsDynamicActor::PhysicsDynamicActor(std::string Name)
     : PhysicsActor{ std::move(Name) },
-      mBoundingBox{ MakeDefaultBoundingOrientedBox() },
+      mLocalBoundingBox{ MakeDefaultBoundingOrientedBox() },
+      mWorldBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mPosition{},
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{} {
     SetActorType(PhysicsActorType::Dynamic);
+    UpdateWorldBoundingBox();
 }
 
 PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
     : PhysicsActor{ Desc.Name },
-      mBoundingBox{ Desc.BoundingBoxValue },
+      mLocalBoundingBox{ Desc.LocalBoundingBox },
+      mWorldBoundingBox{ Desc.LocalBoundingBox },
       mPosition{ Desc.Position },
       mRotation{ Desc.Rotation },
       mScale{ Desc.Scale },
@@ -113,18 +124,25 @@ PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
     SetMass(Desc.Mass);
     SetFlags(Desc.Flags);
     SetActorType(PhysicsActorType::Dynamic);
+    UpdateWorldBoundingBox();
 }
 
-void PhysicsDynamicActor::SetBoundingBox(const DirectX::BoundingOrientedBox& BoundingBoxValue) {
-    mBoundingBox = BoundingBoxValue;
+void PhysicsDynamicActor::SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox) {
+    mLocalBoundingBox = LocalBoundingBox;
+    UpdateWorldBoundingBox();
 }
 
-const DirectX::BoundingOrientedBox& PhysicsDynamicActor::GetBoundingBox() const {
-    return mBoundingBox;
+const DirectX::BoundingOrientedBox& PhysicsDynamicActor::GetLocalBoundingBox() const {
+    return mLocalBoundingBox;
+}
+
+const DirectX::BoundingOrientedBox& PhysicsDynamicActor::GetWorldBoundingBox() const {
+    return mWorldBoundingBox;
 }
 
 void PhysicsDynamicActor::SetPosition(const DirectX::SimpleMath::Vector3& Position) {
     mPosition = Position;
+    UpdateWorldBoundingBox();
 }
 
 const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetPosition() const {
@@ -133,6 +151,7 @@ const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetPosition() const {
 
 void PhysicsDynamicActor::SetRotation(const DirectX::SimpleMath::Vector3& Rotation) {
     mRotation = Rotation;
+    UpdateWorldBoundingBox();
 }
 
 const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetRotation() const {
@@ -141,6 +160,7 @@ const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetRotation() const {
 
 void PhysicsDynamicActor::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
     mScale = Scale;
+    UpdateWorldBoundingBox();
 }
 
 const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetScale() const {
@@ -153,4 +173,12 @@ void PhysicsDynamicActor::SetVelocity(const DirectX::SimpleMath::Vector3& Veloci
 
 const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetVelocity() const {
     return mVelocity;
+}
+
+void PhysicsDynamicActor::UpdateWorldBoundingBox() {
+    DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(mScale) };
+    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(mRotation.y, mRotation.x, mRotation.z) };
+    DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(mPosition) };
+    DirectX::SimpleMath::Matrix WorldMatrix{ ScalingMatrix * RotationMatrix * TranslationMatrix };
+    mLocalBoundingBox.Transform(mWorldBoundingBox, WorldMatrix);
 }

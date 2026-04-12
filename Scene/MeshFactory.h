@@ -17,4 +17,5 @@ public:
     static Mesh CreateTriangularPyramid(float Size);
     static Mesh CreateSquarePyramid(float Size);
     static Mesh CreateGrid(float HalfExtent, unsigned int DivisionCount);
+    static Mesh CreateBoundingBox();
 };

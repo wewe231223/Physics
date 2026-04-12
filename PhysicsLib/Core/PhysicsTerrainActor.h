@@ -1,7 +1,6 @@
 #pragma once
 
 #include <SimpleMath/SimpleMath.h>
-
 #include <string>
 
 #include "PhysicsActor.h"

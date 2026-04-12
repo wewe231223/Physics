@@ -1,6 +1,10 @@
 #include "PhysicsWorld.h"
 
+#include <algorithm>
 #include <utility>
+
+#undef min 
+#undef max 
 
 PhysicsWorld::PhysicsWorld()
     : mSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } },
@@ -187,24 +191,39 @@ void PhysicsWorld::IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) c
     }
 
     DirectX::SimpleMath::Vector3 NextVelocity{ Actor.GetVelocity() + (mSettings.Gravity * DeltaTime) };
-    Actor.SetVelocity(NextVelocity);
-
     DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
+    DirectX::BoundingOrientedBox PredictedWorldBoundingBox{};
+    DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Actor.GetScale()) };
+    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(Actor.GetRotation().y, Actor.GetRotation().x, Actor.GetRotation().z) };
+    DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(NextPosition) };
+    DirectX::SimpleMath::Matrix WorldMatrix{ ScalingMatrix * RotationMatrix * TranslationMatrix };
+    Actor.GetLocalBoundingBox().Transform(PredictedWorldBoundingBox, WorldMatrix);
 
-    DirectX::SimpleMath::Vector3 HitPoint{};
-    bool HasHit{ FindTerrainHitPoint(Actor, HitPoint) };
-    if (HasHit && NextPosition.y <= HitPoint.y) {
-        NextPosition.y = HitPoint.y;
-        NextVelocity.y = 0.0F;
-        Actor.SetVelocity(NextVelocity);
-    }
+    DirectX::SimpleMath::Vector3 CorrectedPosition{ NextPosition };
+    DirectX::SimpleMath::Vector3 CorrectedVelocity{ NextVelocity };
+    ResolveTerrainCollision(PredictedWorldBoundingBox, CorrectedPosition, CorrectedVelocity);
 
-    Actor.SetPosition(NextPosition);
+    Actor.SetVelocity(CorrectedVelocity);
+    Actor.SetPosition(CorrectedPosition);
 }
 
-bool PhysicsWorld::FindTerrainHitPoint(const PhysicsDynamicActor& Actor, DirectX::SimpleMath::Vector3& HitPoint) const {
-    DirectX::SimpleMath::Vector3 ActorPosition{ Actor.GetPosition() };
+bool PhysicsWorld::ResolveTerrainCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+    DirectX::XMFLOAT3 DynamicCorners[8]{};
+    PredictedWorldBoundingBox.GetCorners(DynamicCorners);
+    float DynamicMinimumX{ DynamicCorners[0].x };
+    float DynamicMaximumX{ DynamicCorners[0].x };
+    float DynamicMinimumY{ DynamicCorners[0].y };
+    float DynamicMinimumZ{ DynamicCorners[0].z };
+    float DynamicMaximumZ{ DynamicCorners[0].z };
+    for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
+        DynamicMinimumX = std::min(DynamicMinimumX, DynamicCorners[CornerIndex].x);
+        DynamicMaximumX = std::max(DynamicMaximumX, DynamicCorners[CornerIndex].x);
+        DynamicMinimumY = std::min(DynamicMinimumY, DynamicCorners[CornerIndex].y);
+        DynamicMinimumZ = std::min(DynamicMinimumZ, DynamicCorners[CornerIndex].z);
+        DynamicMaximumZ = std::max(DynamicMaximumZ, DynamicCorners[CornerIndex].z);
+    }
 
+    bool HasCollision{};
     std::size_t ActorCount{ mActors.size() };
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
         const PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
@@ -217,28 +236,28 @@ bool PhysicsWorld::FindTerrainHitPoint(const PhysicsDynamicActor& Actor, DirectX
         }
 
         const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(CurrentActor) };
-        DirectX::SimpleMath::Vector3 TerrainScale{ TerrainActor->GetScale() };
         DirectX::SimpleMath::Vector3 TerrainPosition{ TerrainActor->GetPosition() };
-
-        float ScaledHalfExtentX{ TerrainActor->GetHalfExtentX() * TerrainScale.x };
-        float ScaledHalfExtentZ{ TerrainActor->GetHalfExtentZ() * TerrainScale.z };
-
-        float MinX{ TerrainPosition.x - ScaledHalfExtentX };
-        float MaxX{ TerrainPosition.x + ScaledHalfExtentX };
-        float MinZ{ TerrainPosition.z - ScaledHalfExtentZ };
-        float MaxZ{ TerrainPosition.z + ScaledHalfExtentZ };
-
-        bool IsInXRange{ ActorPosition.x >= MinX && ActorPosition.x <= MaxX };
-        bool IsInZRange{ ActorPosition.z >= MinZ && ActorPosition.z <= MaxZ };
-
-        if (!IsInXRange || !IsInZRange) {
+        DirectX::SimpleMath::Vector3 TerrainScale{ TerrainActor->GetScale() };
+        float TerrainHalfExtentX{ TerrainActor->GetHalfExtentX() * TerrainScale.x };
+        float TerrainHalfExtentZ{ TerrainActor->GetHalfExtentZ() * TerrainScale.z };
+        float TerrainMinimumX{ TerrainPosition.x - TerrainHalfExtentX };
+        float TerrainMaximumX{ TerrainPosition.x + TerrainHalfExtentX };
+        float TerrainMinimumZ{ TerrainPosition.z - TerrainHalfExtentZ };
+        float TerrainMaximumZ{ TerrainPosition.z + TerrainHalfExtentZ };
+        bool IsOverlappingX{ DynamicMaximumX >= TerrainMinimumX && DynamicMinimumX <= TerrainMaximumX };
+        bool IsOverlappingZ{ DynamicMaximumZ >= TerrainMinimumZ && DynamicMinimumZ <= TerrainMaximumZ };
+        if (!IsOverlappingX || !IsOverlappingZ) {
             continue;
         }
 
         float TerrainTopY{ TerrainPosition.y };
-        HitPoint = DirectX::SimpleMath::Vector3{ ActorPosition.x, TerrainTopY, ActorPosition.z };
-        return true;
+        if (DynamicMinimumY <= TerrainTopY) {
+            float PenetrationDepth{ TerrainTopY - DynamicMinimumY };
+            CorrectedPosition.y += PenetrationDepth;
+            CorrectedVelocity.y = 0.0F;
+            HasCollision = true;
+        }
     }
 
-    return false;
+    return HasCollision;
 }

@@ -163,9 +163,9 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
     float HalfExtentZ{ 0.5F };
 
     if (mMesh != nullptr) {
-        DirectX::BoundingOrientedBox MeshBoundingBox{ mMesh->GetBoundingBox() };
-        HalfExtentX = MeshBoundingBox.Extents.x;
-        HalfExtentZ = MeshBoundingBox.Extents.z;
+        DirectX::BoundingOrientedBox LocalBoundingBox{ mMesh->GetBoundingBox() };
+        HalfExtentX = LocalBoundingBox.Extents.x;
+        HalfExtentZ = LocalBoundingBox.Extents.z;
     }
 
     PhysicsTerrainActor::ActorDesc ActorDesc{

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <SimpleMath/SimpleMath.h>
+#include <DirectXCollision.h>
 
 #include "PhysicsActor.h"
 #include "PhysicsDynamicActor.h"
@@ -47,7 +48,7 @@ public:
 
 private:
     void IntegrateActor(PhysicsDynamicActor& Actor, float DeltaTime) const;
-    bool FindTerrainHitPoint(const PhysicsDynamicActor& Actor, DirectX::SimpleMath::Vector3& HitPoint) const;
+    bool ResolveTerrainCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
 
 private:
     WorldSettings mSettings;
