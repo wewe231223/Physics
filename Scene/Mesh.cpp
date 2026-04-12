@@ -17,11 +17,13 @@ DirectX::BoundingOrientedBox MakeDefaultBoundingOrientedBox() {
 
 Mesh::Mesh()
     : mVertices{},
+      mColors{},
       mIndices{},
       mTopology{ MeshTopology::Triangles },
       mBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mVertexArrayObject{},
       mVertexBufferObject{},
+      mColorBufferObject{},
       mElementBufferObject{},
       mIsUploaded{} {
 }
@@ -32,11 +34,13 @@ Mesh::~Mesh() {
 
 Mesh::Mesh(const Mesh& Other)
     : mVertices{ Other.mVertices },
+      mColors{ Other.mColors },
       mIndices{ Other.mIndices },
       mTopology{ Other.mTopology },
       mBoundingBox{ Other.mBoundingBox },
       mVertexArrayObject{},
       mVertexBufferObject{},
+      mColorBufferObject{},
       mElementBufferObject{},
       mIsUploaded{} {
 }
@@ -49,11 +53,13 @@ Mesh& Mesh::operator=(const Mesh& Other) {
     ReleaseGpuResources();
 
     mVertices = Other.mVertices;
+    mColors = Other.mColors;
     mIndices = Other.mIndices;
     mTopology = Other.mTopology;
     mBoundingBox = Other.mBoundingBox;
     mVertexArrayObject = 0U;
     mVertexBufferObject = 0U;
+    mColorBufferObject = 0U;
     mElementBufferObject = 0U;
     mIsUploaded = false;
 
@@ -62,17 +68,20 @@ Mesh& Mesh::operator=(const Mesh& Other) {
 
 Mesh::Mesh(Mesh&& Other) noexcept
     : mVertices{ std::move(Other.mVertices) },
+      mColors{ std::move(Other.mColors) },
       mIndices{ std::move(Other.mIndices) },
       mTopology{ Other.mTopology },
       mBoundingBox{ Other.mBoundingBox },
       mVertexArrayObject{ Other.mVertexArrayObject },
       mVertexBufferObject{ Other.mVertexBufferObject },
+      mColorBufferObject{ Other.mColorBufferObject },
       mElementBufferObject{ Other.mElementBufferObject },
       mIsUploaded{ Other.mIsUploaded } {
     Other.mTopology = MeshTopology::Triangles;
     Other.mBoundingBox = MakeDefaultBoundingOrientedBox();
     Other.mVertexArrayObject = 0U;
     Other.mVertexBufferObject = 0U;
+    Other.mColorBufferObject = 0U;
     Other.mElementBufferObject = 0U;
     Other.mIsUploaded = false;
 }
@@ -85,11 +94,13 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
     ReleaseGpuResources();
 
     mVertices = std::move(Other.mVertices);
+    mColors = std::move(Other.mColors);
     mIndices = std::move(Other.mIndices);
     mTopology = Other.mTopology;
     mBoundingBox = Other.mBoundingBox;
     mVertexArrayObject = Other.mVertexArrayObject;
     mVertexBufferObject = Other.mVertexBufferObject;
+    mColorBufferObject = Other.mColorBufferObject;
     mElementBufferObject = Other.mElementBufferObject;
     mIsUploaded = Other.mIsUploaded;
 
@@ -97,6 +108,7 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
     Other.mBoundingBox = MakeDefaultBoundingOrientedBox();
     Other.mVertexArrayObject = 0U;
     Other.mVertexBufferObject = 0U;
+    Other.mColorBufferObject = 0U;
     Other.mElementBufferObject = 0U;
     Other.mIsUploaded = false;
 
@@ -105,7 +117,15 @@ Mesh& Mesh::operator=(Mesh&& Other) noexcept {
 
 void Mesh::SetVertices(const std::vector<glm::vec3>& Vertices) {
     mVertices = Vertices;
+    if (mColors.size() != mVertices.size()) {
+        mColors.clear();
+    }
     RebuildBoundingBoxFromVertices();
+    mIsUploaded = false;
+}
+
+void Mesh::SetColors(const std::vector<glm::vec3>& Colors) {
+    mColors = Colors;
     mIsUploaded = false;
 }
 
@@ -116,6 +136,10 @@ void Mesh::SetIndices(const std::vector<unsigned int>& Indices) {
 
 const std::vector<glm::vec3>& Mesh::GetVertices() const {
     return mVertices;
+}
+
+const std::vector<glm::vec3>& Mesh::GetColors() const {
+    return mColors;
 }
 
 const std::vector<unsigned int>& Mesh::GetIndices() const {
@@ -147,18 +171,30 @@ void Mesh::EnsureUploaded() {
 
     glGenVertexArrays(1, &mVertexArrayObject);
     glGenBuffers(1, &mVertexBufferObject);
+    glGenBuffers(1, &mColorBufferObject);
     glGenBuffers(1, &mElementBufferObject);
+
+    std::vector<glm::vec3> UploadColors{};
+    if (mColors.size() == mVertices.size()) {
+        UploadColors = mColors;
+    } else {
+        UploadColors.resize(mVertices.size(), glm::vec3{ 1.0F, 1.0F, 1.0F });
+    }
 
     glBindVertexArray(mVertexArrayObject);
 
     glBindBuffer(GL_ARRAY_BUFFER, mVertexBufferObject);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(mVertices.size() * sizeof(glm::vec3)), mVertices.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof(glm::vec3)), nullptr);
+
+    glBindBuffer(GL_ARRAY_BUFFER, mColorBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(UploadColors.size() * sizeof(glm::vec3)), UploadColors.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof(glm::vec3)), nullptr);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mElementBufferObject);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(mIndices.size() * sizeof(unsigned int)), mIndices.data(), GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof(glm::vec3)), nullptr);
 
     glBindVertexArray(0);
 
@@ -208,6 +244,11 @@ void Mesh::ReleaseGpuResources() {
     if (mVertexBufferObject != 0U) {
         glDeleteBuffers(1, &mVertexBufferObject);
         mVertexBufferObject = 0U;
+    }
+
+    if (mColorBufferObject != 0U) {
+        glDeleteBuffers(1, &mColorBufferObject);
+        mColorBufferObject = 0U;
     }
 
     if (mVertexArrayObject != 0U) {

@@ -2,6 +2,8 @@
 
 #include "Mesh.h"
 
+#include <string>
+
 class MeshFactory final {
 public:
     MeshFactory() = delete;
@@ -18,4 +20,5 @@ public:
     static Mesh CreateSquarePyramid(float Size);
     static Mesh CreateGrid(float HalfExtent, unsigned int DivisionCount);
     static Mesh CreateBoundingBox();
+    static Mesh CreateTerrainFromHeightMapPng(const std::string& FilePath, float MaxHeight, float CellSpacing);
 };

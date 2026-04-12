@@ -210,8 +210,6 @@ void Renderer::RenderFrame(const Scene& CurrentScene) const {
     int ModelLocation{ glGetUniformLocation(mShaderProgram, "UModel") };
     int ViewLocation{ glGetUniformLocation(mShaderProgram, "UView") };
     int ProjectionLocation{ glGetUniformLocation(mShaderProgram, "UProjection") };
-    int ColorLocation{ glGetUniformLocation(mShaderProgram, "UColor") };
-
     glUniformMatrix4fv(ViewLocation, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
     glUniformMatrix4fv(ProjectionLocation, 1, GL_FALSE, glm::value_ptr(ProjectionMatrix));
 
@@ -236,13 +234,6 @@ void Renderer::RenderFrame(const Scene& CurrentScene) const {
 
         const glm::mat4& ModelMatrix{ CurrentObject->GetWorldMatrix() };
         glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
-
-        if (CurrentMesh->GetTopology() == MeshTopology::Lines) {
-            glUniform3f(ColorLocation, 0.55F, 0.55F, 0.55F);
-        }
-        else {
-            glUniform3f(ColorLocation, 0.90F, 0.70F, 0.20F);
-        }
 
         CurrentMesh->Bind();
 
@@ -311,8 +302,8 @@ bool Renderer::InitializeGlad() {
 }
 
 bool Renderer::CreateShaderProgram() {
-    std::string VertexShaderSource{ "#version 330 core\nlayout (location = 0) in vec3 InPosition;\nuniform mat4 UModel;\nuniform mat4 UView;\nuniform mat4 UProjection;\nvoid main()\n{\n    gl_Position = UProjection * UView * UModel * vec4(InPosition, 1.0);\n}\n" };
-    std::string FragmentShaderSource{ "#version 330 core\nout vec4 OutColor;\nuniform vec3 UColor;\nvoid main()\n{\n    OutColor = vec4(UColor, 1.0);\n}\n" };
+    std::string VertexShaderSource{ "#version 330 core\nlayout (location = 0) in vec3 InPosition;\nlayout (location = 1) in vec3 InColor;\nout vec3 VertexColor;\nuniform mat4 UModel;\nuniform mat4 UView;\nuniform mat4 UProjection;\nvoid main()\n{\n    gl_Position = UProjection * UView * UModel * vec4(InPosition, 1.0);\n    VertexColor = InColor;\n}\n" };
+    std::string FragmentShaderSource{ "#version 330 core\nin vec3 VertexColor;\nout vec4 OutColor;\nvoid main()\n{\n    OutColor = vec4(VertexColor, 1.0);\n}\n" };
 
     unsigned int VertexShader{ CreateShader(GL_VERTEX_SHADER, VertexShaderSource) };
     unsigned int FragmentShader{ CreateShader(GL_FRAGMENT_SHADER, FragmentShaderSource) };
