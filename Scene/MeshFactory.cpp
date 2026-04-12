@@ -4,6 +4,7 @@
 #include "stb_image.h"
 
 #include <cmath>
+#include <cstdint>
 
 #include <glm/ext/scalar_constants.hpp>
 
@@ -14,46 +15,61 @@ std::vector<glm::vec3> CreateSolidColors(std::size_t VertexCount, const glm::vec
     return Colors;
 }
 
+std::uint32_t CalculateLinearIndex(std::uint32_t Width, std::uint32_t X, std::uint32_t Y) {
+    std::uint32_t Index{ Y * Width + X };
+    return Index;
+}
+
 Mesh CreateFlatTerrainMesh(int Width, int Height, float CellSpacing) {
     Mesh CreatedMesh{};
 
-    int SafeWidth{ Width < 2 ? 2 : Width };
-    int SafeHeight{ Height < 2 ? 2 : Height };
-    float HalfWidth{ (static_cast<float>(SafeWidth) - 1.0F) * CellSpacing * 0.5F };
-    float HalfDepth{ (static_cast<float>(SafeHeight) - 1.0F) * CellSpacing * 0.5F };
+    std::uint32_t VertexCountX{ static_cast<std::uint32_t>(Width < 2 ? 2 : Width) };
+    std::uint32_t VertexCountY{ static_cast<std::uint32_t>(Height < 2 ? 2 : Height) };
+    std::uint32_t QuadCountX{ VertexCountX - 1U };
+    std::uint32_t QuadCountY{ VertexCountY - 1U };
+
+    std::size_t VertexCount{ static_cast<std::size_t>(VertexCountX) * static_cast<std::size_t>(VertexCountY) };
+    std::size_t IndexCount{ static_cast<std::size_t>(QuadCountX) * static_cast<std::size_t>(QuadCountY) * 6ULL };
+    float OffsetX{ (static_cast<float>(VertexCountX) - 1.0F) * CellSpacing * 0.5F };
+    float OffsetZ{ (static_cast<float>(VertexCountY) - 1.0F) * CellSpacing * 0.5F };
+
     std::vector<glm::vec3> Vertices{};
     std::vector<glm::vec3> Colors{};
     std::vector<unsigned int> Indices{};
-    Vertices.reserve(static_cast<std::size_t>(SafeWidth) * static_cast<std::size_t>(SafeHeight));
-    Colors.reserve(static_cast<std::size_t>(SafeWidth) * static_cast<std::size_t>(SafeHeight));
+    Vertices.resize(VertexCount);
+    Colors.resize(VertexCount);
+    Indices.resize(IndexCount);
 
-    for (int ZIndex{ 0 }; ZIndex < SafeHeight; ++ZIndex) {
-        for (int XIndex{ 0 }; XIndex < SafeWidth; ++XIndex) {
-            float PositionX{ static_cast<float>(XIndex) * CellSpacing - HalfWidth };
-            float PositionZ{ static_cast<float>(ZIndex) * CellSpacing - HalfDepth };
-            Vertices.push_back(glm::vec3{ PositionX, 0.0F, PositionZ });
-            Colors.push_back(glm::vec3{ 0.20F, 0.65F, 0.25F });
+    for (std::uint32_t GridY{ 0U }; GridY < VertexCountY; ++GridY) {
+        for (std::uint32_t GridX{ 0U }; GridX < VertexCountX; ++GridX) {
+            std::uint32_t VertexIndex{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
+            float PositionX{ static_cast<float>(GridX) * CellSpacing - OffsetX };
+            float PositionZ{ static_cast<float>(GridY) * CellSpacing - OffsetZ };
+            Vertices[VertexIndex] = glm::vec3{ PositionX, 0.0F, PositionZ };
+            Colors[VertexIndex] = glm::vec3{ 0.20F, 0.65F, 0.25F };
         }
     }
 
-    int LastX{ SafeWidth - 1 };
-    int LastZ{ SafeHeight - 1 };
-    Indices.reserve(static_cast<std::size_t>(LastX) * static_cast<std::size_t>(LastZ) * 6U);
+    std::size_t IndexWriteCursor{};
+    for (std::uint32_t GridY{ 0U }; GridY < QuadCountY; ++GridY) {
+        for (std::uint32_t GridX{ 0U }; GridX < QuadCountX; ++GridX) {
+            std::uint32_t Index0{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
+            std::uint32_t Index1{ CalculateLinearIndex(VertexCountX, GridX + 1U, GridY) };
+            std::uint32_t Index2{ CalculateLinearIndex(VertexCountX, GridX, GridY + 1U) };
+            std::uint32_t Index3{ CalculateLinearIndex(VertexCountX, GridX + 1U, GridY + 1U) };
+            Indices[IndexWriteCursor] = Index0;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index2;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index1;
+            ++IndexWriteCursor;
 
-    for (int ZIndex{ 0 }; ZIndex < LastZ; ++ZIndex) {
-        for (int XIndex{ 0 }; XIndex < LastX; ++XIndex) {
-            unsigned int TopLeft{ static_cast<unsigned int>(ZIndex * SafeWidth + XIndex) };
-            unsigned int TopRight{ TopLeft + 1U };
-            unsigned int BottomLeft{ static_cast<unsigned int>((ZIndex + 1) * SafeWidth + XIndex) };
-            unsigned int BottomRight{ BottomLeft + 1U };
-
-            Indices.push_back(TopLeft);
-            Indices.push_back(BottomLeft);
-            Indices.push_back(TopRight);
-
-            Indices.push_back(TopRight);
-            Indices.push_back(BottomLeft);
-            Indices.push_back(BottomRight);
+            Indices[IndexWriteCursor] = Index1;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index2;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index3;
+            ++IndexWriteCursor;
         }
     }
 
@@ -260,44 +276,55 @@ Mesh MeshFactory::CreateTerrainFromHeightMapPng(const std::string& FilePath, flo
         return FallbackMesh;
     }
 
-    float HalfWidth{ (static_cast<float>(ImageWidth) - 1.0F) * CellSpacing * 0.5F };
-    float HalfDepth{ (static_cast<float>(ImageHeight) - 1.0F) * CellSpacing * 0.5F };
+    std::uint32_t VertexCountX{ static_cast<std::uint32_t>(ImageWidth) };
+    std::uint32_t VertexCountY{ static_cast<std::uint32_t>(ImageHeight) };
+    std::uint32_t QuadCountX{ VertexCountX - 1U };
+    std::uint32_t QuadCountY{ VertexCountY - 1U };
+    std::size_t VertexCount{ static_cast<std::size_t>(VertexCountX) * static_cast<std::size_t>(VertexCountY) };
+    std::size_t IndexCount{ static_cast<std::size_t>(QuadCountX) * static_cast<std::size_t>(QuadCountY) * 6ULL };
+    float OffsetX{ (static_cast<float>(VertexCountX) - 1.0F) * CellSpacing * 0.5F };
+    float OffsetZ{ (static_cast<float>(VertexCountY) - 1.0F) * CellSpacing * 0.5F };
+
     std::vector<glm::vec3> Vertices{};
     std::vector<glm::vec3> Colors{};
     std::vector<unsigned int> Indices{};
-    Vertices.reserve(static_cast<std::size_t>(ImageWidth) * static_cast<std::size_t>(ImageHeight));
-    Colors.reserve(static_cast<std::size_t>(ImageWidth) * static_cast<std::size_t>(ImageHeight));
+    Vertices.resize(VertexCount);
+    Colors.resize(VertexCount);
+    Indices.resize(IndexCount);
 
-    for (int ZIndex{ 0 }; ZIndex < ImageHeight; ++ZIndex) {
-        for (int XIndex{ 0 }; XIndex < ImageWidth; ++XIndex) {
-            int PixelIndex{ ZIndex * ImageWidth + XIndex };
+    for (std::uint32_t GridY{ 0U }; GridY < VertexCountY; ++GridY) {
+        for (std::uint32_t GridX{ 0U }; GridX < VertexCountX; ++GridX) {
+            std::uint32_t VertexIndex{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
+            std::uint32_t PixelIndex{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
             float NormalizedHeight{ static_cast<float>(ImageData[PixelIndex]) / 255.0F };
             float HeightValue{ NormalizedHeight * MaxHeight };
-            float PositionX{ static_cast<float>(XIndex) * CellSpacing - HalfWidth };
-            float PositionZ{ static_cast<float>(ZIndex) * CellSpacing - HalfDepth };
-            Vertices.push_back(glm::vec3{ PositionX, HeightValue, PositionZ });
-            Colors.push_back(glm::vec3{ 0.10F + NormalizedHeight * 0.25F, 0.30F + NormalizedHeight * 0.55F, 0.10F + NormalizedHeight * 0.20F });
+            float PositionX{ static_cast<float>(GridX) * CellSpacing - OffsetX };
+            float PositionZ{ static_cast<float>(GridY) * CellSpacing - OffsetZ };
+            Vertices[VertexIndex] = glm::vec3{ PositionX, HeightValue, PositionZ };
+            Colors[VertexIndex] = glm::vec3{ 0.10F + NormalizedHeight * 0.25F, 0.30F + NormalizedHeight * 0.55F, 0.10F + NormalizedHeight * 0.20F };
         }
     }
 
-    int LastX{ ImageWidth - 1 };
-    int LastZ{ ImageHeight - 1 };
-    Indices.reserve(static_cast<std::size_t>(LastX) * static_cast<std::size_t>(LastZ) * 6U);
+    std::size_t IndexWriteCursor{};
+    for (std::uint32_t GridY{ 0U }; GridY < QuadCountY; ++GridY) {
+        for (std::uint32_t GridX{ 0U }; GridX < QuadCountX; ++GridX) {
+            std::uint32_t Index0{ CalculateLinearIndex(VertexCountX, GridX, GridY) };
+            std::uint32_t Index1{ CalculateLinearIndex(VertexCountX, GridX + 1U, GridY) };
+            std::uint32_t Index2{ CalculateLinearIndex(VertexCountX, GridX, GridY + 1U) };
+            std::uint32_t Index3{ CalculateLinearIndex(VertexCountX, GridX + 1U, GridY + 1U) };
+            Indices[IndexWriteCursor] = Index0;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index2;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index1;
+            ++IndexWriteCursor;
 
-    for (int ZIndex{ 0 }; ZIndex < LastZ; ++ZIndex) {
-        for (int XIndex{ 0 }; XIndex < LastX; ++XIndex) {
-            unsigned int TopLeft{ static_cast<unsigned int>(ZIndex * ImageWidth + XIndex) };
-            unsigned int TopRight{ TopLeft + 1U };
-            unsigned int BottomLeft{ static_cast<unsigned int>((ZIndex + 1) * ImageWidth + XIndex) };
-            unsigned int BottomRight{ BottomLeft + 1U };
-
-            Indices.push_back(TopLeft);
-            Indices.push_back(BottomLeft);
-            Indices.push_back(TopRight);
-
-            Indices.push_back(TopRight);
-            Indices.push_back(BottomLeft);
-            Indices.push_back(BottomRight);
+            Indices[IndexWriteCursor] = Index1;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index2;
+            ++IndexWriteCursor;
+            Indices[IndexWriteCursor] = Index3;
+            ++IndexWriteCursor;
         }
     }
 

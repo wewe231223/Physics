@@ -232,6 +232,8 @@ void Renderer::RenderFrame(const Scene& CurrentScene) const {
 
         CurrentMesh->EnsureUploaded();
 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
         const glm::mat4& ModelMatrix{ CurrentObject->GetWorldMatrix() };
         glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
 

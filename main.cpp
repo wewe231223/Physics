@@ -107,7 +107,7 @@ int main() {
 		BoundingBoxObjectPairs.push_back(std::pair<std::size_t, std::size_t>{ ObjectIndex, BoundingBoxObjectIndex });
 	}
 
-	std::shared_ptr<Mesh> TerrainMesh{ std::make_shared<Mesh>(MeshFactory::CreateTerrainFromHeightMapPng("Resources/Heightmap_08_Island.png", 256.0F, 0.2F)) };
+	std::shared_ptr<Mesh> TerrainMesh{ std::make_shared<Mesh>(MeshFactory::CreateTerrainFromHeightMapPng("Resources/Heightmap_01_Mountains.png", 256.0F, 1.F)) };
 	if (!TerrainMesh->GetVertices().empty()) {
 		GameObject TerrainObject{ "TerrainRenderOnly" };
 		TerrainObject.SetMesh(TerrainMesh);
