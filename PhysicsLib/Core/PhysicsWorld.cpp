@@ -4,7 +4,46 @@
 #include <cmath>
 #include <utility>
 
+#undef min 
 #undef max 
+
+namespace {
+    struct AxisAlignedBounds {
+        DirectX::SimpleMath::Vector3 Minimum;
+        DirectX::SimpleMath::Vector3 Maximum;
+    };
+
+    AxisAlignedBounds MakeAxisAlignedBounds(const DirectX::BoundingOrientedBox& BoundingBox) {
+        DirectX::XMFLOAT3 Corners[8]{};
+        BoundingBox.GetCorners(Corners);
+
+        AxisAlignedBounds Bounds{};
+        Bounds.Minimum = DirectX::SimpleMath::Vector3{ Corners[0].x, Corners[0].y, Corners[0].z };
+        Bounds.Maximum = Bounds.Minimum;
+
+        for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
+            Bounds.Minimum.x = std::min(Bounds.Minimum.x, Corners[CornerIndex].x);
+            Bounds.Minimum.y = std::min(Bounds.Minimum.y, Corners[CornerIndex].y);
+            Bounds.Minimum.z = std::min(Bounds.Minimum.z, Corners[CornerIndex].z);
+
+            Bounds.Maximum.x = std::max(Bounds.Maximum.x, Corners[CornerIndex].x);
+            Bounds.Maximum.y = std::max(Bounds.Maximum.y, Corners[CornerIndex].y);
+            Bounds.Maximum.z = std::max(Bounds.Maximum.z, Corners[CornerIndex].z);
+        }
+
+        return Bounds;
+    }
+
+    DirectX::SimpleMath::Vector3 CalculateBoundsCenter(const AxisAlignedBounds& Bounds) {
+        DirectX::SimpleMath::Vector3 Center{ (Bounds.Minimum + Bounds.Maximum) * 0.5F };
+        return Center;
+    }
+
+    DirectX::SimpleMath::Vector3 CalculateBoundsHalfExtent(const AxisAlignedBounds& Bounds) {
+        DirectX::SimpleMath::Vector3 HalfExtent{ (Bounds.Maximum - Bounds.Minimum) * 0.5F };
+        return HalfExtent;
+    }
+}
 
 PhysicsWorld::PhysicsWorld()
     : mSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } },
@@ -189,6 +228,8 @@ void PhysicsWorld::StepSimulation() {
         PhysicsDynamicActor* DynamicActor{ static_cast<PhysicsDynamicActor*>(CurrentActor) };
         IntegrateDynamicActor(*DynamicActor, mSettings.FixedTimeStep);
     }
+
+    ResolveDynamicCollisions();
 }
 
 void PhysicsWorld::Update(float DeltaTime) {
@@ -255,4 +296,125 @@ bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& P
     }
 
     return HasCollision;
+}
+
+void PhysicsWorld::ResolveDynamicCollisions() const {
+    std::size_t ActorCount{ mActors.size() };
+    for (std::size_t FirstActorIndex{ 0U }; FirstActorIndex < ActorCount; ++FirstActorIndex) {
+        PhysicsActor* FirstActorBase{ mActors[FirstActorIndex].get() };
+        if (FirstActorBase == nullptr || FirstActorBase->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+            continue;
+        }
+
+        PhysicsDynamicActor* FirstActor{ static_cast<PhysicsDynamicActor*>(FirstActorBase) };
+        if (!FirstActor->GetIsActive() || FirstActor->GetMass() <= 0.0F) {
+            continue;
+        }
+
+        for (std::size_t SecondActorIndex{ FirstActorIndex + 1U }; SecondActorIndex < ActorCount; ++SecondActorIndex) {
+            PhysicsActor* SecondActorBase{ mActors[SecondActorIndex].get() };
+            if (SecondActorBase == nullptr || SecondActorBase->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+                continue;
+            }
+
+            PhysicsDynamicActor* SecondActor{ static_cast<PhysicsDynamicActor*>(SecondActorBase) };
+            if (!SecondActor->GetIsActive() || SecondActor->GetMass() <= 0.0F) {
+                continue;
+            }
+
+            bool HasCollision{ ResolveDynamicCollisionPair(*FirstActor, *SecondActor) };
+            if (!HasCollision) {
+                continue;
+            }
+
+            FirstActor->UpdateSleepState();
+            SecondActor->UpdateSleepState();
+        }
+    }
+}
+
+bool PhysicsWorld::ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor) const {
+    DirectX::BoundingOrientedBox FirstBounds{ FirstActor.GetWorldBoundingBox() };
+    DirectX::BoundingOrientedBox SecondBounds{ SecondActor.GetWorldBoundingBox() };
+    bool IsIntersecting{ FirstBounds.Intersects(SecondBounds) };
+    if (!IsIntersecting) {
+        return false;
+    }
+
+    AxisAlignedBounds FirstAabb{ MakeAxisAlignedBounds(FirstBounds) };
+    AxisAlignedBounds SecondAabb{ MakeAxisAlignedBounds(SecondBounds) };
+    DirectX::SimpleMath::Vector3 FirstCenter{ CalculateBoundsCenter(FirstAabb) };
+    DirectX::SimpleMath::Vector3 SecondCenter{ CalculateBoundsCenter(SecondAabb) };
+    DirectX::SimpleMath::Vector3 FirstHalfExtent{ CalculateBoundsHalfExtent(FirstAabb) };
+    DirectX::SimpleMath::Vector3 SecondHalfExtent{ CalculateBoundsHalfExtent(SecondAabb) };
+    DirectX::SimpleMath::Vector3 DeltaCenter{ SecondCenter - FirstCenter };
+
+    float OverlapX{ (FirstHalfExtent.x + SecondHalfExtent.x) - std::abs(DeltaCenter.x) };
+    float OverlapY{ (FirstHalfExtent.y + SecondHalfExtent.y) - std::abs(DeltaCenter.y) };
+    float OverlapZ{ (FirstHalfExtent.z + SecondHalfExtent.z) - std::abs(DeltaCenter.z) };
+    if (OverlapX <= 0.0F || OverlapY <= 0.0F || OverlapZ <= 0.0F) {
+        return false;
+    }
+
+    float PenetrationDepth{ OverlapX };
+    DirectX::SimpleMath::Vector3 CollisionNormal{ DeltaCenter.x >= 0.0F ? 1.0F : -1.0F, 0.0F, 0.0F };
+
+    if (OverlapY < PenetrationDepth) {
+        PenetrationDepth = OverlapY;
+        CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, DeltaCenter.y >= 0.0F ? 1.0F : -1.0F, 0.0F };
+    }
+
+    if (OverlapZ < PenetrationDepth) {
+        PenetrationDepth = OverlapZ;
+        CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, 0.0F, DeltaCenter.z >= 0.0F ? 1.0F : -1.0F };
+    }
+
+    float FirstMass{ FirstActor.GetMass() };
+    float SecondMass{ SecondActor.GetMass() };
+    float TotalMass{ FirstMass + SecondMass };
+    if (TotalMass <= 0.0F) {
+        return false;
+    }
+
+    float FirstDisplacementFactor{ SecondMass / TotalMass };
+    float SecondDisplacementFactor{ FirstMass / TotalMass };
+    DirectX::SimpleMath::Vector3 SeparationVector{ CollisionNormal * PenetrationDepth };
+    DirectX::SimpleMath::Vector3 FirstCorrectedPosition{ FirstActor.GetPosition() - (SeparationVector * FirstDisplacementFactor) };
+    DirectX::SimpleMath::Vector3 SecondCorrectedPosition{ SecondActor.GetPosition() + (SeparationVector * SecondDisplacementFactor) };
+    FirstActor.SetPosition(FirstCorrectedPosition);
+    SecondActor.SetPosition(SecondCorrectedPosition);
+
+    DirectX::SimpleMath::Vector3 FirstVelocity{ FirstActor.GetVelocity() };
+    DirectX::SimpleMath::Vector3 SecondVelocity{ SecondActor.GetVelocity() };
+    DirectX::SimpleMath::Vector3 NormalRelativeVelocity{ SecondVelocity - FirstVelocity };
+    float RelativeNormalVelocity{ NormalRelativeVelocity.Dot(CollisionNormal) };
+    if (RelativeNormalVelocity >= 0.0F) {
+        return true;
+    }
+
+    float EffectiveRestitution{ std::min(FirstActor.GetRestitution(), SecondActor.GetRestitution()) };
+    float ImpulseMagnitude{ -(1.0F + EffectiveRestitution) * RelativeNormalVelocity / ((1.0F / FirstMass) + (1.0F / SecondMass)) };
+    DirectX::SimpleMath::Vector3 Impulse{ CollisionNormal * ImpulseMagnitude };
+    FirstVelocity -= Impulse / FirstMass;
+    SecondVelocity += Impulse / SecondMass;
+
+    float EffectiveFriction{ std::sqrt(std::max(0.0F, FirstActor.GetFriction() * SecondActor.GetFriction())) };
+    DirectX::SimpleMath::Vector3 RelativeVelocity{ SecondVelocity - FirstVelocity };
+    float RelativeVelocityAlongNormal{ RelativeVelocity.Dot(CollisionNormal) };
+    DirectX::SimpleMath::Vector3 TangentialVelocity{ RelativeVelocity - (CollisionNormal * RelativeVelocityAlongNormal) };
+    float TangentialVelocityLength{ TangentialVelocity.Length() };
+    if (TangentialVelocityLength > 0.0001F) {
+        DirectX::SimpleMath::Vector3 Tangent{ TangentialVelocity / TangentialVelocityLength };
+        float FrictionImpulseMagnitude{ -RelativeVelocity.Dot(Tangent) / ((1.0F / FirstMass) + (1.0F / SecondMass)) };
+        float MaximumFrictionImpulse{ ImpulseMagnitude * EffectiveFriction };
+        FrictionImpulseMagnitude = std::clamp(FrictionImpulseMagnitude, -MaximumFrictionImpulse, MaximumFrictionImpulse);
+        DirectX::SimpleMath::Vector3 FrictionImpulse{ Tangent * FrictionImpulseMagnitude };
+        FirstVelocity -= FrictionImpulse / FirstMass;
+        SecondVelocity += FrictionImpulse / SecondMass;
+    }
+
+    FirstActor.SetVelocity(FirstVelocity);
+    SecondActor.SetVelocity(SecondVelocity);
+
+    return true;
 }
