@@ -268,25 +268,17 @@ void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float Delta
     NextAngularMomentum *= AngularDampingFactor;
 
     DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
-    DirectX::BoundingOrientedBox PredictedWorldBoundingBox{};
-    DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Actor.GetScale()) };
-    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(Actor.GetRotation().y, Actor.GetRotation().x, Actor.GetRotation().z) };
-    DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(NextPosition) };
-    DirectX::SimpleMath::Matrix WorldMatrix{ ScalingMatrix * RotationMatrix * TranslationMatrix };
-    Actor.GetLocalBoundingBox().Transform(PredictedWorldBoundingBox, WorldMatrix);
-
-    DirectX::SimpleMath::Vector3 CorrectedPosition{ NextPosition };
-    DirectX::SimpleMath::Vector3 CorrectedVelocity{ NextVelocity };
-    ResolveStaticCollisions(PredictedWorldBoundingBox, ActorInverseMass, Actor.GetFriction(), Actor.GetRestitution(), CorrectedPosition, CorrectedVelocity);
-
-    Actor.SetVelocity(CorrectedVelocity);
-    Actor.SetLinearMomentum(CorrectedVelocity * ActorMass);
+    Actor.SetPosition(NextPosition);
+    Actor.SetVelocity(NextVelocity);
     Actor.SetAngularMomentum(NextAngularMomentum);
-    Actor.SetPosition(CorrectedPosition);
+
+    ResolveStaticCollisions(Actor);
+
+    Actor.SetLinearMomentum(Actor.GetVelocity() * ActorMass);
     Actor.UpdateSleepState();
 }
 
-bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+bool PhysicsWorld::ResolveStaticCollisions(PhysicsDynamicActor& DynamicActor) const {
     bool HasCollision{};
     std::size_t ActorCount{ mActors.size() };
 
@@ -301,7 +293,7 @@ bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& P
         }
 
         const PhysicsStaticActor* StaticActor{ static_cast<const PhysicsStaticActor*>(CurrentActor) };
-        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(PredictedWorldBoundingBox, DynamicInverseMass, DynamicFriction, DynamicRestitution, CorrectedPosition, CorrectedVelocity) };
+        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(DynamicActor) };
         HasCollision = HasCollision || CurrentCollision;
     }
 

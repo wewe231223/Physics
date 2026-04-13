@@ -151,7 +151,8 @@ bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float
     return true;
 }
 
-bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+bool PhysicsTerrainActor::ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const {
+    float DynamicInverseMass{ DynamicActor.GetInverseMass() };
     if (DynamicInverseMass <= 0.0F) {
         return false;
     }
@@ -166,6 +167,7 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOriente
         TerrainHalfExtentZ = std::max(TerrainHalfExtentZ, HeightFieldHalfExtentZ);
     }
 
+    const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox{ DynamicActor.GetWorldBoundingBox() };
     float TerrainHalfExtentY{ mHeightFieldMaxHeight * std::abs(mScale.y) + PredictedWorldBoundingBox.Extents.y };
     DirectX::BoundingOrientedBox TerrainBoundingBox{};
     TerrainBoundingBox.Center = DirectX::XMFLOAT3{ mPosition.x, mPosition.y + (TerrainHalfExtentY * 0.5F), mPosition.z };
@@ -228,9 +230,13 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOriente
         return false;
     }
 
+    DirectX::SimpleMath::Vector3 CorrectedPosition{ DynamicActor.GetPosition() };
+    DirectX::SimpleMath::Vector3 CorrectedVelocity{ DynamicActor.GetVelocity() };
+
     CorrectedPosition += ContactNormal * MaximumPenetrationDepth;
     float VelocityProjection{ CorrectedVelocity.Dot(ContactNormal) };
     if (VelocityProjection < 0.0F) {
+        float DynamicRestitution{ DynamicActor.GetRestitution() };
         float EffectiveRestitution{ std::clamp(DynamicRestitution, 0.0F, 1.0F) };
         DirectX::SimpleMath::Vector3 LinearMomentum{ CorrectedVelocity / DynamicInverseMass };
         float NormalImpulseMagnitude{ -(1.0F + EffectiveRestitution) * VelocityProjection / DynamicInverseMass };
@@ -242,6 +248,7 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOriente
         float TangentialVelocityLength{ TangentialVelocity.Length() };
         if (TangentialVelocityLength > 0.0001F) {
             DirectX::SimpleMath::Vector3 Tangent{ TangentialVelocity / TangentialVelocityLength };
+            float DynamicFriction{ DynamicActor.GetFriction() };
             float EffectiveFriction{ std::sqrt(std::max(0.0F, DynamicFriction * GetFriction())) };
             float FrictionImpulseMagnitude{ -VelocityAfterNormal.Dot(Tangent) / DynamicInverseMass };
             float MaximumFrictionImpulse{ std::abs(NormalImpulseMagnitude) * EffectiveFriction };
@@ -251,6 +258,9 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOriente
 
         CorrectedVelocity = LinearMomentum * DynamicInverseMass;
     }
+
+    DynamicActor.SetPosition(CorrectedPosition);
+    DynamicActor.SetVelocity(CorrectedVelocity);
 
     return true;
 }

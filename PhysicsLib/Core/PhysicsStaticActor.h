@@ -4,6 +4,7 @@
 #include <DirectXCollision.h>
 
 #include "PhysicsActor.h"
+#include "PhysicsDynamicActor.h"
 
 class PhysicsStaticActor : public PhysicsActor {
 public:
@@ -15,5 +16,5 @@ public:
     PhysicsStaticActor& operator=(PhysicsStaticActor&& Other) noexcept;
 
 public:
-    virtual bool ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
+    virtual bool ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const;
 };

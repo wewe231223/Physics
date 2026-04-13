@@ -40,12 +40,7 @@ PhysicsStaticActor& PhysicsStaticActor::operator=(PhysicsStaticActor&& Other) no
     return *this;
 }
 
-bool PhysicsStaticActor::ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
-    (void)PredictedWorldBoundingBox;
-    (void)DynamicInverseMass;
-    (void)DynamicFriction;
-    (void)DynamicRestitution;
-    (void)CorrectedPosition;
-    (void)CorrectedVelocity;
+bool PhysicsStaticActor::ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const {
+    (void)DynamicActor;
     return false;
 }

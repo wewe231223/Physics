@@ -1,12 +1,8 @@
 #pragma once
-
 #include <SimpleMath/SimpleMath.h>
-#include <DirectXCollision.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-
 #include "PhysicsStaticActor.h"
 
 class PhysicsTerrainActor final : public PhysicsStaticActor {
@@ -40,7 +36,7 @@ public:
     ActorDesc GetActorDesc() const;
 
     bool TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const;
-    bool ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const override;
+    bool ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const override;
 
 private:
     bool TryGetSurfaceHeightAtLocalPosition(float LocalX, float LocalZ, float& OutLocalHeight) const;
