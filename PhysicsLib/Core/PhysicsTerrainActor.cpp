@@ -151,7 +151,11 @@ bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float
     return true;
 }
 
-bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+    if (DynamicInverseMass <= 0.0F) {
+        return false;
+    }
+
     float TerrainHalfExtentX{ mHalfExtentX * std::abs(mScale.x) };
     float TerrainHalfExtentZ{ mHalfExtentZ * std::abs(mScale.z) };
 
@@ -227,7 +231,25 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(const DirectX::BoundingOriente
     CorrectedPosition += ContactNormal * MaximumPenetrationDepth;
     float VelocityProjection{ CorrectedVelocity.Dot(ContactNormal) };
     if (VelocityProjection < 0.0F) {
-        CorrectedVelocity -= ContactNormal * VelocityProjection;
+        float EffectiveRestitution{ std::clamp(DynamicRestitution, 0.0F, 1.0F) };
+        DirectX::SimpleMath::Vector3 LinearMomentum{ CorrectedVelocity / DynamicInverseMass };
+        float NormalImpulseMagnitude{ -(1.0F + EffectiveRestitution) * VelocityProjection / DynamicInverseMass };
+        DirectX::SimpleMath::Vector3 NormalImpulse{ ContactNormal * NormalImpulseMagnitude };
+        LinearMomentum += NormalImpulse;
+
+        DirectX::SimpleMath::Vector3 VelocityAfterNormal{ LinearMomentum * DynamicInverseMass };
+        DirectX::SimpleMath::Vector3 TangentialVelocity{ VelocityAfterNormal - (ContactNormal * VelocityAfterNormal.Dot(ContactNormal)) };
+        float TangentialVelocityLength{ TangentialVelocity.Length() };
+        if (TangentialVelocityLength > 0.0001F) {
+            DirectX::SimpleMath::Vector3 Tangent{ TangentialVelocity / TangentialVelocityLength };
+            float EffectiveFriction{ std::sqrt(std::max(0.0F, DynamicFriction * GetFriction())) };
+            float FrictionImpulseMagnitude{ -VelocityAfterNormal.Dot(Tangent) / DynamicInverseMass };
+            float MaximumFrictionImpulse{ std::abs(NormalImpulseMagnitude) * EffectiveFriction };
+            FrictionImpulseMagnitude = std::clamp(FrictionImpulseMagnitude, -MaximumFrictionImpulse, MaximumFrictionImpulse);
+            LinearMomentum += Tangent * FrictionImpulseMagnitude;
+        }
+
+        CorrectedVelocity = LinearMomentum * DynamicInverseMass;
     }
 
     return true;

@@ -26,7 +26,6 @@ PhysicsDynamicActor::PhysicsDynamicActor()
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
       mAcceleration{},
-      mFriction{ 0.6F },
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
@@ -34,6 +33,8 @@ PhysicsDynamicActor::PhysicsDynamicActor()
       mSleepThreshold{ 0.05F },
       mBoundingBoxFatMargin{ 0.1F } {
     SetActorType(PhysicsActorType::Dynamic);
+    SetLinearMomentum(mVelocity * GetMass());
+    SetAngularMomentum(DirectX::SimpleMath::Vector3{});
     UpdateWorldBoundingBox();
 }
 
@@ -50,7 +51,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(const PhysicsDynamicActor& Other)
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
       mAcceleration{ Other.mAcceleration },
-      mFriction{ Other.mFriction },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
       mAngularDamping{ Other.mAngularDamping },
@@ -73,7 +73,6 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& O
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
     mAcceleration = Other.mAcceleration;
-    mFriction = Other.mFriction;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
     mAngularDamping = Other.mAngularDamping;
@@ -94,7 +93,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
       mAcceleration{ Other.mAcceleration },
-      mFriction{ Other.mFriction },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
       mAngularDamping{ Other.mAngularDamping },
@@ -117,7 +115,6 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other)
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
     mAcceleration = Other.mAcceleration;
-    mFriction = Other.mFriction;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
     mAngularDamping = Other.mAngularDamping;
@@ -138,7 +135,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(std::string Name)
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
       mAcceleration{},
-      mFriction{ 0.6F },
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
@@ -146,6 +142,8 @@ PhysicsDynamicActor::PhysicsDynamicActor(std::string Name)
       mSleepThreshold{ 0.05F },
       mBoundingBoxFatMargin{ 0.1F } {
     SetActorType(PhysicsActorType::Dynamic);
+    SetLinearMomentum(mVelocity * GetMass());
+    SetAngularMomentum(DirectX::SimpleMath::Vector3{});
     UpdateWorldBoundingBox();
 }
 
@@ -159,7 +157,6 @@ PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
       mScale{ Desc.Scale },
       mVelocity{ Desc.Velocity },
       mAcceleration{ Desc.Acceleration },
-      mFriction{ Desc.Friction },
       mRestitution{ Desc.Restitution },
       mLinearDamping{ Desc.LinearDamping },
       mAngularDamping{ Desc.AngularDamping },
@@ -168,8 +165,11 @@ PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
       mBoundingBoxFatMargin{ Desc.BoundingBoxFatMargin } {
     SetIsActive(Desc.IsActive);
     SetMass(Desc.Mass);
+    SetFriction(Desc.Friction);
     SetFlags(Desc.Flags);
     SetActorType(PhysicsActorType::Dynamic);
+    SetLinearMomentum(mVelocity * GetMass());
+    SetAngularMomentum(DirectX::SimpleMath::Vector3{});
     UpdateWorldBoundingBox();
 }
 
@@ -219,6 +219,7 @@ const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetScale() const {
 
 void PhysicsDynamicActor::SetVelocity(const DirectX::SimpleMath::Vector3& Velocity) {
     mVelocity = Velocity;
+    SetLinearMomentum(mVelocity * GetMass());
 }
 
 const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetVelocity() const {
@@ -231,14 +232,6 @@ void PhysicsDynamicActor::SetAcceleration(const DirectX::SimpleMath::Vector3& Ac
 
 const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetAcceleration() const {
     return mAcceleration;
-}
-
-void PhysicsDynamicActor::SetFriction(float Friction) {
-    mFriction = std::max(Friction, 0.0F);
-}
-
-float PhysicsDynamicActor::GetFriction() const {
-    return mFriction;
 }
 
 void PhysicsDynamicActor::SetRestitution(float Restitution) {
@@ -288,6 +281,8 @@ void PhysicsDynamicActor::SetIsSleeping(bool IsSleeping) {
         SetFlags(GetFlags() | PhysicsActorFlags::Sleeping);
         mVelocity = DirectX::SimpleMath::Vector3{};
         mAcceleration = DirectX::SimpleMath::Vector3{};
+        SetLinearMomentum(DirectX::SimpleMath::Vector3{});
+        SetAngularMomentum(DirectX::SimpleMath::Vector3{});
         return;
     }
 
@@ -303,8 +298,10 @@ bool PhysicsDynamicActor::GetIsSleeping() const {
 void PhysicsDynamicActor::UpdateSleepState() {
     float VelocityLengthSquared{ mVelocity.LengthSquared() };
     float AccelerationLengthSquared{ mAcceleration.LengthSquared() };
+    DirectX::SimpleMath::Vector3 AngularVelocity{ DirectX::SimpleMath::Vector3::Transform(GetAngularMomentum(), GetLocalInverseInertiaTensor()) };
+    float AngularVelocityLengthSquared{ AngularVelocity.LengthSquared() };
     float ThresholdSquared{ mSleepThreshold * mSleepThreshold };
-    bool ShouldSleep{ VelocityLengthSquared <= ThresholdSquared && AccelerationLengthSquared <= ThresholdSquared };
+    bool ShouldSleep{ VelocityLengthSquared <= ThresholdSquared && AccelerationLengthSquared <= ThresholdSquared && AngularVelocityLengthSquared <= ThresholdSquared };
     SetIsSleeping(ShouldSleep);
 }
 

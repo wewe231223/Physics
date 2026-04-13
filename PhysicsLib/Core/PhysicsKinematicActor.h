@@ -57,9 +57,6 @@ public:
     void SetVelocity(const DirectX::SimpleMath::Vector3& Velocity);
     const DirectX::SimpleMath::Vector3& GetVelocity() const;
 
-    void SetFriction(float Friction);
-    float GetFriction() const;
-
     void SetRestitution(float Restitution);
     float GetRestitution() const;
 
@@ -89,7 +86,6 @@ private:
     DirectX::SimpleMath::Vector3 mRotation;
     DirectX::SimpleMath::Vector3 mScale;
     DirectX::SimpleMath::Vector3 mVelocity;
-    float mFriction;
     float mRestitution;
     float mLinearDamping;
     float mAngularDamping;

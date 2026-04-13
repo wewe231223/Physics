@@ -25,7 +25,6 @@ PhysicsKinematicActor::PhysicsKinematicActor()
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
-      mFriction{ 0.6F },
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
@@ -34,6 +33,7 @@ PhysicsKinematicActor::PhysicsKinematicActor()
       mBoundingBoxFatMargin{ 0.1F } {
     SetActorType(PhysicsActorType::Kinematic);
     SetFlags(GetFlags() | PhysicsActorFlags::Kinematic);
+    SetLinearMomentum(mVelocity * GetMass());
     UpdateWorldBoundingBox();
 }
 
@@ -49,7 +49,6 @@ PhysicsKinematicActor::PhysicsKinematicActor(const PhysicsKinematicActor& Other)
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
-      mFriction{ Other.mFriction },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
       mAngularDamping{ Other.mAngularDamping },
@@ -71,7 +70,6 @@ PhysicsKinematicActor& PhysicsKinematicActor::operator=(const PhysicsKinematicAc
     mRotation = Other.mRotation;
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
-    mFriction = Other.mFriction;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
     mAngularDamping = Other.mAngularDamping;
@@ -91,7 +89,6 @@ PhysicsKinematicActor::PhysicsKinematicActor(PhysicsKinematicActor&& Other) noex
       mRotation{ Other.mRotation },
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
-      mFriction{ Other.mFriction },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
       mAngularDamping{ Other.mAngularDamping },
@@ -113,7 +110,6 @@ PhysicsKinematicActor& PhysicsKinematicActor::operator=(PhysicsKinematicActor&& 
     mRotation = Other.mRotation;
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
-    mFriction = Other.mFriction;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
     mAngularDamping = Other.mAngularDamping;
@@ -133,7 +129,6 @@ PhysicsKinematicActor::PhysicsKinematicActor(std::string Name)
       mRotation{},
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
-      mFriction{ 0.6F },
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
@@ -142,6 +137,7 @@ PhysicsKinematicActor::PhysicsKinematicActor(std::string Name)
       mBoundingBoxFatMargin{ 0.1F } {
     SetActorType(PhysicsActorType::Kinematic);
     SetFlags(GetFlags() | PhysicsActorFlags::Kinematic);
+    SetLinearMomentum(mVelocity * GetMass());
     UpdateWorldBoundingBox();
 }
 
@@ -154,7 +150,6 @@ PhysicsKinematicActor::PhysicsKinematicActor(const ActorDesc& Desc)
       mRotation{ Desc.Rotation },
       mScale{ Desc.Scale },
       mVelocity{ Desc.Velocity },
-      mFriction{ Desc.Friction },
       mRestitution{ Desc.Restitution },
       mLinearDamping{ Desc.LinearDamping },
       mAngularDamping{ Desc.AngularDamping },
@@ -163,8 +158,10 @@ PhysicsKinematicActor::PhysicsKinematicActor(const ActorDesc& Desc)
       mBoundingBoxFatMargin{ Desc.BoundingBoxFatMargin } {
     SetIsActive(Desc.IsActive);
     SetMass(Desc.Mass);
+    SetFriction(Desc.Friction);
     SetFlags(Desc.Flags | PhysicsActorFlags::Kinematic);
     SetActorType(PhysicsActorType::Kinematic);
+    SetLinearMomentum(mVelocity * GetMass());
     UpdateWorldBoundingBox();
 }
 
@@ -214,18 +211,11 @@ const DirectX::SimpleMath::Vector3& PhysicsKinematicActor::GetScale() const {
 
 void PhysicsKinematicActor::SetVelocity(const DirectX::SimpleMath::Vector3& Velocity) {
     mVelocity = Velocity;
+    SetLinearMomentum(mVelocity * GetMass());
 }
 
 const DirectX::SimpleMath::Vector3& PhysicsKinematicActor::GetVelocity() const {
     return mVelocity;
-}
-
-void PhysicsKinematicActor::SetFriction(float Friction) {
-    mFriction = std::max(Friction, 0.0F);
-}
-
-float PhysicsKinematicActor::GetFriction() const {
-    return mFriction;
 }
 
 void PhysicsKinematicActor::SetRestitution(float Restitution) {
@@ -275,6 +265,7 @@ void PhysicsKinematicActor::MoveToTarget(const DirectX::SimpleMath::Vector3& Tar
     }
 
     mVelocity = (TargetPosition - mPosition) / DeltaTime;
+    SetLinearMomentum(mVelocity * GetMass());
     mPosition = TargetPosition;
     UpdateWorldBoundingBox();
 }

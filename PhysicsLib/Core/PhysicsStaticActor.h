@@ -15,5 +15,5 @@ public:
     PhysicsStaticActor& operator=(PhysicsStaticActor&& Other) noexcept;
 
 public:
-    virtual bool ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
+    virtual bool ResolveDynamicCollision(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
 };

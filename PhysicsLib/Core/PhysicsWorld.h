@@ -51,7 +51,7 @@ public:
 
 private:
     void IntegrateDynamicActor(PhysicsDynamicActor& Actor, float DeltaTime) const;
-    bool ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
+    bool ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const;
     void ResolveDynamicCollisions() const;
     bool ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor) const;
 

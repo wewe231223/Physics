@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include <SimpleMath/SimpleMath.h>
+
 #ifdef _DEBUG
 #pragma comment(lib, "debug/DirectXTK12.lib")
 #else
@@ -44,6 +46,18 @@ public:
 
     void SetMass(float Mass);
     float GetMass() const;
+    void SetInverseMass(float InverseMass);
+    float GetInverseMass() const;
+    void SetFriction(float Friction);
+    float GetFriction() const;
+    void SetLocalInertiaTensor(const DirectX::SimpleMath::Matrix& LocalInertiaTensor);
+    const DirectX::SimpleMath::Matrix& GetLocalInertiaTensor() const;
+    void SetLocalInverseInertiaTensor(const DirectX::SimpleMath::Matrix& LocalInverseInertiaTensor);
+    const DirectX::SimpleMath::Matrix& GetLocalInverseInertiaTensor() const;
+    void SetLinearMomentum(const DirectX::SimpleMath::Vector3& LinearMomentum);
+    const DirectX::SimpleMath::Vector3& GetLinearMomentum() const;
+    void SetAngularMomentum(const DirectX::SimpleMath::Vector3& AngularMomentum);
+    const DirectX::SimpleMath::Vector3& GetAngularMomentum() const;
 
     void SetFlags(PhysicsActorFlags Flags);
     PhysicsActorFlags GetFlags() const;
@@ -56,6 +70,12 @@ private:
     std::string mName;
     bool mIsActive;
     float mMass;
+    float mInverseMass;
+    float mFriction;
+    DirectX::SimpleMath::Matrix mLocalInertiaTensor;
+    DirectX::SimpleMath::Matrix mLocalInverseInertiaTensor;
+    DirectX::SimpleMath::Vector3 mLinearMomentum;
+    DirectX::SimpleMath::Vector3 mAngularMomentum;
     PhysicsActorFlags mFlags;
     PhysicsActorType mActorType;
 };

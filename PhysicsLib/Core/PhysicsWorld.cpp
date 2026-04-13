@@ -246,7 +246,8 @@ void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float Delta
         return;
     }
 
-    if (Actor.GetMass() <= 0.0F) {
+    float ActorInverseMass{ Actor.GetInverseMass() };
+    if (ActorInverseMass <= 0.0F) {
         return;
     }
 
@@ -254,10 +255,17 @@ void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float Delta
         return;
     }
 
+    float ActorMass{ Actor.GetMass() };
     DirectX::SimpleMath::Vector3 TotalAcceleration{ mSettings.Gravity + Actor.GetAcceleration() };
-    DirectX::SimpleMath::Vector3 NextVelocity{ Actor.GetVelocity() + (TotalAcceleration * DeltaTime) };
+    DirectX::SimpleMath::Vector3 AppliedForce{ TotalAcceleration * ActorMass };
+    DirectX::SimpleMath::Vector3 NextLinearMomentum{ Actor.GetLinearMomentum() + (AppliedForce * DeltaTime) };
+    DirectX::SimpleMath::Vector3 NextVelocity{ NextLinearMomentum * ActorInverseMass };
     float DampingFactor{ std::max(0.0F, 1.0F - (Actor.GetLinearDamping() * DeltaTime)) };
     NextVelocity *= DampingFactor;
+    NextLinearMomentum = NextVelocity * ActorMass;
+    DirectX::SimpleMath::Vector3 NextAngularMomentum{ Actor.GetAngularMomentum() };
+    float AngularDampingFactor{ std::max(0.0F, 1.0F - (Actor.GetAngularDamping() * DeltaTime)) };
+    NextAngularMomentum *= AngularDampingFactor;
 
     DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
     DirectX::BoundingOrientedBox PredictedWorldBoundingBox{};
@@ -269,14 +277,16 @@ void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float Delta
 
     DirectX::SimpleMath::Vector3 CorrectedPosition{ NextPosition };
     DirectX::SimpleMath::Vector3 CorrectedVelocity{ NextVelocity };
-    ResolveStaticCollisions(PredictedWorldBoundingBox, CorrectedPosition, CorrectedVelocity);
+    ResolveStaticCollisions(PredictedWorldBoundingBox, ActorInverseMass, Actor.GetFriction(), Actor.GetRestitution(), CorrectedPosition, CorrectedVelocity);
 
     Actor.SetVelocity(CorrectedVelocity);
+    Actor.SetLinearMomentum(CorrectedVelocity * ActorMass);
+    Actor.SetAngularMomentum(NextAngularMomentum);
     Actor.SetPosition(CorrectedPosition);
     Actor.UpdateSleepState();
 }
 
-bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
+bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox, float DynamicInverseMass, float DynamicFriction, float DynamicRestitution, DirectX::SimpleMath::Vector3& CorrectedPosition, DirectX::SimpleMath::Vector3& CorrectedVelocity) const {
     bool HasCollision{};
     std::size_t ActorCount{ mActors.size() };
 
@@ -291,7 +301,7 @@ bool PhysicsWorld::ResolveStaticCollisions(const DirectX::BoundingOrientedBox& P
         }
 
         const PhysicsStaticActor* StaticActor{ static_cast<const PhysicsStaticActor*>(CurrentActor) };
-        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(PredictedWorldBoundingBox, CorrectedPosition, CorrectedVelocity) };
+        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(PredictedWorldBoundingBox, DynamicInverseMass, DynamicFriction, DynamicRestitution, CorrectedPosition, CorrectedVelocity) };
         HasCollision = HasCollision || CurrentCollision;
     }
 
@@ -307,7 +317,7 @@ void PhysicsWorld::ResolveDynamicCollisions() const {
         }
 
         PhysicsDynamicActor* FirstActor{ static_cast<PhysicsDynamicActor*>(FirstActorBase) };
-        if (!FirstActor->GetIsActive() || FirstActor->GetMass() <= 0.0F) {
+        if (!FirstActor->GetIsActive() || FirstActor->GetInverseMass() <= 0.0F) {
             continue;
         }
 
@@ -318,7 +328,7 @@ void PhysicsWorld::ResolveDynamicCollisions() const {
             }
 
             PhysicsDynamicActor* SecondActor{ static_cast<PhysicsDynamicActor*>(SecondActorBase) };
-            if (!SecondActor->GetIsActive() || SecondActor->GetMass() <= 0.0F) {
+            if (!SecondActor->GetIsActive() || SecondActor->GetInverseMass() <= 0.0F) {
                 continue;
             }
 
@@ -369,15 +379,15 @@ bool PhysicsWorld::ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, 
         CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, 0.0F, DeltaCenter.z >= 0.0F ? 1.0F : -1.0F };
     }
 
-    float FirstMass{ FirstActor.GetMass() };
-    float SecondMass{ SecondActor.GetMass() };
-    float TotalMass{ FirstMass + SecondMass };
-    if (TotalMass <= 0.0F) {
+    float FirstInverseMass{ FirstActor.GetInverseMass() };
+    float SecondInverseMass{ SecondActor.GetInverseMass() };
+    float CombinedInverseMass{ FirstInverseMass + SecondInverseMass };
+    if (CombinedInverseMass <= 0.0F) {
         return false;
     }
 
-    float FirstDisplacementFactor{ SecondMass / TotalMass };
-    float SecondDisplacementFactor{ FirstMass / TotalMass };
+    float FirstDisplacementFactor{ FirstInverseMass / CombinedInverseMass };
+    float SecondDisplacementFactor{ SecondInverseMass / CombinedInverseMass };
     DirectX::SimpleMath::Vector3 SeparationVector{ CollisionNormal * PenetrationDepth };
     DirectX::SimpleMath::Vector3 FirstCorrectedPosition{ FirstActor.GetPosition() - (SeparationVector * FirstDisplacementFactor) };
     DirectX::SimpleMath::Vector3 SecondCorrectedPosition{ SecondActor.GetPosition() + (SeparationVector * SecondDisplacementFactor) };
@@ -393,10 +403,10 @@ bool PhysicsWorld::ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, 
     }
 
     float EffectiveRestitution{ std::min(FirstActor.GetRestitution(), SecondActor.GetRestitution()) };
-    float ImpulseMagnitude{ -(1.0F + EffectiveRestitution) * RelativeNormalVelocity / ((1.0F / FirstMass) + (1.0F / SecondMass)) };
+    float ImpulseMagnitude{ -(1.0F + EffectiveRestitution) * RelativeNormalVelocity / CombinedInverseMass };
     DirectX::SimpleMath::Vector3 Impulse{ CollisionNormal * ImpulseMagnitude };
-    FirstVelocity -= Impulse / FirstMass;
-    SecondVelocity += Impulse / SecondMass;
+    FirstVelocity -= Impulse * FirstInverseMass;
+    SecondVelocity += Impulse * SecondInverseMass;
 
     float EffectiveFriction{ std::sqrt(std::max(0.0F, FirstActor.GetFriction() * SecondActor.GetFriction())) };
     DirectX::SimpleMath::Vector3 RelativeVelocity{ SecondVelocity - FirstVelocity };
@@ -405,16 +415,18 @@ bool PhysicsWorld::ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, 
     float TangentialVelocityLength{ TangentialVelocity.Length() };
     if (TangentialVelocityLength > 0.0001F) {
         DirectX::SimpleMath::Vector3 Tangent{ TangentialVelocity / TangentialVelocityLength };
-        float FrictionImpulseMagnitude{ -RelativeVelocity.Dot(Tangent) / ((1.0F / FirstMass) + (1.0F / SecondMass)) };
+        float FrictionImpulseMagnitude{ -RelativeVelocity.Dot(Tangent) / CombinedInverseMass };
         float MaximumFrictionImpulse{ ImpulseMagnitude * EffectiveFriction };
         FrictionImpulseMagnitude = std::clamp(FrictionImpulseMagnitude, -MaximumFrictionImpulse, MaximumFrictionImpulse);
         DirectX::SimpleMath::Vector3 FrictionImpulse{ Tangent * FrictionImpulseMagnitude };
-        FirstVelocity -= FrictionImpulse / FirstMass;
-        SecondVelocity += FrictionImpulse / SecondMass;
+        FirstVelocity -= FrictionImpulse * FirstInverseMass;
+        SecondVelocity += FrictionImpulse * SecondInverseMass;
     }
 
     FirstActor.SetVelocity(FirstVelocity);
     SecondActor.SetVelocity(SecondVelocity);
+    FirstActor.SetLinearMomentum(FirstVelocity * FirstActor.GetMass());
+    SecondActor.SetLinearMomentum(SecondVelocity * SecondActor.GetMass());
 
     return true;
 }
