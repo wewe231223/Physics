@@ -33,6 +33,7 @@ int main() {
 
 	std::size_t GridIndex{ MainScene.CreatePrimitiveGameObject("Grid", PrimitiveMeshType::Grid) };
 	std::size_t CubeIndex{ MainScene.CreatePrimitiveGameObject("Cube", PrimitiveMeshType::Cube) };
+	std::size_t StackedCubeIndex{ MainScene.CreatePrimitiveGameObject("StackedCube", PrimitiveMeshType::Cube) };
 	std::size_t SphereIndex{ MainScene.CreatePrimitiveGameObject("Sphere", PrimitiveMeshType::Sphere) };
 	std::size_t TriangularPyramidIndex{ MainScene.CreatePrimitiveGameObject("TriangularPyramid", PrimitiveMeshType::TriangularPyramid) };
 	std::size_t SquarePyramidIndex{ MainScene.CreatePrimitiveGameObject("SquarePyramid", PrimitiveMeshType::SquarePyramid) };
@@ -47,6 +48,11 @@ int main() {
 	GameObject* CubeObject{ MainScene.GetGameObject(CubeIndex) };
 	if (CubeObject != nullptr) {
 		CubeObject->GetTransform().SetPosition(glm::vec3{ -2.0F, DropStartHeight, 0.0F });
+	}
+
+	GameObject* StackedCubeObject{ MainScene.GetGameObject(StackedCubeIndex) };
+	if (StackedCubeObject != nullptr) {
+		StackedCubeObject->GetTransform().SetPosition(glm::vec3{ -2.0F, DropStartHeight + 2.0F, 0.0F });
 	}
 
 	GameObject* SphereObject{ MainScene.GetGameObject(SphereIndex) };
