@@ -44,6 +44,7 @@ public:
 
 private:
     bool TryGetSurfaceHeightAtLocalPosition(float LocalX, float LocalZ, float& OutLocalHeight) const;
+    bool TryGetSurfaceNormalAtLocalPosition(float LocalX, float LocalZ, DirectX::SimpleMath::Vector3& OutLocalNormal) const;
     std::size_t CalculateHeightFieldIndex(std::uint32_t X, std::uint32_t Z) const;
 
 private:
