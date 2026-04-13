@@ -3,12 +3,17 @@
 #include <cstdint>
 #include <utility>
 
+#include <glm/ext/matrix_transform.hpp>
+
 GameObject::GameObject()
     : mName{ "GameObject" },
       mIsActive{ true },
       mTransform{},
       mMesh{},
       mWorldMatrix{ 1.0F },
+      mBoundingBoxMesh{},
+      mBoundingBoxVisible{},
+      mBoundingBoxWorldMatrix{ 1.0F },
       mPhysicsActor{} {
 }
 
@@ -21,6 +26,9 @@ GameObject::GameObject(const GameObject& Other)
       mTransform{ Other.mTransform },
       mMesh{ Other.mMesh },
       mWorldMatrix{ Other.mWorldMatrix },
+      mBoundingBoxMesh{ Other.mBoundingBoxMesh },
+      mBoundingBoxVisible{ Other.mBoundingBoxVisible },
+      mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
       mPhysicsActor{} {
 }
 
@@ -34,6 +42,9 @@ GameObject& GameObject::operator=(const GameObject& Other) {
     mTransform = Other.mTransform;
     mMesh = Other.mMesh;
     mWorldMatrix = Other.mWorldMatrix;
+    mBoundingBoxMesh = Other.mBoundingBoxMesh;
+    mBoundingBoxVisible = Other.mBoundingBoxVisible;
+    mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
     mPhysicsActor = nullptr;
 
     return *this;
@@ -45,10 +56,15 @@ GameObject::GameObject(GameObject&& Other) noexcept
       mTransform{ std::move(Other.mTransform) },
       mMesh{ std::move(Other.mMesh) },
       mWorldMatrix{ Other.mWorldMatrix },
+      mBoundingBoxMesh{ std::move(Other.mBoundingBoxMesh) },
+      mBoundingBoxVisible{ Other.mBoundingBoxVisible },
+      mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
       mPhysicsActor{ Other.mPhysicsActor } {
     Other.mName = "";
     Other.mIsActive = false;
     Other.mWorldMatrix = glm::mat4{ 1.0F };
+    Other.mBoundingBoxVisible = false;
+    Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
     Other.mPhysicsActor = nullptr;
 }
 
@@ -62,11 +78,16 @@ GameObject& GameObject::operator=(GameObject&& Other) noexcept {
     mTransform = std::move(Other.mTransform);
     mMesh = std::move(Other.mMesh);
     mWorldMatrix = Other.mWorldMatrix;
+    mBoundingBoxMesh = std::move(Other.mBoundingBoxMesh);
+    mBoundingBoxVisible = Other.mBoundingBoxVisible;
+    mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
     mPhysicsActor = Other.mPhysicsActor;
 
     Other.mName = "";
     Other.mIsActive = false;
     Other.mWorldMatrix = glm::mat4{ 1.0F };
+    Other.mBoundingBoxVisible = false;
+    Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
     Other.mPhysicsActor = nullptr;
 
     return *this;
@@ -78,6 +99,9 @@ GameObject::GameObject(std::string Name)
       mTransform{},
       mMesh{},
       mWorldMatrix{ 1.0F },
+      mBoundingBoxMesh{},
+      mBoundingBoxVisible{},
+      mBoundingBoxWorldMatrix{ 1.0F },
       mPhysicsActor{} {
 }
 
@@ -113,12 +137,32 @@ const std::shared_ptr<Mesh>& GameObject::GetMesh() const {
     return mMesh;
 }
 
+void GameObject::SetBoundingBoxMesh(const std::shared_ptr<Mesh>& MeshData) {
+    mBoundingBoxMesh = MeshData;
+}
+
+const std::shared_ptr<Mesh>& GameObject::GetBoundingBoxMesh() const {
+    return mBoundingBoxMesh;
+}
+
+void GameObject::SetBoundingBoxVisible(bool IsVisible) {
+    mBoundingBoxVisible = IsVisible;
+}
+
+bool GameObject::GetBoundingBoxVisible() const {
+    return mBoundingBoxVisible;
+}
+
 void GameObject::UpdateWorldMatrix() {
     mWorldMatrix = mTransform.GetWorldMatrix();
 }
 
 const glm::mat4& GameObject::GetWorldMatrix() const {
     return mWorldMatrix;
+}
+
+const glm::mat4& GameObject::GetBoundingBoxWorldMatrix() const {
+    return mBoundingBoxWorldMatrix;
 }
 
 bool GameObject::IsTerrainObject() const {
@@ -204,6 +248,7 @@ void GameObject::PullTransformFromPhysicsActor() {
         mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
         mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
         mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
+        UpdateBoundingBoxWorldMatrix();
         return;
     }
 
@@ -215,6 +260,7 @@ void GameObject::PullTransformFromPhysicsActor() {
         mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
         mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
         mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
+        UpdateBoundingBoxWorldMatrix();
         return;
     }
 
@@ -225,4 +271,39 @@ void GameObject::PullTransformFromPhysicsActor() {
     mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
     mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
     mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
+    UpdateBoundingBoxWorldMatrix();
+}
+
+void GameObject::UpdateBoundingBoxWorldMatrix() {
+    if (!mBoundingBoxVisible || mPhysicsActor == nullptr) {
+        mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
+        return;
+    }
+
+    DirectX::BoundingOrientedBox WorldBoundingBox{};
+    DirectX::SimpleMath::Vector3 Rotation{};
+    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
+        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(mPhysicsActor) };
+        WorldBoundingBox = KinematicActor->GetWorldBoundingBox();
+        Rotation = KinematicActor->GetRotation();
+    } else if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Dynamic) {
+        const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(mPhysicsActor) };
+        WorldBoundingBox = DynamicActor->GetWorldBoundingBox();
+        Rotation = DynamicActor->GetRotation();
+    } else {
+        mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
+        return;
+    }
+
+    DirectX::XMFLOAT3 Center{ WorldBoundingBox.Center };
+    DirectX::XMFLOAT3 Extents{ WorldBoundingBox.Extents };
+    glm::vec3 BoundingBoxPosition{ Center.x, Center.y, Center.z };
+    glm::vec3 BoundingBoxRotation{ Rotation.x, Rotation.y, Rotation.z };
+    glm::vec3 BoundingBoxScale{ Extents.x * 2.0F, Extents.y * 2.0F, Extents.z * 2.0F };
+    glm::mat4 TranslationMatrix{ glm::translate(glm::mat4{ 1.0F }, BoundingBoxPosition) };
+    glm::mat4 RotationXMatrix{ glm::rotate(glm::mat4{ 1.0F }, BoundingBoxRotation.x, glm::vec3{ 1.0F, 0.0F, 0.0F }) };
+    glm::mat4 RotationYMatrix{ glm::rotate(glm::mat4{ 1.0F }, BoundingBoxRotation.y, glm::vec3{ 0.0F, 1.0F, 0.0F }) };
+    glm::mat4 RotationZMatrix{ glm::rotate(glm::mat4{ 1.0F }, BoundingBoxRotation.z, glm::vec3{ 0.0F, 0.0F, 1.0F }) };
+    glm::mat4 ScaleMatrix{ glm::scale(glm::mat4{ 1.0F }, BoundingBoxScale) };
+    mBoundingBoxWorldMatrix = TranslationMatrix * RotationZMatrix * RotationYMatrix * RotationXMatrix * ScaleMatrix;
 }

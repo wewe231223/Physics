@@ -35,9 +35,14 @@ public:
 
     void SetMesh(const std::shared_ptr<Mesh>& MeshData);
     const std::shared_ptr<Mesh>& GetMesh() const;
+    void SetBoundingBoxMesh(const std::shared_ptr<Mesh>& MeshData);
+    const std::shared_ptr<Mesh>& GetBoundingBoxMesh() const;
+    void SetBoundingBoxVisible(bool IsVisible);
+    bool GetBoundingBoxVisible() const;
 
     void UpdateWorldMatrix();
     const glm::mat4& GetWorldMatrix() const;
+    const glm::mat4& GetBoundingBoxWorldMatrix() const;
 
     bool IsTerrainObject() const;
     PhysicsDynamicActor::ActorDesc GetPhysicsDynamicActorDesc() const;
@@ -47,6 +52,7 @@ public:
     const PhysicsActor* GetPhysicsActor() const;
 
     void PullTransformFromPhysicsActor();
+    void UpdateBoundingBoxWorldMatrix();
 
 private:
     std::string mName;
@@ -54,5 +60,8 @@ private:
     Transform mTransform;
     std::shared_ptr<Mesh> mMesh;
     glm::mat4 mWorldMatrix;
+    std::shared_ptr<Mesh> mBoundingBoxMesh;
+    bool mBoundingBoxVisible;
+    glm::mat4 mBoundingBoxWorldMatrix;
     PhysicsActor* mPhysicsActor;
 };

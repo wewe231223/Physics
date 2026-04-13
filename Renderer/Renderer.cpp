@@ -232,8 +232,6 @@ void Renderer::RenderFrame(const Scene& CurrentScene) const {
 
         CurrentMesh->EnsureUploaded();
 
-       // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
         const glm::mat4& ModelMatrix{ CurrentObject->GetWorldMatrix() };
         glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
 
@@ -244,6 +242,28 @@ void Renderer::RenderFrame(const Scene& CurrentScene) const {
         glDrawElements(DrawMode, IndexCount, GL_UNSIGNED_INT, nullptr);
 
         CurrentMesh->Unbind();
+
+        if (!CurrentObject->GetBoundingBoxVisible()) {
+            continue;
+        }
+
+        const std::shared_ptr<Mesh>& BoundingBoxMesh{ CurrentObject->GetBoundingBoxMesh() };
+        if (BoundingBoxMesh == nullptr) {
+            continue;
+        }
+
+        BoundingBoxMesh->EnsureUploaded();
+
+        const glm::mat4& BoundingBoxModelMatrix{ CurrentObject->GetBoundingBoxWorldMatrix() };
+        glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(BoundingBoxModelMatrix));
+
+        BoundingBoxMesh->Bind();
+
+        unsigned int BoundingBoxDrawMode{ static_cast<unsigned int>(BoundingBoxMesh->GetTopology() == MeshTopology::Lines ? GL_LINES : GL_TRIANGLES) };
+        GLsizei BoundingBoxIndexCount{ static_cast<GLsizei>(BoundingBoxMesh->GetIndices().size()) };
+        glDrawElements(BoundingBoxDrawMode, BoundingBoxIndexCount, GL_UNSIGNED_INT, nullptr);
+
+        BoundingBoxMesh->Unbind();
     }
 }
 
