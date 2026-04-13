@@ -2,6 +2,7 @@
 
 #include "Scene/Scene.h"
 
+#include <cstddef>
 #include <string>
 
 struct GLFWwindow;
@@ -20,7 +21,7 @@ public:
 public:
     bool Initialize();
     bool ShouldClose() const;
-    void ProcessInput(Scene& CurrentScene) const;
+    void ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene);
     void RenderFrame(const Scene& CurrentScene) const;
     void Present() const;
     void PollEvents() const;
@@ -41,4 +42,6 @@ private:
     std::string mTitle;
     bool mIsInitialized;
     unsigned int mShaderProgram;
+    bool mWasKey1Pressed;
+    bool mWasKey2Pressed;
 };

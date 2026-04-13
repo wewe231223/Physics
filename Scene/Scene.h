@@ -2,6 +2,7 @@
 
 #include "Camera.h"
 #include "GameObject.h"
+#include "PhysicsLib/Core/PhysicsWorld.h"
 
 #include <cstddef>
 #include <memory>
@@ -25,6 +26,8 @@ public:
     Scene(Scene&& Other) noexcept;
     Scene& operator=(Scene&& Other) noexcept;
 
+    explicit Scene(const PhysicsWorld::WorldSettings& WorldSettings);
+
 public:
     Camera& GetMainCamera();
     const Camera& GetMainCamera() const;
@@ -37,6 +40,12 @@ public:
     const GameObject* GetGameObject(std::size_t Index) const;
     std::size_t GetGameObjectCount() const;
 
+    PhysicsWorld& GetPhysicsWorld();
+    const PhysicsWorld& GetPhysicsWorld() const;
+
+    void BuildPhysicsActors();
+    void ConfigureBoundingBoxes(const std::shared_ptr<Mesh>& BoundingBoxMesh);
+    void UpdatePhysics(float DeltaTime);
     void Update();
 
 private:
@@ -45,6 +54,7 @@ private:
 private:
     Camera mMainCamera;
     std::vector<GameObject> mGameObjects;
+    PhysicsWorld mPhysicsWorld;
     std::shared_ptr<Mesh> mCubeMesh;
     std::shared_ptr<Mesh> mSphereMesh;
     std::shared_ptr<Mesh> mTriangularPyramidMesh;

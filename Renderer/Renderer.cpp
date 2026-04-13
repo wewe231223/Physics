@@ -22,7 +22,9 @@ Renderer::Renderer()
       mHeight{ 720 },
       mTitle{ "Physics" },
       mIsInitialized{},
-      mShaderProgram{} {
+      mShaderProgram{},
+      mWasKey1Pressed{},
+      mWasKey2Pressed{} {
 }
 
 Renderer::~Renderer() {
@@ -35,7 +37,9 @@ Renderer::Renderer(const Renderer& Other)
       mHeight{ Other.mHeight },
       mTitle{ Other.mTitle },
       mIsInitialized{},
-      mShaderProgram{} {
+      mShaderProgram{},
+      mWasKey1Pressed{ Other.mWasKey1Pressed },
+      mWasKey2Pressed{ Other.mWasKey2Pressed } {
 }
 
 Renderer& Renderer::operator=(const Renderer& Other) {
@@ -51,6 +55,8 @@ Renderer& Renderer::operator=(const Renderer& Other) {
     mTitle = Other.mTitle;
     mIsInitialized = false;
     mShaderProgram = 0U;
+    mWasKey1Pressed = Other.mWasKey1Pressed;
+    mWasKey2Pressed = Other.mWasKey2Pressed;
 
     return *this;
 }
@@ -61,13 +67,17 @@ Renderer::Renderer(Renderer&& Other) noexcept
       mHeight{ Other.mHeight },
       mTitle{ std::move(Other.mTitle) },
       mIsInitialized{ Other.mIsInitialized },
-      mShaderProgram{ Other.mShaderProgram } {
+      mShaderProgram{ Other.mShaderProgram },
+      mWasKey1Pressed{ Other.mWasKey1Pressed },
+      mWasKey2Pressed{ Other.mWasKey2Pressed } {
     Other.mWindow = nullptr;
     Other.mWidth = 0;
     Other.mHeight = 0;
     Other.mTitle = "";
     Other.mIsInitialized = false;
     Other.mShaderProgram = 0U;
+    Other.mWasKey1Pressed = false;
+    Other.mWasKey2Pressed = false;
 }
 
 Renderer& Renderer::operator=(Renderer&& Other) noexcept {
@@ -83,6 +93,8 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     mTitle = std::move(Other.mTitle);
     mIsInitialized = Other.mIsInitialized;
     mShaderProgram = Other.mShaderProgram;
+    mWasKey1Pressed = Other.mWasKey1Pressed;
+    mWasKey2Pressed = Other.mWasKey2Pressed;
 
     Other.mWindow = nullptr;
     Other.mWidth = 0;
@@ -90,6 +102,8 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     Other.mTitle = "";
     Other.mIsInitialized = false;
     Other.mShaderProgram = 0U;
+    Other.mWasKey1Pressed = false;
+    Other.mWasKey2Pressed = false;
 
     return *this;
 }
@@ -139,9 +153,31 @@ bool Renderer::ShouldClose() const {
     return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
 }
 
-void Renderer::ProcessInput(Scene& CurrentScene) const {
+void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene) {
+    ShouldRestartActiveScene = false;
+
     if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
+    }
+
+    bool IsKey1Pressed{ glfwGetKey(mWindow, GLFW_KEY_1) == GLFW_PRESS };
+    bool IsKey2Pressed{ glfwGetKey(mWindow, GLFW_KEY_2) == GLFW_PRESS };
+
+    if (IsKey1Pressed && !mWasKey1Pressed) {
+        ActiveSceneIndex = 0U;
+        ShouldRestartActiveScene = true;
+    }
+
+    else if (IsKey2Pressed && !mWasKey2Pressed) {
+        ActiveSceneIndex = 1U;
+        ShouldRestartActiveScene = true;
+    }
+
+    mWasKey1Pressed = IsKey1Pressed;
+    mWasKey2Pressed = IsKey2Pressed;
+
+    if (ShouldRestartActiveScene) {
+        return;
     }
 
     Camera& MainCamera{ CurrentScene.GetMainCamera() };
