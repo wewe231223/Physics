@@ -22,6 +22,7 @@ public:
     bool Initialize();
     bool ShouldClose() const;
     void ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene);
+    void SetWindowTitle(const std::string& Title);
     void RenderFrame(const Scene& CurrentScene) const;
     void Present() const;
     void PollEvents() const;

@@ -13,6 +13,21 @@ namespace {
         DirectX::SimpleMath::Vector3 Maximum;
     };
 
+    struct DynamicBroadPhaseEntry {
+        PhysicsDynamicActor* DynamicActor;
+        AxisAlignedBounds FatBounds;
+    };
+
+    struct DynamicCollisionPairCandidate {
+        PhysicsDynamicActor* FirstActor;
+        PhysicsDynamicActor* SecondActor;
+    };
+
+    constexpr std::size_t DynamicCollisionSolverMinimumIterationCount{ 1U };
+    constexpr std::size_t DynamicCollisionSolverMaximumIterationCount{ 4U };
+    constexpr std::size_t DynamicCollisionPairsPerAdditionalIteration{ 24U };
+    constexpr float DynamicCollisionSeparationBias{ 0.001F };
+
     AxisAlignedBounds MakeAxisAlignedBounds(const DirectX::BoundingOrientedBox& BoundingBox) {
         DirectX::XMFLOAT3 Corners[8]{};
         BoundingBox.GetCorners(Corners);
@@ -42,6 +57,65 @@ namespace {
     DirectX::SimpleMath::Vector3 CalculateBoundsHalfExtent(const AxisAlignedBounds& Bounds) {
         DirectX::SimpleMath::Vector3 HalfExtent{ (Bounds.Maximum - Bounds.Minimum) * 0.5F };
         return HalfExtent;
+    }
+
+    bool IsOverlappingAxisAlignedBounds(const AxisAlignedBounds& FirstBounds, const AxisAlignedBounds& SecondBounds) {
+        bool IsOverlappingX{ FirstBounds.Minimum.x <= SecondBounds.Maximum.x && SecondBounds.Minimum.x <= FirstBounds.Maximum.x };
+        bool IsOverlappingY{ FirstBounds.Minimum.y <= SecondBounds.Maximum.y && SecondBounds.Minimum.y <= FirstBounds.Maximum.y };
+        bool IsOverlappingZ{ FirstBounds.Minimum.z <= SecondBounds.Maximum.z && SecondBounds.Minimum.z <= FirstBounds.Maximum.z };
+        bool IsOverlapping{ IsOverlappingX && IsOverlappingY && IsOverlappingZ };
+        return IsOverlapping;
+    }
+
+    std::vector<DynamicCollisionPairCandidate> BuildDynamicCollisionPairCandidates(const std::vector<std::unique_ptr<PhysicsActor>>& Actors) {
+        std::vector<DynamicBroadPhaseEntry> DynamicEntries{};
+        DynamicEntries.reserve(Actors.size());
+
+        std::size_t ActorCount{ Actors.size() };
+        for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
+            PhysicsActor* CurrentActorBase{ Actors[ActorIndex].get() };
+            if (CurrentActorBase == nullptr || CurrentActorBase->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+                continue;
+            }
+
+            PhysicsDynamicActor* CurrentDynamicActor{ static_cast<PhysicsDynamicActor*>(CurrentActorBase) };
+            if (!CurrentDynamicActor->GetIsActive() || CurrentDynamicActor->GetInverseMass() <= 0.0F) {
+                continue;
+            }
+
+            AxisAlignedBounds FatBounds{ MakeAxisAlignedBounds(CurrentDynamicActor->GetFatWorldBoundingBox()) };
+            DynamicEntries.push_back(DynamicBroadPhaseEntry{ CurrentDynamicActor, FatBounds });
+        }
+
+        std::vector<DynamicCollisionPairCandidate> PairCandidates{};
+        std::size_t DynamicEntryCount{ DynamicEntries.size() };
+        if (DynamicEntryCount < 2U) {
+            return PairCandidates;
+        }
+
+        std::sort(DynamicEntries.begin(), DynamicEntries.end(), [](const DynamicBroadPhaseEntry& Left, const DynamicBroadPhaseEntry& Right) {
+            return Left.FatBounds.Minimum.x < Right.FatBounds.Minimum.x;
+        });
+
+        PairCandidates.reserve(DynamicEntryCount * 4U);
+        for (std::size_t FirstIndex{ 0U }; FirstIndex < DynamicEntryCount; ++FirstIndex) {
+            const DynamicBroadPhaseEntry& FirstEntry{ DynamicEntries[FirstIndex] };
+            for (std::size_t SecondIndex{ FirstIndex + 1U }; SecondIndex < DynamicEntryCount; ++SecondIndex) {
+                const DynamicBroadPhaseEntry& SecondEntry{ DynamicEntries[SecondIndex] };
+                if (SecondEntry.FatBounds.Minimum.x > FirstEntry.FatBounds.Maximum.x) {
+                    break;
+                }
+
+                bool IsOverlappingFatBounds{ IsOverlappingAxisAlignedBounds(FirstEntry.FatBounds, SecondEntry.FatBounds) };
+                if (!IsOverlappingFatBounds) {
+                    continue;
+                }
+
+                PairCandidates.push_back(DynamicCollisionPairCandidate{ FirstEntry.DynamicActor, SecondEntry.DynamicActor });
+            }
+        }
+
+        return PairCandidates;
     }
 }
 
@@ -302,25 +376,31 @@ bool PhysicsWorld::ResolveStaticCollisions(PhysicsDynamicActor& DynamicActor) co
 }
 
 void PhysicsWorld::ResolveDynamicCollisions() const {
-    std::size_t ActorCount{ mActors.size() };
-    for (std::size_t FirstActorIndex{ 0U }; FirstActorIndex < ActorCount; ++FirstActorIndex) {
-        PhysicsActor* FirstActorBase{ mActors[FirstActorIndex].get() };
-        if (FirstActorBase == nullptr || FirstActorBase->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
-            continue;
-        }
+    std::vector<DynamicCollisionPairCandidate> PairCandidates{ BuildDynamicCollisionPairCandidates(mActors) };
+    std::size_t PairCandidateCount{ PairCandidates.size() };
+    if (PairCandidateCount == 0U) {
+        return;
+    }
 
-        PhysicsDynamicActor* FirstActor{ static_cast<PhysicsDynamicActor*>(FirstActorBase) };
-        if (!FirstActor->GetIsActive() || FirstActor->GetInverseMass() <= 0.0F) {
-            continue;
-        }
+    std::size_t AdditionalIterationCount{ PairCandidateCount / DynamicCollisionPairsPerAdditionalIteration };
+    std::size_t SolverIterationCount{ DynamicCollisionSolverMinimumIterationCount + AdditionalIterationCount };
+    if (SolverIterationCount > DynamicCollisionSolverMaximumIterationCount) {
+        SolverIterationCount = DynamicCollisionSolverMaximumIterationCount;
+    }
 
-        for (std::size_t SecondActorIndex{ FirstActorIndex + 1U }; SecondActorIndex < ActorCount; ++SecondActorIndex) {
-            PhysicsActor* SecondActorBase{ mActors[SecondActorIndex].get() };
-            if (SecondActorBase == nullptr || SecondActorBase->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+    for (std::size_t IterationIndex{ 0U }; IterationIndex < SolverIterationCount; ++IterationIndex) {
+        bool HasAnyCollision{};
+        for (std::size_t PairIndex{ 0U }; PairIndex < PairCandidateCount; ++PairIndex) {
+            PhysicsDynamicActor* FirstActor{ PairCandidates[PairIndex].FirstActor };
+            PhysicsDynamicActor* SecondActor{ PairCandidates[PairIndex].SecondActor };
+            if (FirstActor == nullptr || SecondActor == nullptr) {
                 continue;
             }
 
-            PhysicsDynamicActor* SecondActor{ static_cast<PhysicsDynamicActor*>(SecondActorBase) };
+            if (!FirstActor->GetIsActive() || FirstActor->GetInverseMass() <= 0.0F) {
+                continue;
+            }
+
             if (!SecondActor->GetIsActive() || SecondActor->GetInverseMass() <= 0.0F) {
                 continue;
             }
@@ -330,8 +410,13 @@ void PhysicsWorld::ResolveDynamicCollisions() const {
                 continue;
             }
 
+            HasAnyCollision = true;
             FirstActor->UpdateSleepState();
             SecondActor->UpdateSleepState();
+        }
+
+        if (!HasAnyCollision) {
+            break;
         }
     }
 }
@@ -381,7 +466,8 @@ bool PhysicsWorld::ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, 
 
     float FirstDisplacementFactor{ FirstInverseMass / CombinedInverseMass };
     float SecondDisplacementFactor{ SecondInverseMass / CombinedInverseMass };
-    DirectX::SimpleMath::Vector3 SeparationVector{ CollisionNormal * PenetrationDepth };
+    float CorrectedPenetrationDepth{ PenetrationDepth + DynamicCollisionSeparationBias };
+    DirectX::SimpleMath::Vector3 SeparationVector{ CollisionNormal * CorrectedPenetrationDepth };
     DirectX::SimpleMath::Vector3 FirstCorrectedPosition{ FirstActor.GetPosition() - (SeparationVector * FirstDisplacementFactor) };
     DirectX::SimpleMath::Vector3 SecondCorrectedPosition{ SecondActor.GetPosition() + (SeparationVector * SecondDisplacementFactor) };
     FirstActor.SetPosition(FirstCorrectedPosition);

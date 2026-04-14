@@ -1,8 +1,11 @@
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <locale>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -301,6 +304,12 @@ int main() {
     }
 
     std::size_t ActiveSceneIndex{};
+    std::uint64_t FrameCount{};
+    constexpr std::size_t PhysicsSimulationAverageWindowFrameCount{ 120U };
+    std::vector<double> PhysicsSimulationElapsedMillisecondsHistory(PhysicsSimulationAverageWindowFrameCount, 0.0);
+    std::size_t PhysicsSimulationHistoryCount{};
+    std::size_t PhysicsSimulationHistoryWriteIndex{};
+    double PhysicsSimulationElapsedMillisecondsHistorySum{};
     while (!MainRenderer.ShouldClose()) {
         if (ActiveSceneIndex >= Scenes.size()) {
             ActiveSceneIndex = 0U;
@@ -319,7 +328,25 @@ int main() {
         }
 
         Scene& ActiveScene{ Scenes[ActiveSceneIndex] };
+        std::chrono::high_resolution_clock::time_point PhysicsSimulationStartTime{ std::chrono::high_resolution_clock::now() };
         ActiveScene.UpdatePhysics(WorldSettings.FixedTimeStep);
+        std::chrono::high_resolution_clock::time_point PhysicsSimulationEndTime{ std::chrono::high_resolution_clock::now() };
+        std::chrono::duration<double, std::milli> PhysicsSimulationElapsedTime{ PhysicsSimulationEndTime - PhysicsSimulationStartTime };
+        double PhysicsSimulationElapsedMilliseconds{ PhysicsSimulationElapsedTime.count() };
+        if (PhysicsSimulationHistoryCount >= PhysicsSimulationAverageWindowFrameCount) {
+            PhysicsSimulationElapsedMillisecondsHistorySum -= PhysicsSimulationElapsedMillisecondsHistory[PhysicsSimulationHistoryWriteIndex];
+        } else {
+            ++PhysicsSimulationHistoryCount;
+        }
+
+        PhysicsSimulationElapsedMillisecondsHistory[PhysicsSimulationHistoryWriteIndex] = PhysicsSimulationElapsedMilliseconds;
+        PhysicsSimulationElapsedMillisecondsHistorySum += PhysicsSimulationElapsedMilliseconds;
+        PhysicsSimulationHistoryWriteIndex = (PhysicsSimulationHistoryWriteIndex + 1U) % PhysicsSimulationAverageWindowFrameCount;
+        ++FrameCount;
+        double PhysicsSimulationAverageMilliseconds{ PhysicsSimulationElapsedMillisecondsHistorySum / static_cast<double>(PhysicsSimulationHistoryCount) };
+        std::ostringstream WindowTitleStream{};
+        WindowTitleStream << "프레임: " << FrameCount << " - 물리 시뮬레이션 평균 시간: " << std::fixed << std::setprecision(3) << PhysicsSimulationAverageMilliseconds << " ms";
+        MainRenderer.SetWindowTitle(WindowTitleStream.str());
         ActiveScene.Update();
         MainRenderer.RenderFrame(ActiveScene);
         MainRenderer.Present();

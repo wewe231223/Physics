@@ -225,6 +225,15 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
     }
 }
 
+void Renderer::SetWindowTitle(const std::string& Title) {
+    mTitle = Title;
+    if (mWindow == nullptr) {
+        return;
+    }
+
+    glfwSetWindowTitle(mWindow, mTitle.c_str());
+}
+
 void Renderer::RenderFrame(const Scene& CurrentScene) const {
     const Camera& MainCamera{ CurrentScene.GetMainCamera() };
 
