@@ -5,15 +5,19 @@
 #include <vector>
 
 #include <SimpleMath/SimpleMath.h>
-#include <DirectXCollision.h>
 
+#include "Mediator/IPhysicsWorldMediator.h"
 #include "PhysicsActor.h"
 #include "PhysicsDynamicActor.h"
 #include "PhysicsKinematicActor.h"
-#include "PhysicsStaticActor.h"
+#include "Types/PhysicsSimulationTypes.h"
 #include "PhysicsTerrainActor.h"
 
-class PhysicsWorld final {
+class IPhysicsActorRepository;
+class IPhysicsSimulationLogic;
+class IPhysicsSpatialQuery;
+
+class PhysicsWorld final : public IPhysicsWorldMediator {
 public:
     struct WorldSettings {
         float FixedTimeStep;
@@ -22,7 +26,7 @@ public:
 
 public:
     PhysicsWorld();
-    ~PhysicsWorld();
+    ~PhysicsWorld() override;
     PhysicsWorld(const PhysicsWorld& Other);
     PhysicsWorld& operator=(const PhysicsWorld& Other);
     PhysicsWorld(PhysicsWorld&& Other) noexcept;
@@ -49,14 +53,24 @@ public:
     void StepSimulation();
     void Update(float DeltaTime);
 
+    const DirectX::SimpleMath::Vector3& GetGravity() const override;
+    IPhysicsActorRepository& GetActorRepository() override;
+    const IPhysicsActorRepository& GetActorRepository() const override;
+    IPhysicsSpatialQuery& GetSpatialQuery() override;
+    const IPhysicsSpatialQuery& GetSpatialQuery() const override;
+    void PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActor* FirstActor, const PhysicsActor* SecondActor) override;
+    void ClearPublishedEvents() override;
+    const std::vector<PhysicsSimulationEvent>& GetPublishedEvents() const override;
+
 private:
-    void IntegrateDynamicActor(PhysicsDynamicActor& Actor, float DeltaTime) const;
-    bool ResolveStaticCollisions(PhysicsDynamicActor& DynamicActor) const;
-    void ResolveDynamicCollisions() const;
-    bool ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor) const;
+    void InitializeDependencies();
+    void InitializeSimulationLogics();
 
 private:
     WorldSettings mSettings;
     float mAccumulator;
-    std::vector<std::unique_ptr<PhysicsActor>> mActors;
+    std::unique_ptr<IPhysicsActorRepository> mActorRepository;
+    std::unique_ptr<IPhysicsSpatialQuery> mSpatialQuery;
+    std::vector<std::unique_ptr<IPhysicsSimulationLogic>> mSimulationLogics;
+    std::vector<PhysicsSimulationEvent> mPublishedEvents;
 };

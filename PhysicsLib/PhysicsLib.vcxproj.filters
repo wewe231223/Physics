@@ -1,16 +1,55 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Core">
       <UniqueIdentifier>{7f3be32f-0cac-4c8a-8a64-73f8b42a90ef}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Repository">
+      <UniqueIdentifier>{d420c9c4-6d9d-4dd7-b80a-0bfc65baf9df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\SpatialQuery">
+      <UniqueIdentifier>{63f7dd3b-a3be-4b66-a3a9-88d0346f2f0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Mediator">
+      <UniqueIdentifier>{780fd3f4-d6cd-4c9a-8b0a-ac7cb89a44c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Logic">
+      <UniqueIdentifier>{9544f66a-9de4-4f5e-a4e5-f6db5554ea24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Types">
+      <UniqueIdentifier>{b1766d81-8f59-4bd6-89fd-6d8843fd76ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\SpatialQuery\BruteForcePhysicsSpatialQuery.cpp">
+      <Filter>Core\SpatialQuery</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Repository\IPhysicsActorRepository.cpp">
+      <Filter>Core\Repository</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Logic\IPhysicsSimulationLogic.cpp">
+      <Filter>Core\Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\SpatialQuery\IPhysicsSpatialQuery.cpp">
+      <Filter>Core\SpatialQuery</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Mediator\IPhysicsWorldMediator.cpp">
+      <Filter>Core\Mediator</Filter>
+    </ClCompile>
     <ClCompile Include="Core\PhysicsActor.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Repository\PhysicsActorRepository.cpp">
+      <Filter>Core\Repository</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Logic\PhysicsDynamicCollisionLogic.cpp">
+      <Filter>Core\Logic</Filter>
+    </ClCompile>
     <ClCompile Include="Core\PhysicsDynamicActor.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Logic\PhysicsDynamicIntegrationLogic.cpp">
+      <Filter>Core\Logic</Filter>
     </ClCompile>
     <ClCompile Include="Core\PhysicsKinematicActor.cpp">
       <Filter>Core</Filter>
@@ -26,14 +65,41 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\SpatialQuery\BruteForcePhysicsSpatialQuery.h">
+      <Filter>Core\SpatialQuery</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Repository\IPhysicsActorRepository.h">
+      <Filter>Core\Repository</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Logic\IPhysicsSimulationLogic.h">
+      <Filter>Core\Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\SpatialQuery\IPhysicsSpatialQuery.h">
+      <Filter>Core\SpatialQuery</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Mediator\IPhysicsWorldMediator.h">
+      <Filter>Core\Mediator</Filter>
+    </ClInclude>
     <ClInclude Include="Core\PhysicsActor.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Repository\PhysicsActorRepository.h">
+      <Filter>Core\Repository</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Logic\PhysicsDynamicCollisionLogic.h">
+      <Filter>Core\Logic</Filter>
     </ClInclude>
     <ClInclude Include="Core\PhysicsDynamicActor.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Logic\PhysicsDynamicIntegrationLogic.h">
+      <Filter>Core\Logic</Filter>
+    </ClInclude>
     <ClInclude Include="Core\PhysicsKinematicActor.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Types\PhysicsSimulationTypes.h">
+      <Filter>Core\Types</Filter>
     </ClInclude>
     <ClInclude Include="Core\PhysicsStaticActor.h">
       <Filter>Core</Filter>

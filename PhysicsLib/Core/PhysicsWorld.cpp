@@ -1,128 +1,24 @@
 #include "PhysicsWorld.h"
 
-#include <algorithm>
-#include <cmath>
 #include <utility>
 
-#undef min 
-#undef max 
-
-namespace {
-    struct AxisAlignedBounds {
-        DirectX::SimpleMath::Vector3 Minimum;
-        DirectX::SimpleMath::Vector3 Maximum;
-    };
-
-    struct DynamicBroadPhaseEntry {
-        PhysicsDynamicActor* DynamicActor;
-        AxisAlignedBounds FatBounds;
-    };
-
-    struct DynamicCollisionPairCandidate {
-        PhysicsDynamicActor* FirstActor;
-        PhysicsDynamicActor* SecondActor;
-    };
-
-    constexpr std::size_t DynamicCollisionSolverMinimumIterationCount{ 1U };
-    constexpr std::size_t DynamicCollisionSolverMaximumIterationCount{ 4U };
-    constexpr std::size_t DynamicCollisionPairsPerAdditionalIteration{ 24U };
-    constexpr float DynamicCollisionSeparationBias{ 0.001F };
-
-    AxisAlignedBounds MakeAxisAlignedBounds(const DirectX::BoundingOrientedBox& BoundingBox) {
-        DirectX::XMFLOAT3 Corners[8]{};
-        BoundingBox.GetCorners(Corners);
-
-        AxisAlignedBounds Bounds{};
-        Bounds.Minimum = DirectX::SimpleMath::Vector3{ Corners[0].x, Corners[0].y, Corners[0].z };
-        Bounds.Maximum = Bounds.Minimum;
-
-        for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
-            Bounds.Minimum.x = std::min(Bounds.Minimum.x, Corners[CornerIndex].x);
-            Bounds.Minimum.y = std::min(Bounds.Minimum.y, Corners[CornerIndex].y);
-            Bounds.Minimum.z = std::min(Bounds.Minimum.z, Corners[CornerIndex].z);
-
-            Bounds.Maximum.x = std::max(Bounds.Maximum.x, Corners[CornerIndex].x);
-            Bounds.Maximum.y = std::max(Bounds.Maximum.y, Corners[CornerIndex].y);
-            Bounds.Maximum.z = std::max(Bounds.Maximum.z, Corners[CornerIndex].z);
-        }
-
-        return Bounds;
-    }
-
-    DirectX::SimpleMath::Vector3 CalculateBoundsCenter(const AxisAlignedBounds& Bounds) {
-        DirectX::SimpleMath::Vector3 Center{ (Bounds.Minimum + Bounds.Maximum) * 0.5F };
-        return Center;
-    }
-
-    DirectX::SimpleMath::Vector3 CalculateBoundsHalfExtent(const AxisAlignedBounds& Bounds) {
-        DirectX::SimpleMath::Vector3 HalfExtent{ (Bounds.Maximum - Bounds.Minimum) * 0.5F };
-        return HalfExtent;
-    }
-
-    bool IsOverlappingAxisAlignedBounds(const AxisAlignedBounds& FirstBounds, const AxisAlignedBounds& SecondBounds) {
-        bool IsOverlappingX{ FirstBounds.Minimum.x <= SecondBounds.Maximum.x && SecondBounds.Minimum.x <= FirstBounds.Maximum.x };
-        bool IsOverlappingY{ FirstBounds.Minimum.y <= SecondBounds.Maximum.y && SecondBounds.Minimum.y <= FirstBounds.Maximum.y };
-        bool IsOverlappingZ{ FirstBounds.Minimum.z <= SecondBounds.Maximum.z && SecondBounds.Minimum.z <= FirstBounds.Maximum.z };
-        bool IsOverlapping{ IsOverlappingX && IsOverlappingY && IsOverlappingZ };
-        return IsOverlapping;
-    }
-
-    std::vector<DynamicCollisionPairCandidate> BuildDynamicCollisionPairCandidates(const std::vector<std::unique_ptr<PhysicsActor>>& Actors) {
-        std::vector<DynamicBroadPhaseEntry> DynamicEntries{};
-        DynamicEntries.reserve(Actors.size());
-
-        std::size_t ActorCount{ Actors.size() };
-        for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-            PhysicsActor* CurrentActorBase{ Actors[ActorIndex].get() };
-            if (CurrentActorBase == nullptr || CurrentActorBase->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
-                continue;
-            }
-
-            PhysicsDynamicActor* CurrentDynamicActor{ static_cast<PhysicsDynamicActor*>(CurrentActorBase) };
-            if (!CurrentDynamicActor->GetIsActive() || CurrentDynamicActor->GetInverseMass() <= 0.0F) {
-                continue;
-            }
-
-            AxisAlignedBounds FatBounds{ MakeAxisAlignedBounds(CurrentDynamicActor->GetFatWorldBoundingBox()) };
-            DynamicEntries.push_back(DynamicBroadPhaseEntry{ CurrentDynamicActor, FatBounds });
-        }
-
-        std::vector<DynamicCollisionPairCandidate> PairCandidates{};
-        std::size_t DynamicEntryCount{ DynamicEntries.size() };
-        if (DynamicEntryCount < 2U) {
-            return PairCandidates;
-        }
-
-        std::sort(DynamicEntries.begin(), DynamicEntries.end(), [](const DynamicBroadPhaseEntry& Left, const DynamicBroadPhaseEntry& Right) {
-            return Left.FatBounds.Minimum.x < Right.FatBounds.Minimum.x;
-        });
-
-        PairCandidates.reserve(DynamicEntryCount * 4U);
-        for (std::size_t FirstIndex{ 0U }; FirstIndex < DynamicEntryCount; ++FirstIndex) {
-            const DynamicBroadPhaseEntry& FirstEntry{ DynamicEntries[FirstIndex] };
-            for (std::size_t SecondIndex{ FirstIndex + 1U }; SecondIndex < DynamicEntryCount; ++SecondIndex) {
-                const DynamicBroadPhaseEntry& SecondEntry{ DynamicEntries[SecondIndex] };
-                if (SecondEntry.FatBounds.Minimum.x > FirstEntry.FatBounds.Maximum.x) {
-                    break;
-                }
-
-                bool IsOverlappingFatBounds{ IsOverlappingAxisAlignedBounds(FirstEntry.FatBounds, SecondEntry.FatBounds) };
-                if (!IsOverlappingFatBounds) {
-                    continue;
-                }
-
-                PairCandidates.push_back(DynamicCollisionPairCandidate{ FirstEntry.DynamicActor, SecondEntry.DynamicActor });
-            }
-        }
-
-        return PairCandidates;
-    }
-}
+#include "SpatialQuery/BruteForcePhysicsSpatialQuery.h"
+#include "Repository/IPhysicsActorRepository.h"
+#include "Logic/IPhysicsSimulationLogic.h"
+#include "SpatialQuery/IPhysicsSpatialQuery.h"
+#include "Repository/PhysicsActorRepository.h"
+#include "Logic/PhysicsDynamicCollisionLogic.h"
+#include "Logic/PhysicsDynamicIntegrationLogic.h"
 
 PhysicsWorld::PhysicsWorld()
     : mSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } },
       mAccumulator{},
-      mActors{} {
+      mActorRepository{},
+      mSpatialQuery{},
+      mSimulationLogics{},
+      mPublishedEvents{} {
+    InitializeDependencies();
+    InitializeSimulationLogics();
 }
 
 PhysicsWorld::~PhysicsWorld() {
@@ -131,31 +27,12 @@ PhysicsWorld::~PhysicsWorld() {
 PhysicsWorld::PhysicsWorld(const PhysicsWorld& Other)
     : mSettings{ Other.mSettings },
       mAccumulator{ Other.mAccumulator },
-      mActors{} {
-    std::size_t ActorCount{ Other.mActors.size() };
-    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* SourceActor{ Other.mActors[ActorIndex].get() };
-        if (SourceActor == nullptr) {
-            continue;
-        }
-
-        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
-            const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(SourceActor) };
-            if (TerrainActor != nullptr) {
-                mActors.push_back(std::make_unique<PhysicsTerrainActor>(*TerrainActor));
-            }
-            continue;
-        }
-
-        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
-            const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(SourceActor) };
-            mActors.push_back(std::make_unique<PhysicsKinematicActor>(*KinematicActor));
-            continue;
-        }
-
-        const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(SourceActor) };
-        mActors.push_back(std::make_unique<PhysicsDynamicActor>(*DynamicActor));
-    }
+      mActorRepository{ Other.mActorRepository != nullptr ? Other.mActorRepository->Clone() : nullptr },
+      mSpatialQuery{ Other.mSpatialQuery != nullptr ? Other.mSpatialQuery->Clone() : nullptr },
+      mSimulationLogics{},
+      mPublishedEvents{} {
+    InitializeDependencies();
+    InitializeSimulationLogics();
 }
 
 PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
@@ -165,32 +42,11 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
 
     mSettings = Other.mSettings;
     mAccumulator = Other.mAccumulator;
-    mActors.clear();
-
-    std::size_t ActorCount{ Other.mActors.size() };
-    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* SourceActor{ Other.mActors[ActorIndex].get() };
-        if (SourceActor == nullptr) {
-            continue;
-        }
-
-        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
-            const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(SourceActor) };
-            if (TerrainActor != nullptr) {
-                mActors.push_back(std::make_unique<PhysicsTerrainActor>(*TerrainActor));
-            }
-            continue;
-        }
-
-        if (SourceActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
-            const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(SourceActor) };
-            mActors.push_back(std::make_unique<PhysicsKinematicActor>(*KinematicActor));
-            continue;
-        }
-
-        const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(SourceActor) };
-        mActors.push_back(std::make_unique<PhysicsDynamicActor>(*DynamicActor));
-    }
+    mActorRepository = Other.mActorRepository != nullptr ? Other.mActorRepository->Clone() : nullptr;
+    mSpatialQuery = Other.mSpatialQuery != nullptr ? Other.mSpatialQuery->Clone() : nullptr;
+    mPublishedEvents.clear();
+    InitializeDependencies();
+    InitializeSimulationLogics();
 
     return *this;
 }
@@ -198,9 +54,15 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
 PhysicsWorld::PhysicsWorld(PhysicsWorld&& Other) noexcept
     : mSettings{ Other.mSettings },
       mAccumulator{ Other.mAccumulator },
-      mActors{ std::move(Other.mActors) } {
+      mActorRepository{ std::move(Other.mActorRepository) },
+      mSpatialQuery{ std::move(Other.mSpatialQuery) },
+      mSimulationLogics{ std::move(Other.mSimulationLogics) },
+      mPublishedEvents{ std::move(Other.mPublishedEvents) } {
     Other.mSettings = WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{} };
     Other.mAccumulator = 0.0F;
+    Other.InitializeDependencies();
+    Other.InitializeSimulationLogics();
+    Other.ClearPublishedEvents();
 }
 
 PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
@@ -210,10 +72,16 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
 
     mSettings = Other.mSettings;
     mAccumulator = Other.mAccumulator;
-    mActors = std::move(Other.mActors);
+    mActorRepository = std::move(Other.mActorRepository);
+    mSpatialQuery = std::move(Other.mSpatialQuery);
+    mSimulationLogics = std::move(Other.mSimulationLogics);
+    mPublishedEvents = std::move(Other.mPublishedEvents);
 
     Other.mSettings = WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{} };
     Other.mAccumulator = 0.0F;
+    Other.InitializeDependencies();
+    Other.InitializeSimulationLogics();
+    Other.ClearPublishedEvents();
 
     return *this;
 }
@@ -221,61 +89,53 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
 PhysicsWorld::PhysicsWorld(const WorldSettings& Settings)
     : mSettings{ Settings },
       mAccumulator{},
-      mActors{} {
+      mActorRepository{},
+      mSpatialQuery{},
+      mSimulationLogics{},
+      mPublishedEvents{} {
+    InitializeDependencies();
+    InitializeSimulationLogics();
 }
 
 void PhysicsWorld::Initialize(const WorldSettings& Settings) {
     mSettings = Settings;
     mAccumulator = 0.0F;
+    if (mActorRepository != nullptr) {
+        mActorRepository->ClearActors();
+    }
+    ClearPublishedEvents();
 }
 
 PhysicsDynamicActor* PhysicsWorld::CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc) {
-    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsDynamicActor>(Desc) };
-    PhysicsDynamicActor* CreatedActor{ static_cast<PhysicsDynamicActor*>(NewActor.get()) };
-    mActors.push_back(std::move(NewActor));
-    return CreatedActor;
+    return mActorRepository->CreateDynamicActor(Desc);
 }
 
 PhysicsKinematicActor* PhysicsWorld::CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc) {
-    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsKinematicActor>(Desc) };
-    PhysicsKinematicActor* CreatedActor{ static_cast<PhysicsKinematicActor*>(NewActor.get()) };
-    mActors.push_back(std::move(NewActor));
-    return CreatedActor;
+    return mActorRepository->CreateKinematicActor(Desc);
 }
 
 PhysicsTerrainActor* PhysicsWorld::CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc) {
-    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsTerrainActor>(Desc) };
-    PhysicsTerrainActor* CreatedActor{ static_cast<PhysicsTerrainActor*>(NewActor.get()) };
-    mActors.push_back(std::move(NewActor));
-    return CreatedActor;
+    return mActorRepository->CreateTerrainActor(Desc);
 }
 
 void PhysicsWorld::AddActor(std::unique_ptr<PhysicsActor> Actor) {
-    mActors.push_back(std::move(Actor));
+    mActorRepository->AddActor(std::move(Actor));
 }
 
 void PhysicsWorld::ClearActors() {
-    mActors.clear();
+    mActorRepository->ClearActors();
 }
 
 PhysicsActor* PhysicsWorld::GetActor(std::size_t Index) {
-    if (Index >= mActors.size()) {
-        return nullptr;
-    }
-
-    return mActors[Index].get();
+    return mActorRepository->GetActor(Index);
 }
 
 const PhysicsActor* PhysicsWorld::GetActor(std::size_t Index) const {
-    if (Index >= mActors.size()) {
-        return nullptr;
-    }
-
-    return mActors[Index].get();
+    return mActorRepository->GetActor(Index);
 }
 
 std::size_t PhysicsWorld::GetActorCount() const {
-    std::size_t ActorCount{ mActors.size() };
+    std::size_t ActorCount{ mActorRepository->GetActorCount() };
     return ActorCount;
 }
 
@@ -288,22 +148,17 @@ float PhysicsWorld::GetAccumulator() const {
 }
 
 void PhysicsWorld::StepSimulation() {
-    std::size_t ActorCount{ mActors.size() };
-    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
-        if (CurrentActor == nullptr) {
+    ClearPublishedEvents();
+
+    std::size_t LogicCount{ mSimulationLogics.size() };
+    for (std::size_t LogicIndex{ 0U }; LogicIndex < LogicCount; ++LogicIndex) {
+        IPhysicsSimulationLogic* CurrentLogic{ mSimulationLogics[LogicIndex].get() };
+        if (CurrentLogic == nullptr) {
             continue;
         }
 
-        if (CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
-            continue;
-        }
-
-        PhysicsDynamicActor* DynamicActor{ static_cast<PhysicsDynamicActor*>(CurrentActor) };
-        IntegrateDynamicActor(*DynamicActor, mSettings.FixedTimeStep);
+        CurrentLogic->Execute(*this, mSettings.FixedTimeStep);
     }
-
-    ResolveDynamicCollisions();
 }
 
 void PhysicsWorld::Update(float DeltaTime) {
@@ -315,197 +170,50 @@ void PhysicsWorld::Update(float DeltaTime) {
     }
 }
 
-void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float DeltaTime) const {
-    if (!Actor.GetIsActive()) {
-        return;
-    }
-
-    float ActorInverseMass{ Actor.GetInverseMass() };
-    if (ActorInverseMass <= 0.0F) {
-        return;
-    }
-
-    if (Actor.GetIsSleeping()) {
-        return;
-    }
-
-    float ActorMass{ Actor.GetMass() };
-    DirectX::SimpleMath::Vector3 TotalAcceleration{ mSettings.Gravity + Actor.GetAcceleration() };
-    DirectX::SimpleMath::Vector3 TotalForce{ (TotalAcceleration * ActorMass) + Actor.GetAccumulatedForce() };
-    DirectX::SimpleMath::Vector3 NextLinearMomentum{ Actor.GetLinearMomentum() + (TotalForce * DeltaTime) };
-    DirectX::SimpleMath::Vector3 NextVelocity{ NextLinearMomentum * ActorInverseMass };
-    float DampingFactor{ std::max(0.0F, 1.0F - (Actor.GetLinearDamping() * DeltaTime)) };
-    NextVelocity *= DampingFactor;
-    NextLinearMomentum = NextVelocity * ActorMass;
-    DirectX::SimpleMath::Vector3 NextAngularMomentum{ Actor.GetAngularMomentum() };
-    float AngularDampingFactor{ std::max(0.0F, 1.0F - (Actor.GetAngularDamping() * DeltaTime)) };
-    NextAngularMomentum *= AngularDampingFactor;
-
-    DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
-    Actor.SetPosition(NextPosition);
-    Actor.SetVelocity(NextVelocity);
-    Actor.SetAngularMomentum(NextAngularMomentum);
-
-    ResolveStaticCollisions(Actor);
-
-    Actor.SetLinearMomentum(Actor.GetVelocity() * ActorMass);
-    Actor.ClearAccumulatedForce();
-    Actor.UpdateSleepState();
+const DirectX::SimpleMath::Vector3& PhysicsWorld::GetGravity() const {
+    return mSettings.Gravity;
 }
 
-bool PhysicsWorld::ResolveStaticCollisions(PhysicsDynamicActor& DynamicActor) const {
-    bool HasCollision{};
-    std::size_t ActorCount{ mActors.size() };
-
-    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
-        if (CurrentActor == nullptr) {
-            continue;
-        }
-
-        if (CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Static) {
-            continue;
-        }
-
-        const PhysicsStaticActor* StaticActor{ static_cast<const PhysicsStaticActor*>(CurrentActor) };
-        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(DynamicActor) };
-        HasCollision = HasCollision || CurrentCollision;
-    }
-
-    return HasCollision;
+IPhysicsActorRepository& PhysicsWorld::GetActorRepository() {
+    return *mActorRepository;
 }
 
-void PhysicsWorld::ResolveDynamicCollisions() const {
-    std::vector<DynamicCollisionPairCandidate> PairCandidates{ BuildDynamicCollisionPairCandidates(mActors) };
-    std::size_t PairCandidateCount{ PairCandidates.size() };
-    if (PairCandidateCount == 0U) {
-        return;
+const IPhysicsActorRepository& PhysicsWorld::GetActorRepository() const {
+    return *mActorRepository;
+}
+
+IPhysicsSpatialQuery& PhysicsWorld::GetSpatialQuery() {
+    return *mSpatialQuery;
+}
+
+const IPhysicsSpatialQuery& PhysicsWorld::GetSpatialQuery() const {
+    return *mSpatialQuery;
+}
+
+void PhysicsWorld::PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActor* FirstActor, const PhysicsActor* SecondActor) {
+    mPublishedEvents.push_back(PhysicsSimulationEvent{ EventType, FirstActor, SecondActor });
+}
+
+void PhysicsWorld::ClearPublishedEvents() {
+    mPublishedEvents.clear();
+}
+
+const std::vector<PhysicsSimulationEvent>& PhysicsWorld::GetPublishedEvents() const {
+    return mPublishedEvents;
+}
+
+void PhysicsWorld::InitializeDependencies() {
+    if (mActorRepository == nullptr) {
+        mActorRepository = std::make_unique<PhysicsActorRepository>();
     }
 
-    std::size_t AdditionalIterationCount{ PairCandidateCount / DynamicCollisionPairsPerAdditionalIteration };
-    std::size_t SolverIterationCount{ DynamicCollisionSolverMinimumIterationCount + AdditionalIterationCount };
-    if (SolverIterationCount > DynamicCollisionSolverMaximumIterationCount) {
-        SolverIterationCount = DynamicCollisionSolverMaximumIterationCount;
-    }
-
-    for (std::size_t IterationIndex{ 0U }; IterationIndex < SolverIterationCount; ++IterationIndex) {
-        bool HasAnyCollision{};
-        for (std::size_t PairIndex{ 0U }; PairIndex < PairCandidateCount; ++PairIndex) {
-            PhysicsDynamicActor* FirstActor{ PairCandidates[PairIndex].FirstActor };
-            PhysicsDynamicActor* SecondActor{ PairCandidates[PairIndex].SecondActor };
-            if (FirstActor == nullptr || SecondActor == nullptr) {
-                continue;
-            }
-
-            if (!FirstActor->GetIsActive() || FirstActor->GetInverseMass() <= 0.0F) {
-                continue;
-            }
-
-            if (!SecondActor->GetIsActive() || SecondActor->GetInverseMass() <= 0.0F) {
-                continue;
-            }
-
-            bool HasCollision{ ResolveDynamicCollisionPair(*FirstActor, *SecondActor) };
-            if (!HasCollision) {
-                continue;
-            }
-
-            HasAnyCollision = true;
-            FirstActor->UpdateSleepState();
-            SecondActor->UpdateSleepState();
-        }
-
-        if (!HasAnyCollision) {
-            break;
-        }
+    if (mSpatialQuery == nullptr) {
+        mSpatialQuery = std::make_unique<BruteForcePhysicsSpatialQuery>();
     }
 }
 
-bool PhysicsWorld::ResolveDynamicCollisionPair(PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor) const {
-    DirectX::BoundingOrientedBox FirstBounds{ FirstActor.GetWorldBoundingBox() };
-    DirectX::BoundingOrientedBox SecondBounds{ SecondActor.GetWorldBoundingBox() };
-    bool IsIntersecting{ FirstBounds.Intersects(SecondBounds) };
-    if (!IsIntersecting) {
-        return false;
-    }
-
-    AxisAlignedBounds FirstAabb{ MakeAxisAlignedBounds(FirstBounds) };
-    AxisAlignedBounds SecondAabb{ MakeAxisAlignedBounds(SecondBounds) };
-    DirectX::SimpleMath::Vector3 FirstCenter{ CalculateBoundsCenter(FirstAabb) };
-    DirectX::SimpleMath::Vector3 SecondCenter{ CalculateBoundsCenter(SecondAabb) };
-    DirectX::SimpleMath::Vector3 FirstHalfExtent{ CalculateBoundsHalfExtent(FirstAabb) };
-    DirectX::SimpleMath::Vector3 SecondHalfExtent{ CalculateBoundsHalfExtent(SecondAabb) };
-    DirectX::SimpleMath::Vector3 DeltaCenter{ SecondCenter - FirstCenter };
-
-    float OverlapX{ (FirstHalfExtent.x + SecondHalfExtent.x) - std::abs(DeltaCenter.x) };
-    float OverlapY{ (FirstHalfExtent.y + SecondHalfExtent.y) - std::abs(DeltaCenter.y) };
-    float OverlapZ{ (FirstHalfExtent.z + SecondHalfExtent.z) - std::abs(DeltaCenter.z) };
-    if (OverlapX <= 0.0F || OverlapY <= 0.0F || OverlapZ <= 0.0F) {
-        return false;
-    }
-
-    float PenetrationDepth{ OverlapX };
-    DirectX::SimpleMath::Vector3 CollisionNormal{ DeltaCenter.x >= 0.0F ? 1.0F : -1.0F, 0.0F, 0.0F };
-
-    if (OverlapY < PenetrationDepth) {
-        PenetrationDepth = OverlapY;
-        CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, DeltaCenter.y >= 0.0F ? 1.0F : -1.0F, 0.0F };
-    }
-
-    if (OverlapZ < PenetrationDepth) {
-        PenetrationDepth = OverlapZ;
-        CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, 0.0F, DeltaCenter.z >= 0.0F ? 1.0F : -1.0F };
-    }
-
-    float FirstInverseMass{ FirstActor.GetInverseMass() };
-    float SecondInverseMass{ SecondActor.GetInverseMass() };
-    float CombinedInverseMass{ FirstInverseMass + SecondInverseMass };
-    if (CombinedInverseMass <= 0.0F) {
-        return false;
-    }
-
-    float FirstDisplacementFactor{ FirstInverseMass / CombinedInverseMass };
-    float SecondDisplacementFactor{ SecondInverseMass / CombinedInverseMass };
-    float CorrectedPenetrationDepth{ PenetrationDepth + DynamicCollisionSeparationBias };
-    DirectX::SimpleMath::Vector3 SeparationVector{ CollisionNormal * CorrectedPenetrationDepth };
-    DirectX::SimpleMath::Vector3 FirstCorrectedPosition{ FirstActor.GetPosition() - (SeparationVector * FirstDisplacementFactor) };
-    DirectX::SimpleMath::Vector3 SecondCorrectedPosition{ SecondActor.GetPosition() + (SeparationVector * SecondDisplacementFactor) };
-    FirstActor.SetPosition(FirstCorrectedPosition);
-    SecondActor.SetPosition(SecondCorrectedPosition);
-
-    DirectX::SimpleMath::Vector3 FirstVelocity{ FirstActor.GetVelocity() };
-    DirectX::SimpleMath::Vector3 SecondVelocity{ SecondActor.GetVelocity() };
-    DirectX::SimpleMath::Vector3 NormalRelativeVelocity{ SecondVelocity - FirstVelocity };
-    float RelativeNormalVelocity{ NormalRelativeVelocity.Dot(CollisionNormal) };
-    if (RelativeNormalVelocity >= 0.0F) {
-        return true;
-    }
-
-    float EffectiveRestitution{ std::min(FirstActor.GetRestitution(), SecondActor.GetRestitution()) };
-    float ImpulseMagnitude{ -(1.0F + EffectiveRestitution) * RelativeNormalVelocity / CombinedInverseMass };
-    DirectX::SimpleMath::Vector3 Impulse{ CollisionNormal * ImpulseMagnitude };
-    FirstVelocity -= Impulse * FirstInverseMass;
-    SecondVelocity += Impulse * SecondInverseMass;
-
-    float EffectiveFriction{ std::sqrt(std::max(0.0F, FirstActor.GetFriction() * SecondActor.GetFriction())) };
-    DirectX::SimpleMath::Vector3 RelativeVelocity{ SecondVelocity - FirstVelocity };
-    float RelativeVelocityAlongNormal{ RelativeVelocity.Dot(CollisionNormal) };
-    DirectX::SimpleMath::Vector3 TangentialVelocity{ RelativeVelocity - (CollisionNormal * RelativeVelocityAlongNormal) };
-    float TangentialVelocityLength{ TangentialVelocity.Length() };
-    if (TangentialVelocityLength > 0.0001F) {
-        DirectX::SimpleMath::Vector3 Tangent{ TangentialVelocity / TangentialVelocityLength };
-        float FrictionImpulseMagnitude{ -RelativeVelocity.Dot(Tangent) / CombinedInverseMass };
-        float MaximumFrictionImpulse{ ImpulseMagnitude * EffectiveFriction };
-        FrictionImpulseMagnitude = std::clamp(FrictionImpulseMagnitude, -MaximumFrictionImpulse, MaximumFrictionImpulse);
-        DirectX::SimpleMath::Vector3 FrictionImpulse{ Tangent * FrictionImpulseMagnitude };
-        FirstVelocity -= FrictionImpulse * FirstInverseMass;
-        SecondVelocity += FrictionImpulse * SecondInverseMass;
-    }
-
-    FirstActor.SetVelocity(FirstVelocity);
-    SecondActor.SetVelocity(SecondVelocity);
-    FirstActor.SetLinearMomentum(FirstVelocity * FirstActor.GetMass());
-    SecondActor.SetLinearMomentum(SecondVelocity * SecondActor.GetMass());
-
-    return true;
+void PhysicsWorld::InitializeSimulationLogics() {
+    mSimulationLogics.clear();
+    mSimulationLogics.push_back(std::make_unique<PhysicsDynamicIntegrationLogic>());
+    mSimulationLogics.push_back(std::make_unique<PhysicsDynamicCollisionLogic>());
 }

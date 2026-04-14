@@ -19,17 +19,34 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\SpatialQuery\BruteForcePhysicsSpatialQuery.cpp" />
+    <ClCompile Include="Core\Repository\IPhysicsActorRepository.cpp" />
+    <ClCompile Include="Core\Logic\IPhysicsSimulationLogic.cpp" />
+    <ClCompile Include="Core\SpatialQuery\IPhysicsSpatialQuery.cpp" />
+    <ClCompile Include="Core\Mediator\IPhysicsWorldMediator.cpp" />
     <ClCompile Include="Core\PhysicsActor.cpp" />
+    <ClCompile Include="Core\Repository\PhysicsActorRepository.cpp" />
+    <ClCompile Include="Core\Logic\PhysicsDynamicCollisionLogic.cpp" />
     <ClCompile Include="Core\PhysicsDynamicActor.cpp" />
+    <ClCompile Include="Core\Logic\PhysicsDynamicIntegrationLogic.cpp" />
     <ClCompile Include="Core\PhysicsKinematicActor.cpp" />
     <ClCompile Include="Core\PhysicsStaticActor.cpp" />
     <ClCompile Include="Core\PhysicsTerrainActor.cpp" />
     <ClCompile Include="Core\PhysicsWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\SpatialQuery\BruteForcePhysicsSpatialQuery.h" />
+    <ClInclude Include="Core\Repository\IPhysicsActorRepository.h" />
+    <ClInclude Include="Core\Logic\IPhysicsSimulationLogic.h" />
+    <ClInclude Include="Core\SpatialQuery\IPhysicsSpatialQuery.h" />
+    <ClInclude Include="Core\Mediator\IPhysicsWorldMediator.h" />
     <ClInclude Include="Core\PhysicsActor.h" />
+    <ClInclude Include="Core\Repository\PhysicsActorRepository.h" />
+    <ClInclude Include="Core\Logic\PhysicsDynamicCollisionLogic.h" />
     <ClInclude Include="Core\PhysicsDynamicActor.h" />
+    <ClInclude Include="Core\Logic\PhysicsDynamicIntegrationLogic.h" />
     <ClInclude Include="Core\PhysicsKinematicActor.h" />
+    <ClInclude Include="Core\Types\PhysicsSimulationTypes.h" />
     <ClInclude Include="Core\PhysicsStaticActor.h" />
     <ClInclude Include="Core\PhysicsTerrainActor.h" />
     <ClInclude Include="Core\PhysicsWorld.h" />
