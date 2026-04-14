@@ -39,34 +39,9 @@ void PhysicsDynamicIntegrationLogic::IntegrateActor(IPhysicsWorldMediator& World
     DynamicActor.SetVelocity(NextVelocity);
     DynamicActor.SetAngularMomentum(NextAngularMomentum);
 
-    ResolveStaticCollisions(WorldMediator, DynamicActor);
-
     DynamicActor.SetLinearMomentum(DynamicActor.GetVelocity() * ActorMass);
     DynamicActor.ClearAccumulatedForce();
     DynamicActor.UpdateSleepState();
-}
-
-bool PhysicsDynamicIntegrationLogic::ResolveStaticCollisions(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& DynamicActor) const {
-    bool HasCollision{};
-    std::vector<const PhysicsStaticActor*> StaticActors{ WorldMediator.GetActorRepository().CollectStaticActors() };
-    std::size_t StaticActorCount{ StaticActors.size() };
-
-    for (std::size_t ActorIndex{ 0U }; ActorIndex < StaticActorCount; ++ActorIndex) {
-        const PhysicsStaticActor* StaticActor{ StaticActors[ActorIndex] };
-        if (StaticActor == nullptr) {
-            continue;
-        }
-
-        bool CurrentCollision{ StaticActor->ResolveDynamicCollision(DynamicActor) };
-        if (!CurrentCollision) {
-            continue;
-        }
-
-        HasCollision = true;
-        WorldMediator.PublishEvent(PhysicsSimulationEventType::StaticCollisionResolved, &DynamicActor, StaticActor);
-    }
-
-    return HasCollision;
 }
 
 PhysicsDynamicIntegrationLogic::PhysicsDynamicIntegrationLogic() {

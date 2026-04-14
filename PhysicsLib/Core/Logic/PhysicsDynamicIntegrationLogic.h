@@ -19,5 +19,4 @@ public:
 
 private:
     void IntegrateActor(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& DynamicActor, float DeltaTime) const;
-    bool ResolveStaticCollisions(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& DynamicActor) const;
 };

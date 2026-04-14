@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "../Mediator/IPhysicsWorldMediator.h"
+#include "../PhysicsStaticActor.h"
 
 #undef max 
 #undef min 
@@ -90,6 +91,14 @@ void PhysicsDynamicCollisionLogic::Execute(IPhysicsWorldMediator& WorldMediator,
     (void)DeltaTime;
 
     std::vector<PhysicsDynamicCollisionPairCandidate> PairCandidates{ WorldMediator.GetSpatialQuery().QueryDynamicCollisionPairs(WorldMediator.GetActorRepository()) };
+    std::vector<PhysicsDynamicActor*> DynamicActors{ WorldMediator.GetActorRepository().CollectDynamicActors() };
+    std::vector<const PhysicsStaticActor*> StaticActors{ WorldMediator.GetActorRepository().CollectStaticActors() };
+
+    ResolveDynamicCollisions(WorldMediator, PairCandidates);
+    ResolveStaticCollisions(WorldMediator, DynamicActors, StaticActors);
+}
+
+void PhysicsDynamicCollisionLogic::ResolveDynamicCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicCollisionPairCandidate>& PairCandidates) const {
     std::size_t PairCandidateCount{ PairCandidates.size() };
     if (PairCandidateCount == 0U) {
         return;
@@ -131,6 +140,44 @@ void PhysicsDynamicCollisionLogic::Execute(IPhysicsWorldMediator& WorldMediator,
 
         if (!HasAnyCollision) {
             break;
+        }
+    }
+}
+
+void PhysicsDynamicCollisionLogic::ResolveStaticCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicActor*>& DynamicActors, const std::vector<const PhysicsStaticActor*>& StaticActors) const {
+    std::size_t DynamicActorCount{ DynamicActors.size() };
+    if (DynamicActorCount == 0U) {
+        return;
+    }
+
+    std::size_t StaticActorCount{ StaticActors.size() };
+    if (StaticActorCount == 0U) {
+        return;
+    }
+
+    for (std::size_t DynamicActorIndex{ 0U }; DynamicActorIndex < DynamicActorCount; ++DynamicActorIndex) {
+        PhysicsDynamicActor* DynamicActor{ DynamicActors[DynamicActorIndex] };
+        if (DynamicActor == nullptr) {
+            continue;
+        }
+
+        if (!DynamicActor->GetIsActive() || DynamicActor->GetInverseMass() <= 0.0F) {
+            continue;
+        }
+
+        for (std::size_t StaticActorIndex{ 0U }; StaticActorIndex < StaticActorCount; ++StaticActorIndex) {
+            const PhysicsStaticActor* StaticActor{ StaticActors[StaticActorIndex] };
+            if (StaticActor == nullptr) {
+                continue;
+            }
+
+            bool HasCollision{ StaticActor->ResolveDynamicCollision(*DynamicActor) };
+            if (!HasCollision) {
+                continue;
+            }
+
+            WorldMediator.PublishEvent(PhysicsSimulationEventType::StaticCollisionResolved, DynamicActor, StaticActor);
+            DynamicActor->UpdateSleepState();
         }
     }
 }

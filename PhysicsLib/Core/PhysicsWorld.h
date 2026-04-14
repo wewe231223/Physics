@@ -49,6 +49,9 @@ public:
 
     const WorldSettings& GetSettings() const;
     float GetAccumulator() const;
+    std::size_t GetLastUpdateStepCount() const;
+    double GetLastUpdateStepElapsedMilliseconds() const;
+    double GetLastStepElapsedMilliseconds() const;
 
     void StepSimulation();
     void Update(float DeltaTime);
@@ -69,6 +72,9 @@ private:
 private:
     WorldSettings mSettings;
     float mAccumulator;
+    std::size_t mLastUpdateStepCount;
+    double mLastUpdateStepElapsedMilliseconds;
+    double mLastStepElapsedMilliseconds;
     std::unique_ptr<IPhysicsActorRepository> mActorRepository;
     std::unique_ptr<IPhysicsSpatialQuery> mSpatialQuery;
     std::vector<std::unique_ptr<IPhysicsSimulationLogic>> mSimulationLogics;

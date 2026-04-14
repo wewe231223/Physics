@@ -304,13 +304,13 @@ int main() {
     }
 
     std::size_t ActiveSceneIndex{};
-    std::uint64_t FrameCount{};
-    constexpr std::size_t PhysicsSimulationAverageWindowFrameCount{ 120U };
-    std::vector<double> PhysicsSimulationElapsedMillisecondsHistory(PhysicsSimulationAverageWindowFrameCount, 0.0);
-    std::size_t PhysicsSimulationHistoryCount{};
-    std::size_t PhysicsSimulationHistoryWriteIndex{};
-    double PhysicsSimulationElapsedMillisecondsHistorySum{};
+    std::chrono::steady_clock::time_point PreviousFrameStartTime{ std::chrono::steady_clock::now() };
     while (!MainRenderer.ShouldClose()) {
+        std::chrono::steady_clock::time_point CurrentFrameStartTime{ std::chrono::steady_clock::now() };
+        std::chrono::duration<double> FrameElapsedTime{ CurrentFrameStartTime - PreviousFrameStartTime };
+        PreviousFrameStartTime = CurrentFrameStartTime;
+        double CurrentFramesPerSecond{ FrameElapsedTime.count() > 0.0 ? 1.0 / FrameElapsedTime.count() : 0.0 };
+
         if (ActiveSceneIndex >= Scenes.size()) {
             ActiveSceneIndex = 0U;
         }
@@ -328,24 +328,11 @@ int main() {
         }
 
         Scene& ActiveScene{ Scenes[ActiveSceneIndex] };
-        std::chrono::high_resolution_clock::time_point PhysicsSimulationStartTime{ std::chrono::high_resolution_clock::now() };
         ActiveScene.UpdatePhysics(WorldSettings.FixedTimeStep);
-        std::chrono::high_resolution_clock::time_point PhysicsSimulationEndTime{ std::chrono::high_resolution_clock::now() };
-        std::chrono::duration<double, std::milli> PhysicsSimulationElapsedTime{ PhysicsSimulationEndTime - PhysicsSimulationStartTime };
-        double PhysicsSimulationElapsedMilliseconds{ PhysicsSimulationElapsedTime.count() };
-        if (PhysicsSimulationHistoryCount >= PhysicsSimulationAverageWindowFrameCount) {
-            PhysicsSimulationElapsedMillisecondsHistorySum -= PhysicsSimulationElapsedMillisecondsHistory[PhysicsSimulationHistoryWriteIndex];
-        } else {
-            ++PhysicsSimulationHistoryCount;
-        }
-
-        PhysicsSimulationElapsedMillisecondsHistory[PhysicsSimulationHistoryWriteIndex] = PhysicsSimulationElapsedMilliseconds;
-        PhysicsSimulationElapsedMillisecondsHistorySum += PhysicsSimulationElapsedMilliseconds;
-        PhysicsSimulationHistoryWriteIndex = (PhysicsSimulationHistoryWriteIndex + 1U) % PhysicsSimulationAverageWindowFrameCount;
-        ++FrameCount;
-        double PhysicsSimulationAverageMilliseconds{ PhysicsSimulationElapsedMillisecondsHistorySum / static_cast<double>(PhysicsSimulationHistoryCount) };
+        PhysicsWorld& ActivePhysicsWorld{ ActiveScene.GetPhysicsWorld() };
+        double PhysicsLastStepElapsedMilliseconds{ ActivePhysicsWorld.GetLastStepElapsedMilliseconds() };
         std::ostringstream WindowTitleStream{};
-        WindowTitleStream << "프레임: " << FrameCount << " - 물리 시뮬레이션 평균 시간: " << std::fixed << std::setprecision(3) << PhysicsSimulationAverageMilliseconds << " ms";
+        WindowTitleStream << "FPS: " << std::fixed << std::setprecision(1) << CurrentFramesPerSecond << " | PhysicsStepTime: " << std::setprecision(3) << PhysicsLastStepElapsedMilliseconds << " ms";
         MainRenderer.SetWindowTitle(WindowTitleStream.str());
         ActiveScene.Update();
         MainRenderer.RenderFrame(ActiveScene);

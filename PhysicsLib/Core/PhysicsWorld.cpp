@@ -1,5 +1,6 @@
 #include "PhysicsWorld.h"
 
+#include <chrono>
 #include <utility>
 
 #include "SpatialQuery/BruteForcePhysicsSpatialQuery.h"
@@ -13,6 +14,9 @@
 PhysicsWorld::PhysicsWorld()
     : mSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } },
       mAccumulator{},
+      mLastUpdateStepCount{},
+      mLastUpdateStepElapsedMilliseconds{},
+      mLastStepElapsedMilliseconds{},
       mActorRepository{},
       mSpatialQuery{},
       mSimulationLogics{},
@@ -27,6 +31,9 @@ PhysicsWorld::~PhysicsWorld() {
 PhysicsWorld::PhysicsWorld(const PhysicsWorld& Other)
     : mSettings{ Other.mSettings },
       mAccumulator{ Other.mAccumulator },
+      mLastUpdateStepCount{ Other.mLastUpdateStepCount },
+      mLastUpdateStepElapsedMilliseconds{ Other.mLastUpdateStepElapsedMilliseconds },
+      mLastStepElapsedMilliseconds{ Other.mLastStepElapsedMilliseconds },
       mActorRepository{ Other.mActorRepository != nullptr ? Other.mActorRepository->Clone() : nullptr },
       mSpatialQuery{ Other.mSpatialQuery != nullptr ? Other.mSpatialQuery->Clone() : nullptr },
       mSimulationLogics{},
@@ -42,6 +49,9 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
 
     mSettings = Other.mSettings;
     mAccumulator = Other.mAccumulator;
+    mLastUpdateStepCount = Other.mLastUpdateStepCount;
+    mLastUpdateStepElapsedMilliseconds = Other.mLastUpdateStepElapsedMilliseconds;
+    mLastStepElapsedMilliseconds = Other.mLastStepElapsedMilliseconds;
     mActorRepository = Other.mActorRepository != nullptr ? Other.mActorRepository->Clone() : nullptr;
     mSpatialQuery = Other.mSpatialQuery != nullptr ? Other.mSpatialQuery->Clone() : nullptr;
     mPublishedEvents.clear();
@@ -54,12 +64,18 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
 PhysicsWorld::PhysicsWorld(PhysicsWorld&& Other) noexcept
     : mSettings{ Other.mSettings },
       mAccumulator{ Other.mAccumulator },
+      mLastUpdateStepCount{ Other.mLastUpdateStepCount },
+      mLastUpdateStepElapsedMilliseconds{ Other.mLastUpdateStepElapsedMilliseconds },
+      mLastStepElapsedMilliseconds{ Other.mLastStepElapsedMilliseconds },
       mActorRepository{ std::move(Other.mActorRepository) },
       mSpatialQuery{ std::move(Other.mSpatialQuery) },
       mSimulationLogics{ std::move(Other.mSimulationLogics) },
       mPublishedEvents{ std::move(Other.mPublishedEvents) } {
     Other.mSettings = WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{} };
     Other.mAccumulator = 0.0F;
+    Other.mLastUpdateStepCount = 0U;
+    Other.mLastUpdateStepElapsedMilliseconds = 0.0;
+    Other.mLastStepElapsedMilliseconds = 0.0;
     Other.InitializeDependencies();
     Other.InitializeSimulationLogics();
     Other.ClearPublishedEvents();
@@ -72,6 +88,9 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
 
     mSettings = Other.mSettings;
     mAccumulator = Other.mAccumulator;
+    mLastUpdateStepCount = Other.mLastUpdateStepCount;
+    mLastUpdateStepElapsedMilliseconds = Other.mLastUpdateStepElapsedMilliseconds;
+    mLastStepElapsedMilliseconds = Other.mLastStepElapsedMilliseconds;
     mActorRepository = std::move(Other.mActorRepository);
     mSpatialQuery = std::move(Other.mSpatialQuery);
     mSimulationLogics = std::move(Other.mSimulationLogics);
@@ -79,6 +98,9 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
 
     Other.mSettings = WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{} };
     Other.mAccumulator = 0.0F;
+    Other.mLastUpdateStepCount = 0U;
+    Other.mLastUpdateStepElapsedMilliseconds = 0.0;
+    Other.mLastStepElapsedMilliseconds = 0.0;
     Other.InitializeDependencies();
     Other.InitializeSimulationLogics();
     Other.ClearPublishedEvents();
@@ -89,6 +111,9 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
 PhysicsWorld::PhysicsWorld(const WorldSettings& Settings)
     : mSettings{ Settings },
       mAccumulator{},
+      mLastUpdateStepCount{},
+      mLastUpdateStepElapsedMilliseconds{},
+      mLastStepElapsedMilliseconds{},
       mActorRepository{},
       mSpatialQuery{},
       mSimulationLogics{},
@@ -100,6 +125,9 @@ PhysicsWorld::PhysicsWorld(const WorldSettings& Settings)
 void PhysicsWorld::Initialize(const WorldSettings& Settings) {
     mSettings = Settings;
     mAccumulator = 0.0F;
+    mLastUpdateStepCount = 0U;
+    mLastUpdateStepElapsedMilliseconds = 0.0;
+    mLastStepElapsedMilliseconds = 0.0;
     if (mActorRepository != nullptr) {
         mActorRepository->ClearActors();
     }
@@ -147,6 +175,18 @@ float PhysicsWorld::GetAccumulator() const {
     return mAccumulator;
 }
 
+std::size_t PhysicsWorld::GetLastUpdateStepCount() const {
+    return mLastUpdateStepCount;
+}
+
+double PhysicsWorld::GetLastUpdateStepElapsedMilliseconds() const {
+    return mLastUpdateStepElapsedMilliseconds;
+}
+
+double PhysicsWorld::GetLastStepElapsedMilliseconds() const {
+    return mLastStepElapsedMilliseconds;
+}
+
 void PhysicsWorld::StepSimulation() {
     ClearPublishedEvents();
 
@@ -162,10 +202,19 @@ void PhysicsWorld::StepSimulation() {
 }
 
 void PhysicsWorld::Update(float DeltaTime) {
+    mLastUpdateStepCount = 0U;
+    mLastUpdateStepElapsedMilliseconds = 0.0;
+    mLastStepElapsedMilliseconds = 0.0;
     mAccumulator += DeltaTime;
 
     while (mAccumulator >= mSettings.FixedTimeStep) {
+        std::chrono::steady_clock::time_point StepStartTime{ std::chrono::steady_clock::now() };
         StepSimulation();
+        std::chrono::steady_clock::time_point StepEndTime{ std::chrono::steady_clock::now() };
+        std::chrono::duration<double, std::milli> StepElapsedTime{ StepEndTime - StepStartTime };
+        mLastUpdateStepElapsedMilliseconds += StepElapsedTime.count();
+        mLastStepElapsedMilliseconds = StepElapsedTime.count();
+        ++mLastUpdateStepCount;
         mAccumulator -= mSettings.FixedTimeStep;
     }
 }
@@ -214,6 +263,6 @@ void PhysicsWorld::InitializeDependencies() {
 
 void PhysicsWorld::InitializeSimulationLogics() {
     mSimulationLogics.clear();
-    mSimulationLogics.push_back(std::make_unique<PhysicsDynamicIntegrationLogic>());
     mSimulationLogics.push_back(std::make_unique<PhysicsDynamicCollisionLogic>());
+    mSimulationLogics.push_back(std::make_unique<PhysicsDynamicIntegrationLogic>());
 }
