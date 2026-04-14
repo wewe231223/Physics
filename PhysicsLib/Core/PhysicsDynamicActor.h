@@ -60,6 +60,10 @@ public:
 
     void SetAcceleration(const DirectX::SimpleMath::Vector3& Acceleration);
     const DirectX::SimpleMath::Vector3& GetAcceleration() const;
+    void AddForce(const DirectX::SimpleMath::Vector3& Force);
+    const DirectX::SimpleMath::Vector3& GetAccumulatedForce() const;
+    void ClearAccumulatedForce();
+    void AddImpulse(const DirectX::SimpleMath::Vector3& Impulse);
 
     void SetRestitution(float Restitution);
     float GetRestitution() const;
@@ -94,6 +98,7 @@ private:
     DirectX::SimpleMath::Vector3 mScale;
     DirectX::SimpleMath::Vector3 mVelocity;
     DirectX::SimpleMath::Vector3 mAcceleration;
+    DirectX::SimpleMath::Vector3 mAccumulatedForce;
     float mRestitution;
     float mLinearDamping;
     float mAngularDamping;

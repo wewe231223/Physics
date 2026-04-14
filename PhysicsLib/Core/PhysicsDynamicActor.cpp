@@ -26,6 +26,7 @@ PhysicsDynamicActor::PhysicsDynamicActor()
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
       mAcceleration{},
+      mAccumulatedForce{},
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
@@ -51,6 +52,7 @@ PhysicsDynamicActor::PhysicsDynamicActor(const PhysicsDynamicActor& Other)
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
       mAcceleration{ Other.mAcceleration },
+      mAccumulatedForce{ Other.mAccumulatedForce },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
       mAngularDamping{ Other.mAngularDamping },
@@ -73,6 +75,7 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(const PhysicsDynamicActor& O
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
     mAcceleration = Other.mAcceleration;
+    mAccumulatedForce = Other.mAccumulatedForce;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
     mAngularDamping = Other.mAngularDamping;
@@ -93,6 +96,7 @@ PhysicsDynamicActor::PhysicsDynamicActor(PhysicsDynamicActor&& Other) noexcept
       mScale{ Other.mScale },
       mVelocity{ Other.mVelocity },
       mAcceleration{ Other.mAcceleration },
+      mAccumulatedForce{ Other.mAccumulatedForce },
       mRestitution{ Other.mRestitution },
       mLinearDamping{ Other.mLinearDamping },
       mAngularDamping{ Other.mAngularDamping },
@@ -115,6 +119,7 @@ PhysicsDynamicActor& PhysicsDynamicActor::operator=(PhysicsDynamicActor&& Other)
     mScale = Other.mScale;
     mVelocity = Other.mVelocity;
     mAcceleration = Other.mAcceleration;
+    mAccumulatedForce = Other.mAccumulatedForce;
     mRestitution = Other.mRestitution;
     mLinearDamping = Other.mLinearDamping;
     mAngularDamping = Other.mAngularDamping;
@@ -135,6 +140,7 @@ PhysicsDynamicActor::PhysicsDynamicActor(std::string Name)
       mScale{ 1.0F, 1.0F, 1.0F },
       mVelocity{},
       mAcceleration{},
+      mAccumulatedForce{},
       mRestitution{ 0.1F },
       mLinearDamping{ 0.03F },
       mAngularDamping{ 0.03F },
@@ -157,6 +163,7 @@ PhysicsDynamicActor::PhysicsDynamicActor(const ActorDesc& Desc)
       mScale{ Desc.Scale },
       mVelocity{ Desc.Velocity },
       mAcceleration{ Desc.Acceleration },
+      mAccumulatedForce{},
       mRestitution{ Desc.Restitution },
       mLinearDamping{ Desc.LinearDamping },
       mAngularDamping{ Desc.AngularDamping },
@@ -234,6 +241,27 @@ const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetAcceleration() const
     return mAcceleration;
 }
 
+void PhysicsDynamicActor::AddForce(const DirectX::SimpleMath::Vector3& Force) {
+    mAccumulatedForce += Force;
+    SetIsSleeping(false);
+}
+
+const DirectX::SimpleMath::Vector3& PhysicsDynamicActor::GetAccumulatedForce() const {
+    return mAccumulatedForce;
+}
+
+void PhysicsDynamicActor::ClearAccumulatedForce() {
+    mAccumulatedForce = DirectX::SimpleMath::Vector3{};
+}
+
+void PhysicsDynamicActor::AddImpulse(const DirectX::SimpleMath::Vector3& Impulse) {
+    DirectX::SimpleMath::Vector3 NextLinearMomentum{ GetLinearMomentum() + Impulse };
+    SetLinearMomentum(NextLinearMomentum);
+    float InverseMass{ GetInverseMass() };
+    mVelocity = InverseMass > 0.0F ? NextLinearMomentum * InverseMass : DirectX::SimpleMath::Vector3{};
+    SetIsSleeping(false);
+}
+
 void PhysicsDynamicActor::SetRestitution(float Restitution) {
     mRestitution = std::clamp(Restitution, 0.0F, 1.0F);
 }
@@ -281,6 +309,7 @@ void PhysicsDynamicActor::SetIsSleeping(bool IsSleeping) {
         SetFlags(GetFlags() | PhysicsActorFlags::Sleeping);
         mVelocity = DirectX::SimpleMath::Vector3{};
         mAcceleration = DirectX::SimpleMath::Vector3{};
+        mAccumulatedForce = DirectX::SimpleMath::Vector3{};
         SetLinearMomentum(DirectX::SimpleMath::Vector3{});
         SetAngularMomentum(DirectX::SimpleMath::Vector3{});
         return;

@@ -219,9 +219,9 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
     FlatTerrainObject.GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
     TargetScene.AddGameObject(std::move(FlatTerrainObject));
 
-    for (std::size_t LayerIndex{ 0U }; LayerIndex < 4U; ++LayerIndex) {
-        for (std::size_t RowIndex{ 0U }; RowIndex < 2U; ++RowIndex) {
-            for (std::size_t ColumnIndex{ 0U }; ColumnIndex < 3U; ++ColumnIndex) {
+    for (std::size_t LayerIndex{ 0U }; LayerIndex < 6U; ++LayerIndex) {
+        for (std::size_t RowIndex{ 0U }; RowIndex < 3U; ++RowIndex) {
+            for (std::size_t ColumnIndex{ 0U }; ColumnIndex < 5U; ++ColumnIndex) {
                 std::string ObjectName{ "StackCube_" + std::to_string(LayerIndex) + "_" + std::to_string(RowIndex) + "_" + std::to_string(ColumnIndex) };
                 std::size_t CreatedObjectIndex{ TargetScene.CreatePrimitiveGameObject(std::move(ObjectName), PrimitiveMeshType::Cube) };
                 GameObject* CreatedObject{ TargetScene.GetGameObject(CreatedObjectIndex) };
@@ -229,9 +229,9 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
                     continue;
                 }
 
-                float PositionX{ 6.0F + static_cast<float>(ColumnIndex) * 1.1F };
+                float PositionX{ 5.0F + static_cast<float>(ColumnIndex) * 1.05F };
                 float PositionY{ 0.5F + static_cast<float>(LayerIndex) * 1.02F };
-                float PositionZ{ -1.2F + static_cast<float>(RowIndex) * 1.2F };
+                float PositionZ{ -2.2F + static_cast<float>(RowIndex) * 1.1F };
                 CreatedObject->GetTransform().SetPosition(glm::vec3{ PositionX, PositionY, PositionZ });
             }
         }
@@ -240,7 +240,8 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
     std::size_t ProjectileObjectIndex{ TargetScene.CreatePrimitiveGameObject("ProjectileSphere", PrimitiveMeshType::Sphere) };
     GameObject* ProjectileObject{ TargetScene.GetGameObject(ProjectileObjectIndex) };
     if (ProjectileObject != nullptr) {
-        ProjectileObject->GetTransform().SetPosition(glm::vec3{ -18.0F, 2.0F, 0.0F });
+        ProjectileObject->GetTransform().SetPosition(glm::vec3{ -18.0F, 3.0F, 0.0F });
+        ProjectileObject->GetTransform().SetScale(glm::vec3{ 2.0F, 2.0F, 2.0F });
     }
 
     TargetScene.BuildPhysicsActors();
@@ -251,7 +252,11 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
         PhysicsActor* ProjectileActorBase{ ProjectileObject->GetPhysicsActor() };
         if (ProjectileActorBase != nullptr && ProjectileActorBase->GetActorType() == PhysicsActor::PhysicsActorType::Dynamic) {
             PhysicsDynamicActor* ProjectileDynamicActor{ static_cast<PhysicsDynamicActor*>(ProjectileActorBase) };
-            ProjectileDynamicActor->SetVelocity(DirectX::SimpleMath::Vector3{ 35.0F, 3.0F, 0.0F });
+            DirectX::SimpleMath::Vector3 LaunchDirection{ 1.0F, 0.08F, 0.0F };
+            LaunchDirection.Normalize();
+            float LaunchImpulseMagnitude{ 800.0F };
+            ProjectileDynamicActor->SetMass(12.0F);
+            ProjectileDynamicActor->AddImpulse(LaunchDirection * LaunchImpulseMagnitude);
             ProjectileDynamicActor->SetIsSleeping(false);
             ProjectileObject->PullTransformFromPhysicsActor();
             ProjectileObject->UpdateWorldMatrix();

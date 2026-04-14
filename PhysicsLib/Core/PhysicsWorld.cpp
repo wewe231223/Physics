@@ -257,8 +257,8 @@ void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float Delta
 
     float ActorMass{ Actor.GetMass() };
     DirectX::SimpleMath::Vector3 TotalAcceleration{ mSettings.Gravity + Actor.GetAcceleration() };
-    DirectX::SimpleMath::Vector3 AppliedForce{ TotalAcceleration * ActorMass };
-    DirectX::SimpleMath::Vector3 NextLinearMomentum{ Actor.GetLinearMomentum() + (AppliedForce * DeltaTime) };
+    DirectX::SimpleMath::Vector3 TotalForce{ (TotalAcceleration * ActorMass) + Actor.GetAccumulatedForce() };
+    DirectX::SimpleMath::Vector3 NextLinearMomentum{ Actor.GetLinearMomentum() + (TotalForce * DeltaTime) };
     DirectX::SimpleMath::Vector3 NextVelocity{ NextLinearMomentum * ActorInverseMass };
     float DampingFactor{ std::max(0.0F, 1.0F - (Actor.GetLinearDamping() * DeltaTime)) };
     NextVelocity *= DampingFactor;
@@ -275,6 +275,7 @@ void PhysicsWorld::IntegrateDynamicActor(PhysicsDynamicActor& Actor, float Delta
     ResolveStaticCollisions(Actor);
 
     Actor.SetLinearMomentum(Actor.GetVelocity() * ActorMass);
+    Actor.ClearAccumulatedForce();
     Actor.UpdateSleepState();
 }
 
