@@ -1,14 +1,16 @@
-#pragma once
+﻿#pragma once
 
 #include "Mesh.h"
+#include "PhysicsExchangeTypes.h"
 #include "Transform.h"
-#include "PhysicsLib/Core/PhysicsActor.h"
-#include "PhysicsLib/Core/PhysicsDynamicActor.h"
-#include "PhysicsLib/Core/PhysicsKinematicActor.h"
-#include "PhysicsLib/Core/PhysicsTerrainActor.h"
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
+#include "PhysicsLib/Actors/PhysicsTerrainActor.h"
+
+#include <SimpleMath/SimpleMath.h>
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <glm/mat4x4.hpp>
 
@@ -45,14 +47,24 @@ public:
     const glm::mat4& GetBoundingBoxWorldMatrix() const;
 
     bool IsTerrainObject() const;
+
+    void SetActorId(ActorId ActorIdValue);
+    ActorId GetActorId() const;
+    bool HasActorId() const;
+
+    void SetPhysicsMass(float PhysicsMass);
+    float GetPhysicsMass() const;
+    void SetInitialImpulse(const DirectX::SimpleMath::Vector3& InitialImpulse);
+    void ClearInitialImpulse();
+    bool HasInitialImpulse() const;
+    const DirectX::SimpleMath::Vector3& GetInitialImpulse() const;
+
     PhysicsDynamicActor::ActorDesc GetPhysicsDynamicActorDesc() const;
     PhysicsTerrainActor::ActorDesc GetPhysicsTerrainActorDesc() const;
-    void SetPhysicsActor(PhysicsActor* PhysicsActorPointer);
-    PhysicsActor* GetPhysicsActor();
-    const PhysicsActor* GetPhysicsActor() const;
 
-    void PullTransformFromPhysicsActor();
-    void UpdateBoundingBoxWorldMatrix();
+    void ApplyPhysicsState(const DirectX::SimpleMath::Vector3& Position, const DirectX::SimpleMath::Vector3& Rotation, const DirectX::SimpleMath::Vector3& Scale);
+    void SetBoundingBoxFromPhysicsState(const DirectX::BoundingOrientedBox& WorldBoundingBox, const DirectX::SimpleMath::Vector3& Rotation);
+    void ClearBoundingBoxWorldMatrix();
 
 private:
     std::string mName;
@@ -63,5 +75,10 @@ private:
     std::shared_ptr<Mesh> mBoundingBoxMesh;
     bool mBoundingBoxVisible;
     glm::mat4 mBoundingBoxWorldMatrix;
-    PhysicsActor* mPhysicsActor;
+    ActorId mActorId;
+    float mPhysicsMass;
+    bool mHasInitialImpulse;
+    DirectX::SimpleMath::Vector3 mInitialImpulse;
 };
+
+

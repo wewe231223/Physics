@@ -1,10 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <SimpleMath/SimpleMath.h>
 #include <DirectXCollision.h>
 
-#include "PhysicsActor.h"
-#include "PhysicsDynamicActor.h"
+#include "PhysicsLib/Actors/PhysicsActor.h"
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
 
 class PhysicsStaticActor : public PhysicsActor {
 public:
@@ -18,3 +18,4 @@ public:
 public:
     virtual bool ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const;
 };
+

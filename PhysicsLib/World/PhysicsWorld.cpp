@@ -1,16 +1,16 @@
-#include "PhysicsWorld.h"
+﻿#include "PhysicsWorld.h"
 
 #include <algorithm>
 #include <chrono>
 #include <utility>
 
-#include "SpatialQuery/BruteForcePhysicsSpatialQuery.h"
-#include "Repository/IPhysicsActorRepository.h"
-#include "Logic/IPhysicsSimulationLogic.h"
-#include "SpatialQuery/IPhysicsSpatialQuery.h"
-#include "Repository/PhysicsActorRepository.h"
-#include "Logic/PhysicsDynamicCollisionLogic.h"
-#include "Logic/PhysicsDynamicIntegrationLogic.h"
+#include "PhysicsLib/Simulation/SpatialQuery/BruteForcePhysicsSpatialQuery.h"
+#include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
+#include "PhysicsLib/Simulation/Logic/IPhysicsSimulationLogic.h"
+#include "PhysicsLib/Simulation/SpatialQuery/IPhysicsSpatialQuery.h"
+#include "PhysicsLib/Simulation/Repository/PhysicsActorRepository.h"
+#include "PhysicsLib/Simulation/Logic/PhysicsDynamicCollisionLogic.h"
+#include "PhysicsLib/Simulation/Logic/PhysicsDynamicIntegrationLogic.h"
 
 namespace {
 DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vector3& StartValue, const DirectX::SimpleMath::Vector3& EndValue, float Alpha) {
@@ -516,3 +516,4 @@ void PhysicsWorld::InitializeSimulationLogics() {
     mSimulationLogics.push_back(std::make_unique<PhysicsDynamicCollisionLogic>());
     mSimulationLogics.push_back(std::make_unique<PhysicsDynamicIntegrationLogic>());
 }
+

@@ -1,11 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include <SimpleMath/SimpleMath.h>
 #include <DirectXCollision.h>
 
 #include <string>
 
-#include "PhysicsActor.h"
+#include "PhysicsLib/Actors/PhysicsActor.h"
 
 class PhysicsKinematicActor final : public PhysicsActor {
 public:
@@ -93,3 +93,4 @@ private:
     float mSleepThreshold;
     float mBoundingBoxFatMargin;
 };
+

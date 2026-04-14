@@ -1,9 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <vector>
 
 #include "IPhysicsSimulationLogic.h"
-#include "../Types/PhysicsSimulationTypes.h"
+#include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
 
 class PhysicsDynamicActor;
 class PhysicsStaticActor;
@@ -26,3 +26,5 @@ private:
     void ResolveStaticCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicActor*>& DynamicActors, const std::vector<const PhysicsStaticActor*>& StaticActors) const;
     bool ResolveCollisionPair(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor) const;
 };
+
+

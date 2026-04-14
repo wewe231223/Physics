@@ -1,14 +1,14 @@
-#pragma once
+﻿#pragma once
 
 #include <cstddef>
 #include <memory>
 #include <vector>
 
-#include "../PhysicsActor.h"
-#include "../PhysicsDynamicActor.h"
-#include "../PhysicsKinematicActor.h"
-#include "../PhysicsStaticActor.h"
-#include "../PhysicsTerrainActor.h"
+#include "PhysicsLib/Actors/PhysicsActor.h"
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
+#include "PhysicsLib/Actors/PhysicsKinematicActor.h"
+#include "PhysicsLib/Actors/PhysicsStaticActor.h"
+#include "PhysicsLib/Actors/PhysicsTerrainActor.h"
 
 class IPhysicsActorRepository {
 public:
@@ -37,3 +37,4 @@ public:
     virtual std::vector<const PhysicsDynamicActor*> CollectDynamicActors() const = 0;
     virtual std::vector<const PhysicsStaticActor*> CollectStaticActors() const = 0;
 };
+

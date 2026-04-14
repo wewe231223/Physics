@@ -1,7 +1,7 @@
-#include <algorithm>
+﻿#include <algorithm>
 #include <utility>
 
-#include "PhysicsActor.h"
+#include "PhysicsLib/Actors/PhysicsActor.h"
 
 #undef max
 #undef min 
@@ -236,3 +236,4 @@ PhysicsActor::PhysicsActorFlags operator&(PhysicsActor::PhysicsActorFlags Left, 
     PhysicsActor::PhysicsActorFlags Intersected{ static_cast<PhysicsActor::PhysicsActorFlags>(LeftValue & RightValue) };
     return Intersected;
 }
+

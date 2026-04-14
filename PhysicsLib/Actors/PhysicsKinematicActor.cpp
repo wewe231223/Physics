@@ -1,8 +1,8 @@
-#include <algorithm>
+﻿#include <algorithm>
 #include <cmath>
 #include <utility>
 
-#include "PhysicsKinematicActor.h"
+#include "PhysicsLib/Actors/PhysicsKinematicActor.h"
 
 #undef max 
 
@@ -287,3 +287,4 @@ void PhysicsKinematicActor::UpdateFatWorldBoundingBox() {
     mFatWorldBoundingBox.Extents.y += FinalMargin;
     mFatWorldBoundingBox.Extents.z += FinalMargin;
 }
+

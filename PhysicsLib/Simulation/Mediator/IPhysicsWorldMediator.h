@@ -1,12 +1,12 @@
-#pragma once
+﻿#pragma once
 
 #include <vector>
 
 #include <SimpleMath/SimpleMath.h>
 
-#include "../Repository/IPhysicsActorRepository.h"
-#include "../SpatialQuery/IPhysicsSpatialQuery.h"
-#include "../Types/PhysicsSimulationTypes.h"
+#include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
+#include "PhysicsLib/Simulation/SpatialQuery/IPhysicsSpatialQuery.h"
+#include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
 
 class IPhysicsWorldMediator {
 public:
@@ -30,3 +30,5 @@ public:
     virtual void ClearPublishedEvents() = 0;
     virtual const std::vector<PhysicsSimulationEvent>& GetPublishedEvents() const = 0;
 };
+
+

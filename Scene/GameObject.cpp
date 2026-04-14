@@ -1,5 +1,6 @@
-#include "GameObject.h"
+﻿#include "GameObject.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <utility>
 
@@ -14,7 +15,10 @@ GameObject::GameObject()
       mBoundingBoxMesh{},
       mBoundingBoxVisible{},
       mBoundingBoxWorldMatrix{ 1.0F },
-      mPhysicsActor{} {
+      mActorId{ InvalidActorId },
+      mPhysicsMass{ 1.0F },
+      mHasInitialImpulse{},
+      mInitialImpulse{} {
 }
 
 GameObject::~GameObject() {
@@ -29,7 +33,10 @@ GameObject::GameObject(const GameObject& Other)
       mBoundingBoxMesh{ Other.mBoundingBoxMesh },
       mBoundingBoxVisible{ Other.mBoundingBoxVisible },
       mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
-      mPhysicsActor{} {
+      mActorId{ Other.mActorId },
+      mPhysicsMass{ Other.mPhysicsMass },
+      mHasInitialImpulse{ Other.mHasInitialImpulse },
+      mInitialImpulse{ Other.mInitialImpulse } {
 }
 
 GameObject& GameObject::operator=(const GameObject& Other) {
@@ -45,7 +52,10 @@ GameObject& GameObject::operator=(const GameObject& Other) {
     mBoundingBoxMesh = Other.mBoundingBoxMesh;
     mBoundingBoxVisible = Other.mBoundingBoxVisible;
     mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
-    mPhysicsActor = nullptr;
+    mActorId = Other.mActorId;
+    mPhysicsMass = Other.mPhysicsMass;
+    mHasInitialImpulse = Other.mHasInitialImpulse;
+    mInitialImpulse = Other.mInitialImpulse;
 
     return *this;
 }
@@ -59,13 +69,19 @@ GameObject::GameObject(GameObject&& Other) noexcept
       mBoundingBoxMesh{ std::move(Other.mBoundingBoxMesh) },
       mBoundingBoxVisible{ Other.mBoundingBoxVisible },
       mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
-      mPhysicsActor{ Other.mPhysicsActor } {
+      mActorId{ Other.mActorId },
+      mPhysicsMass{ Other.mPhysicsMass },
+      mHasInitialImpulse{ Other.mHasInitialImpulse },
+      mInitialImpulse{ Other.mInitialImpulse } {
     Other.mName = "";
     Other.mIsActive = false;
     Other.mWorldMatrix = glm::mat4{ 1.0F };
     Other.mBoundingBoxVisible = false;
     Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
-    Other.mPhysicsActor = nullptr;
+    Other.mActorId = InvalidActorId;
+    Other.mPhysicsMass = 1.0F;
+    Other.mHasInitialImpulse = false;
+    Other.mInitialImpulse = DirectX::SimpleMath::Vector3{};
 }
 
 GameObject& GameObject::operator=(GameObject&& Other) noexcept {
@@ -81,14 +97,20 @@ GameObject& GameObject::operator=(GameObject&& Other) noexcept {
     mBoundingBoxMesh = std::move(Other.mBoundingBoxMesh);
     mBoundingBoxVisible = Other.mBoundingBoxVisible;
     mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
-    mPhysicsActor = Other.mPhysicsActor;
+    mActorId = Other.mActorId;
+    mPhysicsMass = Other.mPhysicsMass;
+    mHasInitialImpulse = Other.mHasInitialImpulse;
+    mInitialImpulse = Other.mInitialImpulse;
 
     Other.mName = "";
     Other.mIsActive = false;
     Other.mWorldMatrix = glm::mat4{ 1.0F };
     Other.mBoundingBoxVisible = false;
     Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
-    Other.mPhysicsActor = nullptr;
+    Other.mActorId = InvalidActorId;
+    Other.mPhysicsMass = 1.0F;
+    Other.mHasInitialImpulse = false;
+    Other.mInitialImpulse = DirectX::SimpleMath::Vector3{};
 
     return *this;
 }
@@ -102,7 +124,10 @@ GameObject::GameObject(std::string Name)
       mBoundingBoxMesh{},
       mBoundingBoxVisible{},
       mBoundingBoxWorldMatrix{ 1.0F },
-      mPhysicsActor{} {
+      mActorId{ InvalidActorId },
+      mPhysicsMass{ 1.0F },
+      mHasInitialImpulse{},
+      mInitialImpulse{} {
 }
 
 void GameObject::SetName(std::string Name) {
@@ -171,6 +196,44 @@ bool GameObject::IsTerrainObject() const {
     return IsTerrain;
 }
 
+void GameObject::SetActorId(ActorId ActorIdValue) {
+    mActorId = ActorIdValue;
+}
+
+ActorId GameObject::GetActorId() const {
+    return mActorId;
+}
+
+bool GameObject::HasActorId() const {
+    return mActorId != InvalidActorId;
+}
+
+void GameObject::SetPhysicsMass(float PhysicsMass) {
+    mPhysicsMass = std::max(PhysicsMass, 0.0001F);
+}
+
+float GameObject::GetPhysicsMass() const {
+    return mPhysicsMass;
+}
+
+void GameObject::SetInitialImpulse(const DirectX::SimpleMath::Vector3& InitialImpulse) {
+    mHasInitialImpulse = true;
+    mInitialImpulse = InitialImpulse;
+}
+
+void GameObject::ClearInitialImpulse() {
+    mHasInitialImpulse = false;
+    mInitialImpulse = DirectX::SimpleMath::Vector3{};
+}
+
+bool GameObject::HasInitialImpulse() const {
+    return mHasInitialImpulse;
+}
+
+const DirectX::SimpleMath::Vector3& GameObject::GetInitialImpulse() const {
+    return mInitialImpulse;
+}
+
 PhysicsDynamicActor::ActorDesc GameObject::GetPhysicsDynamicActorDesc() const {
     glm::vec3 Position{ mTransform.GetPosition() };
     glm::vec3 Rotation{ mTransform.GetRotation() };
@@ -185,7 +248,7 @@ PhysicsDynamicActor::ActorDesc GameObject::GetPhysicsDynamicActorDesc() const {
         ActorBoundingBox = mMesh->GetBoundingBox();
     }
 
-    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, 1.0F, PhysicsActor::PhysicsActorFlags::None, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
+    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, mPhysicsMass, PhysicsActor::PhysicsActorFlags::None, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
     return ActorDesc;
 }
 
@@ -222,79 +285,13 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
     return ActorDesc;
 }
 
-void GameObject::SetPhysicsActor(PhysicsActor* PhysicsActorPointer) {
-    mPhysicsActor = PhysicsActorPointer;
-}
-
-PhysicsActor* GameObject::GetPhysicsActor() {
-    return mPhysicsActor;
-}
-
-const PhysicsActor* GameObject::GetPhysicsActor() const {
-    return mPhysicsActor;
-}
-
-void GameObject::PullTransformFromPhysicsActor() {
-    if (mPhysicsActor == nullptr) {
-        return;
-    }
-
-    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
-        const PhysicsTerrainActor* TerrainActor{ static_cast<const PhysicsTerrainActor*>(mPhysicsActor) };
-        PhysicsTerrainActor::ActorDesc TerrainDesc{ TerrainActor->GetActorDesc() };
-        DirectX::SimpleMath::Vector3 Position{ TerrainDesc.Position };
-        DirectX::SimpleMath::Vector3 Rotation{ TerrainDesc.Rotation };
-        DirectX::SimpleMath::Vector3 Scale{ TerrainDesc.Scale };
-        mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
-        mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
-        mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
-        UpdateBoundingBoxWorldMatrix();
-        return;
-    }
-
-    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
-        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(mPhysicsActor) };
-        DirectX::SimpleMath::Vector3 Position{ KinematicActor->GetPosition() };
-        DirectX::SimpleMath::Vector3 Rotation{ KinematicActor->GetRotation() };
-        DirectX::SimpleMath::Vector3 Scale{ KinematicActor->GetScale() };
-        mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
-        mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
-        mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
-        UpdateBoundingBoxWorldMatrix();
-        return;
-    }
-
-    const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(mPhysicsActor) };
-    DirectX::SimpleMath::Vector3 Position{ DynamicActor->GetPosition() };
-    DirectX::SimpleMath::Vector3 Rotation{ DynamicActor->GetRotation() };
-    DirectX::SimpleMath::Vector3 Scale{ DynamicActor->GetScale() };
+void GameObject::ApplyPhysicsState(const DirectX::SimpleMath::Vector3& Position, const DirectX::SimpleMath::Vector3& Rotation, const DirectX::SimpleMath::Vector3& Scale) {
     mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
     mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
     mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
-    UpdateBoundingBoxWorldMatrix();
 }
 
-void GameObject::UpdateBoundingBoxWorldMatrix() {
-    if (!mBoundingBoxVisible || mPhysicsActor == nullptr) {
-        mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
-        return;
-    }
-
-    DirectX::BoundingOrientedBox WorldBoundingBox{};
-    DirectX::SimpleMath::Vector3 Rotation{};
-    if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
-        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(mPhysicsActor) };
-        WorldBoundingBox = KinematicActor->GetWorldBoundingBox();
-        Rotation = KinematicActor->GetRotation();
-    } else if (mPhysicsActor->GetActorType() == PhysicsActor::PhysicsActorType::Dynamic) {
-        const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(mPhysicsActor) };
-        WorldBoundingBox = DynamicActor->GetWorldBoundingBox();
-        Rotation = DynamicActor->GetRotation();
-    } else {
-        mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
-        return;
-    }
-
+void GameObject::SetBoundingBoxFromPhysicsState(const DirectX::BoundingOrientedBox& WorldBoundingBox, const DirectX::SimpleMath::Vector3& Rotation) {
     DirectX::XMFLOAT3 Center{ WorldBoundingBox.Center };
     DirectX::XMFLOAT3 Extents{ WorldBoundingBox.Extents };
     glm::vec3 BoundingBoxPosition{ Center.x, Center.y, Center.z };
@@ -307,3 +304,8 @@ void GameObject::UpdateBoundingBoxWorldMatrix() {
     glm::mat4 ScaleMatrix{ glm::scale(glm::mat4{ 1.0F }, BoundingBoxScale) };
     mBoundingBoxWorldMatrix = TranslationMatrix * RotationZMatrix * RotationYMatrix * RotationXMatrix * ScaleMatrix;
 }
+
+void GameObject::ClearBoundingBoxWorldMatrix() {
+    mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
+}
+

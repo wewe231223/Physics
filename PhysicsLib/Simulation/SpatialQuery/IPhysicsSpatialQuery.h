@@ -1,10 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <memory>
 #include <vector>
 
-#include "../Repository/IPhysicsActorRepository.h"
-#include "../Types/PhysicsSimulationTypes.h"
+#include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
+#include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
 
 class IPhysicsSpatialQuery {
 public:
@@ -19,3 +19,5 @@ public:
     virtual std::unique_ptr<IPhysicsSpatialQuery> Clone() const = 0;
     virtual std::vector<PhysicsDynamicCollisionPairCandidate> QueryDynamicCollisionPairs(IPhysicsActorRepository& ActorRepository) const = 0;
 };
+
+

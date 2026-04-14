@@ -146,6 +146,7 @@
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Mesh.cpp" />
     <ClCompile Include="Scene\MeshFactory.cpp" />
+    <ClCompile Include="Scene\PhysicsRuntime.cpp" />
     <ClCompile Include="Scene\TerrainHeightMapLoader.cpp" />
     <ClCompile Include="Scene\TerrainMeshBuilder.cpp" />
     <ClCompile Include="Scene\TerrainMeshTypes.cpp" />
@@ -159,6 +160,9 @@
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Mesh.h" />
     <ClInclude Include="Scene\MeshFactory.h" />
+    <ClInclude Include="Scene\Concurrency\SpscRingQueue.h" />
+    <ClInclude Include="Scene\PhysicsExchangeTypes.h" />
+    <ClInclude Include="Scene\PhysicsRuntime.h" />
     <ClInclude Include="Scene\TerrainHeightMapLoader.h" />
     <ClInclude Include="Scene\TerrainMeshBuilder.h" />
     <ClInclude Include="Scene\TerrainMeshTypes.h" />

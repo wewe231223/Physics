@@ -1,11 +1,11 @@
-#include "PhysicsDynamicCollisionLogic.h"
+﻿#include "PhysicsDynamicCollisionLogic.h"
 
 #include <algorithm>
 #include <cmath>
 #include <utility>
 
-#include "../Mediator/IPhysicsWorldMediator.h"
-#include "../PhysicsStaticActor.h"
+#include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
+#include "PhysicsLib/Actors/PhysicsStaticActor.h"
 
 #undef max 
 #undef min 
@@ -273,3 +273,5 @@ bool PhysicsDynamicCollisionLogic::ResolveCollisionPair(IPhysicsWorldMediator& W
 
     return true;
 }
+
+

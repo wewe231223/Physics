@@ -1,4 +1,4 @@
-#include "Scene.h"
+﻿#include "Scene.h"
 
 #include "MeshFactory.h"
 
@@ -7,12 +7,13 @@
 Scene::Scene()
     : mMainCamera{},
       mGameObjects{},
-      mPhysicsWorld{},
       mCubeMesh{},
       mSphereMesh{},
       mTriangularPyramidMesh{},
       mSquarePyramidMesh{},
-      mGridMesh{} {
+      mGridMesh{},
+      mPhysicsActorSpawnInfos{},
+      mActorIdToGameObjectIndex{} {
 }
 
 Scene::~Scene() {
@@ -21,13 +22,13 @@ Scene::~Scene() {
 Scene::Scene(const Scene& Other)
     : mMainCamera{ Other.mMainCamera },
       mGameObjects{ Other.mGameObjects },
-      mPhysicsWorld{ Other.mPhysicsWorld.GetSettings() },
       mCubeMesh{ Other.mCubeMesh },
       mSphereMesh{ Other.mSphereMesh },
       mTriangularPyramidMesh{ Other.mTriangularPyramidMesh },
       mSquarePyramidMesh{ Other.mSquarePyramidMesh },
-      mGridMesh{ Other.mGridMesh } {
-    BuildPhysicsActors();
+      mGridMesh{ Other.mGridMesh },
+      mPhysicsActorSpawnInfos{ Other.mPhysicsActorSpawnInfos },
+      mActorIdToGameObjectIndex{ Other.mActorIdToGameObjectIndex } {
 }
 
 Scene& Scene::operator=(const Scene& Other) {
@@ -42,8 +43,8 @@ Scene& Scene::operator=(const Scene& Other) {
     mTriangularPyramidMesh = Other.mTriangularPyramidMesh;
     mSquarePyramidMesh = Other.mSquarePyramidMesh;
     mGridMesh = Other.mGridMesh;
-    mPhysicsWorld.Initialize(Other.mPhysicsWorld.GetSettings());
-    BuildPhysicsActors();
+    mPhysicsActorSpawnInfos = Other.mPhysicsActorSpawnInfos;
+    mActorIdToGameObjectIndex = Other.mActorIdToGameObjectIndex;
 
     return *this;
 }
@@ -51,12 +52,13 @@ Scene& Scene::operator=(const Scene& Other) {
 Scene::Scene(Scene&& Other) noexcept
     : mMainCamera{ std::move(Other.mMainCamera) },
       mGameObjects{ std::move(Other.mGameObjects) },
-      mPhysicsWorld{ std::move(Other.mPhysicsWorld) },
       mCubeMesh{ std::move(Other.mCubeMesh) },
       mSphereMesh{ std::move(Other.mSphereMesh) },
       mTriangularPyramidMesh{ std::move(Other.mTriangularPyramidMesh) },
       mSquarePyramidMesh{ std::move(Other.mSquarePyramidMesh) },
-      mGridMesh{ std::move(Other.mGridMesh) } {
+      mGridMesh{ std::move(Other.mGridMesh) },
+      mPhysicsActorSpawnInfos{ std::move(Other.mPhysicsActorSpawnInfos) },
+      mActorIdToGameObjectIndex{ std::move(Other.mActorIdToGameObjectIndex) } {
 }
 
 Scene& Scene::operator=(Scene&& Other) noexcept {
@@ -66,25 +68,15 @@ Scene& Scene::operator=(Scene&& Other) noexcept {
 
     mMainCamera = std::move(Other.mMainCamera);
     mGameObjects = std::move(Other.mGameObjects);
-    mPhysicsWorld = std::move(Other.mPhysicsWorld);
     mCubeMesh = std::move(Other.mCubeMesh);
     mSphereMesh = std::move(Other.mSphereMesh);
     mTriangularPyramidMesh = std::move(Other.mTriangularPyramidMesh);
     mSquarePyramidMesh = std::move(Other.mSquarePyramidMesh);
     mGridMesh = std::move(Other.mGridMesh);
+    mPhysicsActorSpawnInfos = std::move(Other.mPhysicsActorSpawnInfos);
+    mActorIdToGameObjectIndex = std::move(Other.mActorIdToGameObjectIndex);
 
     return *this;
-}
-
-Scene::Scene(const PhysicsWorld::WorldSettings& WorldSettings)
-    : mMainCamera{},
-      mGameObjects{},
-      mPhysicsWorld{ WorldSettings },
-      mCubeMesh{},
-      mSphereMesh{},
-      mTriangularPyramidMesh{},
-      mSquarePyramidMesh{},
-      mGridMesh{} {
 }
 
 Camera& Scene::GetMainCamera() {
@@ -146,34 +138,44 @@ std::size_t Scene::GetGameObjectCount() const {
     return Count;
 }
 
-PhysicsWorld& Scene::GetPhysicsWorld() {
-    return mPhysicsWorld;
+const std::vector<Scene::PhysicsActorSpawnInfo>& Scene::GetPhysicsActorSpawnInfos() const {
+    return mPhysicsActorSpawnInfos;
 }
 
-const PhysicsWorld& Scene::GetPhysicsWorld() const {
-    return mPhysicsWorld;
+std::size_t Scene::GetPhysicsActorCount() const {
+    std::size_t ActorCount{ mPhysicsActorSpawnInfos.size() };
+    return ActorCount;
 }
 
 void Scene::BuildPhysicsActors() {
-    mPhysicsWorld.ClearActors();
+    mPhysicsActorSpawnInfos.clear();
+    mActorIdToGameObjectIndex.clear();
 
     std::size_t GameObjectCount{ mGameObjects.size() };
+    mPhysicsActorSpawnInfos.reserve(GameObjectCount);
+    mActorIdToGameObjectIndex.reserve(GameObjectCount);
+
     for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
         GameObject& CurrentObject{ mGameObjects[ObjectIndex] };
-        CurrentObject.SetPhysicsActor(nullptr);
+        CurrentObject.SetActorId(InvalidActorId);
 
+        PhysicsActorSpawnInfo SpawnInfo{};
+        SpawnInfo.mActorId = static_cast<ActorId>(mPhysicsActorSpawnInfos.size());
+        SpawnInfo.mName = CurrentObject.GetName();
+        SpawnInfo.mIsActive = CurrentObject.GetIsActive();
         if (CurrentObject.IsTerrainObject()) {
-            PhysicsTerrainActor::ActorDesc ActorDesc{ CurrentObject.GetPhysicsTerrainActorDesc() };
-            PhysicsTerrainActor* PhysicsActorPointer{ mPhysicsWorld.CreateTerrainActor(ActorDesc) };
-            PhysicsActorPointer->SetName(CurrentObject.GetName());
-            PhysicsActorPointer->SetIsActive(CurrentObject.GetIsActive());
-            CurrentObject.SetPhysicsActor(PhysicsActorPointer);
-            continue;
+            SpawnInfo.mActorType = PhysicsActor::PhysicsActorType::Static;
+            SpawnInfo.mTerrainActorDesc = CurrentObject.GetPhysicsTerrainActorDesc();
+        } else {
+            SpawnInfo.mActorType = PhysicsActor::PhysicsActorType::Dynamic;
+            SpawnInfo.mDynamicActorDesc = CurrentObject.GetPhysicsDynamicActorDesc();
+            SpawnInfo.mHasInitialImpulse = CurrentObject.HasInitialImpulse();
+            SpawnInfo.mInitialImpulse = CurrentObject.GetInitialImpulse();
         }
 
-        PhysicsDynamicActor::ActorDesc ActorDesc{ CurrentObject.GetPhysicsDynamicActorDesc() };
-        PhysicsDynamicActor* PhysicsActorPointer{ mPhysicsWorld.CreateDynamicActor(ActorDesc) };
-        CurrentObject.SetPhysicsActor(PhysicsActorPointer);
+        CurrentObject.SetActorId(SpawnInfo.mActorId);
+        mPhysicsActorSpawnInfos.push_back(SpawnInfo);
+        mActorIdToGameObjectIndex.push_back(ObjectIndex);
     }
 }
 
@@ -181,47 +183,53 @@ void Scene::ConfigureBoundingBoxes(const std::shared_ptr<Mesh>& BoundingBoxMesh)
     std::size_t GameObjectCount{ mGameObjects.size() };
     for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
         GameObject& CurrentObject{ mGameObjects[ObjectIndex] };
-        PhysicsActor* PhysicsActorPointer{ CurrentObject.GetPhysicsActor() };
-        if (PhysicsActorPointer == nullptr) {
+        if (!CurrentObject.HasActorId() || CurrentObject.IsTerrainObject()) {
             CurrentObject.SetBoundingBoxVisible(false);
-            continue;
-        }
-
-        if (PhysicsActorPointer->GetActorType() == PhysicsActor::PhysicsActorType::Static) {
-            CurrentObject.SetBoundingBoxVisible(false);
+            CurrentObject.ClearBoundingBoxWorldMatrix();
             continue;
         }
 
         CurrentObject.SetBoundingBoxMesh(BoundingBoxMesh);
         CurrentObject.SetBoundingBoxVisible(true);
-        CurrentObject.UpdateBoundingBoxWorldMatrix();
+        CurrentObject.ClearBoundingBoxWorldMatrix();
     }
 }
 
-void Scene::UpdatePhysics(float DeltaTime) {
-    mPhysicsWorld.Update(DeltaTime);
+void Scene::ApplyPhysicsSnapshot(const PhysicsSnapshot& Snapshot) {
+    std::size_t SnapshotActorCount{ Snapshot.mActorCount };
+    std::size_t AvailableActorCount{ Snapshot.mActors.size() };
+    if (SnapshotActorCount > AvailableActorCount) {
+        SnapshotActorCount = AvailableActorCount;
+    }
 
-    std::size_t GameObjectCount{ mGameObjects.size() };
-    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+    for (std::size_t ActorIndex{ 0U }; ActorIndex < SnapshotActorCount; ++ActorIndex) {
+        const PhysicsActorSnapshot& SnapshotActor{ Snapshot.mActors[ActorIndex] };
+        ActorId CurrentActorId{ SnapshotActor.mActorId };
+        if (CurrentActorId == InvalidActorId) {
+            continue;
+        }
+
+        std::size_t ActorIdIndex{ static_cast<std::size_t>(CurrentActorId) };
+        if (ActorIdIndex >= mActorIdToGameObjectIndex.size()) {
+            continue;
+        }
+
+        std::size_t ObjectIndex{ mActorIdToGameObjectIndex[ActorIdIndex] };
+        if (ObjectIndex >= mGameObjects.size()) {
+            continue;
+        }
+
         GameObject& CurrentObject{ mGameObjects[ObjectIndex] };
-        PhysicsActor* PhysicsActorPointer{ CurrentObject.GetPhysicsActor() };
-        if (PhysicsActorPointer == nullptr) {
-            continue;
+        CurrentObject.SetIsActive(SnapshotActor.mIsActive);
+        CurrentObject.ApplyPhysicsState(SnapshotActor.mPosition, SnapshotActor.mRotation, SnapshotActor.mScale);
+
+        if (CurrentObject.GetBoundingBoxVisible() && SnapshotActor.mActorType != PhysicsActor::PhysicsActorType::Static) {
+            CurrentObject.SetBoundingBoxFromPhysicsState(SnapshotActor.mWorldBoundingBox, SnapshotActor.mRotation);
+        } else {
+            CurrentObject.ClearBoundingBoxWorldMatrix();
         }
 
-        DirectX::SimpleMath::Vector3 InterpolatedPosition{};
-        DirectX::SimpleMath::Vector3 InterpolatedRotation{};
-        DirectX::SimpleMath::Vector3 InterpolatedScale{};
-        bool HasInterpolatedState{ mPhysicsWorld.TryGetInterpolatedActorTransform(*PhysicsActorPointer, InterpolatedPosition, InterpolatedRotation, InterpolatedScale) };
-        if (!HasInterpolatedState) {
-            CurrentObject.PullTransformFromPhysicsActor();
-            continue;
-        }
-
-        CurrentObject.GetTransform().SetPosition(glm::vec3{ InterpolatedPosition.x, InterpolatedPosition.y, InterpolatedPosition.z });
-        CurrentObject.GetTransform().SetRotation(glm::vec3{ InterpolatedRotation.x, InterpolatedRotation.y, InterpolatedRotation.z });
-        CurrentObject.GetTransform().SetScale(glm::vec3{ InterpolatedScale.x, InterpolatedScale.y, InterpolatedScale.z });
-        CurrentObject.UpdateBoundingBoxWorldMatrix();
+        CurrentObject.UpdateWorldMatrix();
     }
 }
 
@@ -272,3 +280,4 @@ std::shared_ptr<Mesh> Scene::GetPrimitiveMesh(PrimitiveMeshType PrimitiveType) {
 
     return mGridMesh;
 }
+

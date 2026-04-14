@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -19,37 +19,37 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\SpatialQuery\BruteForcePhysicsSpatialQuery.cpp" />
-    <ClCompile Include="Core\Repository\IPhysicsActorRepository.cpp" />
-    <ClCompile Include="Core\Logic\IPhysicsSimulationLogic.cpp" />
-    <ClCompile Include="Core\SpatialQuery\IPhysicsSpatialQuery.cpp" />
-    <ClCompile Include="Core\Mediator\IPhysicsWorldMediator.cpp" />
-    <ClCompile Include="Core\PhysicsActor.cpp" />
-    <ClCompile Include="Core\Repository\PhysicsActorRepository.cpp" />
-    <ClCompile Include="Core\Logic\PhysicsDynamicCollisionLogic.cpp" />
-    <ClCompile Include="Core\PhysicsDynamicActor.cpp" />
-    <ClCompile Include="Core\Logic\PhysicsDynamicIntegrationLogic.cpp" />
-    <ClCompile Include="Core\PhysicsKinematicActor.cpp" />
-    <ClCompile Include="Core\PhysicsStaticActor.cpp" />
-    <ClCompile Include="Core\PhysicsTerrainActor.cpp" />
-    <ClCompile Include="Core\PhysicsWorld.cpp" />
+    <ClCompile Include="Actors\PhysicsActor.cpp" />
+    <ClCompile Include="Actors\PhysicsDynamicActor.cpp" />
+    <ClCompile Include="Actors\PhysicsKinematicActor.cpp" />
+    <ClCompile Include="Actors\PhysicsStaticActor.cpp" />
+    <ClCompile Include="Actors\PhysicsTerrainActor.cpp" />
+    <ClCompile Include="Simulation\Logic\IPhysicsSimulationLogic.cpp" />
+    <ClCompile Include="Simulation\Logic\PhysicsDynamicCollisionLogic.cpp" />
+    <ClCompile Include="Simulation\Logic\PhysicsDynamicIntegrationLogic.cpp" />
+    <ClCompile Include="Simulation\Mediator\IPhysicsWorldMediator.cpp" />
+    <ClCompile Include="Simulation\Repository\IPhysicsActorRepository.cpp" />
+    <ClCompile Include="Simulation\Repository\PhysicsActorRepository.cpp" />
+    <ClCompile Include="Simulation\SpatialQuery\BruteForcePhysicsSpatialQuery.cpp" />
+    <ClCompile Include="Simulation\SpatialQuery\IPhysicsSpatialQuery.cpp" />
+    <ClCompile Include="World\PhysicsWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\SpatialQuery\BruteForcePhysicsSpatialQuery.h" />
-    <ClInclude Include="Core\Repository\IPhysicsActorRepository.h" />
-    <ClInclude Include="Core\Logic\IPhysicsSimulationLogic.h" />
-    <ClInclude Include="Core\SpatialQuery\IPhysicsSpatialQuery.h" />
-    <ClInclude Include="Core\Mediator\IPhysicsWorldMediator.h" />
-    <ClInclude Include="Core\PhysicsActor.h" />
-    <ClInclude Include="Core\Repository\PhysicsActorRepository.h" />
-    <ClInclude Include="Core\Logic\PhysicsDynamicCollisionLogic.h" />
-    <ClInclude Include="Core\PhysicsDynamicActor.h" />
-    <ClInclude Include="Core\Logic\PhysicsDynamicIntegrationLogic.h" />
-    <ClInclude Include="Core\PhysicsKinematicActor.h" />
-    <ClInclude Include="Core\Types\PhysicsSimulationTypes.h" />
-    <ClInclude Include="Core\PhysicsStaticActor.h" />
-    <ClInclude Include="Core\PhysicsTerrainActor.h" />
-    <ClInclude Include="Core\PhysicsWorld.h" />
+    <ClInclude Include="Actors\PhysicsActor.h" />
+    <ClInclude Include="Actors\PhysicsDynamicActor.h" />
+    <ClInclude Include="Actors\PhysicsKinematicActor.h" />
+    <ClInclude Include="Actors\PhysicsStaticActor.h" />
+    <ClInclude Include="Actors\PhysicsTerrainActor.h" />
+    <ClInclude Include="Simulation\Logic\IPhysicsSimulationLogic.h" />
+    <ClInclude Include="Simulation\Logic\PhysicsDynamicCollisionLogic.h" />
+    <ClInclude Include="Simulation\Logic\PhysicsDynamicIntegrationLogic.h" />
+    <ClInclude Include="Simulation\Mediator\IPhysicsWorldMediator.h" />
+    <ClInclude Include="Simulation\Repository\IPhysicsActorRepository.h" />
+    <ClInclude Include="Simulation\Repository\PhysicsActorRepository.h" />
+    <ClInclude Include="Simulation\SpatialQuery\BruteForcePhysicsSpatialQuery.h" />
+    <ClInclude Include="Simulation\SpatialQuery\IPhysicsSpatialQuery.h" />
+    <ClInclude Include="Simulation\Types\PhysicsSimulationTypes.h" />
+    <ClInclude Include="World\PhysicsWorld.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -185,3 +185,4 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
+

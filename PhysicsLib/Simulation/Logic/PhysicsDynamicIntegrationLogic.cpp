@@ -1,9 +1,9 @@
-#include "PhysicsDynamicIntegrationLogic.h"
+﻿#include "PhysicsDynamicIntegrationLogic.h"
 
 #include <algorithm>
 #include <utility>
 
-#include "../Mediator/IPhysicsWorldMediator.h"
+#include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
 
 #undef min 
 #undef max 
@@ -91,3 +91,5 @@ void PhysicsDynamicIntegrationLogic::Execute(IPhysicsWorldMediator& WorldMediato
         IntegrateActor(WorldMediator, *DynamicActor, DeltaTime);
     }
 }
+
+

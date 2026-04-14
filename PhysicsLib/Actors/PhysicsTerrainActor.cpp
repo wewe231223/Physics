@@ -1,9 +1,9 @@
-#include <algorithm>
+﻿#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <utility>
 
-#include "PhysicsTerrainActor.h"
+#include "PhysicsLib/Actors/PhysicsTerrainActor.h"
 
 #undef min
 #undef max
@@ -353,3 +353,4 @@ std::size_t PhysicsTerrainActor::CalculateHeightFieldIndex(std::uint32_t X, std:
     std::size_t Index{ static_cast<std::size_t>(Z) * static_cast<std::size_t>(mHeightFieldWidth) + static_cast<std::size_t>(X) };
     return Index;
 }
+

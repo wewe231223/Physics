@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstddef>
 #include <memory>
@@ -6,12 +6,12 @@
 
 #include <SimpleMath/SimpleMath.h>
 
-#include "Mediator/IPhysicsWorldMediator.h"
-#include "PhysicsActor.h"
-#include "PhysicsDynamicActor.h"
-#include "PhysicsKinematicActor.h"
-#include "Types/PhysicsSimulationTypes.h"
-#include "PhysicsTerrainActor.h"
+#include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
+#include "PhysicsLib/Actors/PhysicsActor.h"
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
+#include "PhysicsLib/Actors/PhysicsKinematicActor.h"
+#include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
+#include "PhysicsLib/Actors/PhysicsTerrainActor.h"
 
 class IPhysicsActorRepository;
 class IPhysicsSimulationLogic;
@@ -125,3 +125,4 @@ private:
     std::vector<std::unique_ptr<IPhysicsSimulationLogic>> mSimulationLogics;
     std::vector<PhysicsSimulationEvent> mPublishedEvents;
 };
+

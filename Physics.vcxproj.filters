@@ -35,6 +35,9 @@
     <ClCompile Include="Scene\MeshFactory.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\PhysicsRuntime.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
     <ClCompile Include="Scene\TerrainHeightMapLoader.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -69,6 +72,15 @@
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\MeshFactory.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Concurrency\SpscRingQueue.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\PhysicsExchangeTypes.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\PhysicsRuntime.h">
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\TerrainHeightMapLoader.h">
