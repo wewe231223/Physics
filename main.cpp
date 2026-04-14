@@ -328,7 +328,8 @@ int main() {
         }
 
         Scene& ActiveScene{ Scenes[ActiveSceneIndex] };
-        ActiveScene.UpdatePhysics(WorldSettings.FixedTimeStep);
+        float FrameDeltaTimeSeconds{ static_cast<float>(FrameElapsedTime.count()) };
+        ActiveScene.UpdatePhysics(FrameDeltaTimeSeconds);
         PhysicsWorld& ActivePhysicsWorld{ ActiveScene.GetPhysicsWorld() };
         double PhysicsLastStepElapsedMilliseconds{ ActivePhysicsWorld.GetLastStepElapsedMilliseconds() };
         std::ostringstream WindowTitleStream{};

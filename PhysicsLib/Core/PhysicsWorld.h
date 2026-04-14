@@ -17,6 +17,49 @@ class IPhysicsActorRepository;
 class IPhysicsSimulationLogic;
 class IPhysicsSpatialQuery;
 
+class PhysicsFrameAccumulator final {
+public:
+    struct ActorState {
+        const PhysicsActor* mActorPointer;
+        PhysicsActor::PhysicsActorType mActorType;
+        DirectX::SimpleMath::Vector3 mPosition;
+        DirectX::SimpleMath::Vector3 mRotation;
+        DirectX::SimpleMath::Vector3 mScale;
+    };
+
+public:
+    PhysicsFrameAccumulator();
+    ~PhysicsFrameAccumulator();
+    PhysicsFrameAccumulator(const PhysicsFrameAccumulator& Other);
+    PhysicsFrameAccumulator& operator=(const PhysicsFrameAccumulator& Other);
+    PhysicsFrameAccumulator(PhysicsFrameAccumulator&& Other) noexcept;
+    PhysicsFrameAccumulator& operator=(PhysicsFrameAccumulator&& Other) noexcept;
+
+    explicit PhysicsFrameAccumulator(float FixedTimeStep);
+
+public:
+    void Initialize(float FixedTimeStep);
+    void AddDeltaTime(float DeltaTime);
+    bool TryConsumeFixedStep();
+    float GetAccumulatedTime() const;
+    float GetInterpolationAlpha() const;
+
+    void SynchronizeStatePair(const IPhysicsActorRepository& ActorRepository);
+    void CapturePreviousState(const IPhysicsActorRepository& ActorRepository);
+    void CaptureCurrentState(const IPhysicsActorRepository& ActorRepository);
+    bool TryGetInterpolatedState(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
+
+private:
+    void CaptureState(std::vector<ActorState>& OutStates, const IPhysicsActorRepository& ActorRepository) const;
+    bool TryGetActorState(const std::vector<ActorState>& States, const PhysicsActor& Actor, ActorState& OutActorState) const;
+
+private:
+    float mFixedTimeStep;
+    float mAccumulatedTime;
+    std::vector<ActorState> mPreviousStates;
+    std::vector<ActorState> mCurrentStates;
+};
+
 class PhysicsWorld final : public IPhysicsWorldMediator {
 public:
     struct WorldSettings {
@@ -49,9 +92,11 @@ public:
 
     const WorldSettings& GetSettings() const;
     float GetAccumulator() const;
+    float GetInterpolationAlpha() const;
     std::size_t GetLastUpdateStepCount() const;
     double GetLastUpdateStepElapsedMilliseconds() const;
     double GetLastStepElapsedMilliseconds() const;
+    bool TryGetInterpolatedActorTransform(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
 
     void StepSimulation();
     void Update(float DeltaTime);
@@ -71,7 +116,7 @@ private:
 
 private:
     WorldSettings mSettings;
-    float mAccumulator;
+    PhysicsFrameAccumulator mFrameAccumulator;
     std::size_t mLastUpdateStepCount;
     double mLastUpdateStepElapsedMilliseconds;
     double mLastStepElapsedMilliseconds;

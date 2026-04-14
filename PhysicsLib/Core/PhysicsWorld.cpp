@@ -1,5 +1,6 @@
 #include "PhysicsWorld.h"
 
+#include <algorithm>
 #include <chrono>
 #include <utility>
 
@@ -11,9 +12,223 @@
 #include "Logic/PhysicsDynamicCollisionLogic.h"
 #include "Logic/PhysicsDynamicIntegrationLogic.h"
 
+namespace {
+DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vector3& StartValue, const DirectX::SimpleMath::Vector3& EndValue, float Alpha) {
+    DirectX::SimpleMath::Vector3 InterpolatedValue{ StartValue + ((EndValue - StartValue) * Alpha) };
+    return InterpolatedValue;
+}
+
+PhysicsFrameAccumulator::ActorState CreateActorStateFromActor(const PhysicsActor& Actor) {
+    PhysicsFrameAccumulator::ActorState ActorStateValue{ &Actor, Actor.GetActorType(), DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{ 1.0F, 1.0F, 1.0F } };
+    if (Actor.GetActorType() == PhysicsActor::PhysicsActorType::Dynamic) {
+        const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(&Actor) };
+        ActorStateValue.mPosition = DynamicActor->GetPosition();
+        ActorStateValue.mRotation = DynamicActor->GetRotation();
+        ActorStateValue.mScale = DynamicActor->GetScale();
+        return ActorStateValue;
+    }
+
+    if (Actor.GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
+        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(&Actor) };
+        ActorStateValue.mPosition = KinematicActor->GetPosition();
+        ActorStateValue.mRotation = KinematicActor->GetRotation();
+        ActorStateValue.mScale = KinematicActor->GetScale();
+        return ActorStateValue;
+    }
+
+    const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(&Actor) };
+    if (TerrainActor != nullptr) {
+        PhysicsTerrainActor::ActorDesc TerrainActorDesc{ TerrainActor->GetActorDesc() };
+        ActorStateValue.mPosition = TerrainActorDesc.Position;
+        ActorStateValue.mRotation = TerrainActorDesc.Rotation;
+        ActorStateValue.mScale = TerrainActorDesc.Scale;
+    }
+
+    return ActorStateValue;
+}
+}
+
+PhysicsFrameAccumulator::PhysicsFrameAccumulator()
+    : mFixedTimeStep{ 1.0F / 60.0F },
+      mAccumulatedTime{},
+      mPreviousStates{},
+      mCurrentStates{} {
+}
+
+PhysicsFrameAccumulator::~PhysicsFrameAccumulator() {
+}
+
+PhysicsFrameAccumulator::PhysicsFrameAccumulator(const PhysicsFrameAccumulator& Other)
+    : mFixedTimeStep{ Other.mFixedTimeStep },
+      mAccumulatedTime{ Other.mAccumulatedTime },
+      mPreviousStates{ Other.mPreviousStates },
+      mCurrentStates{ Other.mCurrentStates } {
+}
+
+PhysicsFrameAccumulator& PhysicsFrameAccumulator::operator=(const PhysicsFrameAccumulator& Other) {
+    if (this == &Other) {
+        return *this;
+    }
+
+    mFixedTimeStep = Other.mFixedTimeStep;
+    mAccumulatedTime = Other.mAccumulatedTime;
+    mPreviousStates = Other.mPreviousStates;
+    mCurrentStates = Other.mCurrentStates;
+
+    return *this;
+}
+
+PhysicsFrameAccumulator::PhysicsFrameAccumulator(PhysicsFrameAccumulator&& Other) noexcept
+    : mFixedTimeStep{ Other.mFixedTimeStep },
+      mAccumulatedTime{ Other.mAccumulatedTime },
+      mPreviousStates{ std::move(Other.mPreviousStates) },
+      mCurrentStates{ std::move(Other.mCurrentStates) } {
+    Other.mFixedTimeStep = 1.0F / 60.0F;
+    Other.mAccumulatedTime = 0.0F;
+}
+
+PhysicsFrameAccumulator& PhysicsFrameAccumulator::operator=(PhysicsFrameAccumulator&& Other) noexcept {
+    if (this == &Other) {
+        return *this;
+    }
+
+    mFixedTimeStep = Other.mFixedTimeStep;
+    mAccumulatedTime = Other.mAccumulatedTime;
+    mPreviousStates = std::move(Other.mPreviousStates);
+    mCurrentStates = std::move(Other.mCurrentStates);
+
+    Other.mFixedTimeStep = 1.0F / 60.0F;
+    Other.mAccumulatedTime = 0.0F;
+
+    return *this;
+}
+
+PhysicsFrameAccumulator::PhysicsFrameAccumulator(float FixedTimeStep)
+    : mFixedTimeStep{ FixedTimeStep > 0.0F ? FixedTimeStep : (1.0F / 60.0F) },
+      mAccumulatedTime{},
+      mPreviousStates{},
+      mCurrentStates{} {
+}
+
+void PhysicsFrameAccumulator::Initialize(float FixedTimeStep) {
+    mFixedTimeStep = FixedTimeStep > 0.0F ? FixedTimeStep : (1.0F / 60.0F);
+    mAccumulatedTime = 0.0F;
+    mPreviousStates.clear();
+    mCurrentStates.clear();
+}
+
+void PhysicsFrameAccumulator::AddDeltaTime(float DeltaTime) {
+    if (DeltaTime <= 0.0F) {
+        return;
+    }
+
+    mAccumulatedTime += DeltaTime;
+}
+
+bool PhysicsFrameAccumulator::TryConsumeFixedStep() {
+    if (mFixedTimeStep <= 0.0F) {
+        return false;
+    }
+
+    if (mAccumulatedTime < mFixedTimeStep) {
+        return false;
+    }
+
+    mAccumulatedTime -= mFixedTimeStep;
+    return true;
+}
+
+float PhysicsFrameAccumulator::GetAccumulatedTime() const {
+    return mAccumulatedTime;
+}
+
+float PhysicsFrameAccumulator::GetInterpolationAlpha() const {
+    if (mFixedTimeStep <= 0.0F) {
+        return 0.0F;
+    }
+
+    float RawAlpha{ mAccumulatedTime / mFixedTimeStep };
+    float InterpolationAlpha{ std::clamp(RawAlpha, 0.0F, 1.0F) };
+    return InterpolationAlpha;
+}
+
+void PhysicsFrameAccumulator::SynchronizeStatePair(const IPhysicsActorRepository& ActorRepository) {
+    CaptureState(mCurrentStates, ActorRepository);
+    mPreviousStates = mCurrentStates;
+}
+
+void PhysicsFrameAccumulator::CapturePreviousState(const IPhysicsActorRepository& ActorRepository) {
+    CaptureState(mPreviousStates, ActorRepository);
+}
+
+void PhysicsFrameAccumulator::CaptureCurrentState(const IPhysicsActorRepository& ActorRepository) {
+    CaptureState(mCurrentStates, ActorRepository);
+}
+
+bool PhysicsFrameAccumulator::TryGetInterpolatedState(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
+    ActorState PreviousState{};
+    ActorState CurrentState{};
+    bool HasPreviousState{ TryGetActorState(mPreviousStates, Actor, PreviousState) };
+    bool HasCurrentState{ TryGetActorState(mCurrentStates, Actor, CurrentState) };
+    if (!HasPreviousState && !HasCurrentState) {
+        return false;
+    }
+
+    if (!HasPreviousState) {
+        OutPosition = CurrentState.mPosition;
+        OutRotation = CurrentState.mRotation;
+        OutScale = CurrentState.mScale;
+        return true;
+    }
+
+    if (!HasCurrentState) {
+        OutPosition = PreviousState.mPosition;
+        OutRotation = PreviousState.mRotation;
+        OutScale = PreviousState.mScale;
+        return true;
+    }
+
+    float InterpolationAlpha{ GetInterpolationAlpha() };
+    OutPosition = InterpolateVector3(PreviousState.mPosition, CurrentState.mPosition, InterpolationAlpha);
+    OutRotation = InterpolateVector3(PreviousState.mRotation, CurrentState.mRotation, InterpolationAlpha);
+    OutScale = InterpolateVector3(PreviousState.mScale, CurrentState.mScale, InterpolationAlpha);
+    return true;
+}
+
+void PhysicsFrameAccumulator::CaptureState(std::vector<ActorState>& OutStates, const IPhysicsActorRepository& ActorRepository) const {
+    OutStates.clear();
+
+    std::size_t ActorCount{ ActorRepository.GetActorCount() };
+    OutStates.reserve(ActorCount);
+    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
+        const PhysicsActor* ActorPointer{ ActorRepository.GetActor(ActorIndex) };
+        if (ActorPointer == nullptr) {
+            continue;
+        }
+
+        ActorState CapturedState{ CreateActorStateFromActor(*ActorPointer) };
+        OutStates.push_back(CapturedState);
+    }
+}
+
+bool PhysicsFrameAccumulator::TryGetActorState(const std::vector<ActorState>& States, const PhysicsActor& Actor, ActorState& OutActorState) const {
+    std::size_t StateCount{ States.size() };
+    for (std::size_t StateIndex{ 0U }; StateIndex < StateCount; ++StateIndex) {
+        const ActorState& CurrentState{ States[StateIndex] };
+        if (CurrentState.mActorPointer != &Actor) {
+            continue;
+        }
+
+        OutActorState = CurrentState;
+        return true;
+    }
+
+    return false;
+}
+
 PhysicsWorld::PhysicsWorld()
     : mSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } },
-      mAccumulator{},
+      mFrameAccumulator{ 1.0F / 60.0F },
       mLastUpdateStepCount{},
       mLastUpdateStepElapsedMilliseconds{},
       mLastStepElapsedMilliseconds{},
@@ -23,6 +238,7 @@ PhysicsWorld::PhysicsWorld()
       mPublishedEvents{} {
     InitializeDependencies();
     InitializeSimulationLogics();
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
 PhysicsWorld::~PhysicsWorld() {
@@ -30,7 +246,7 @@ PhysicsWorld::~PhysicsWorld() {
 
 PhysicsWorld::PhysicsWorld(const PhysicsWorld& Other)
     : mSettings{ Other.mSettings },
-      mAccumulator{ Other.mAccumulator },
+      mFrameAccumulator{ Other.mSettings.FixedTimeStep },
       mLastUpdateStepCount{ Other.mLastUpdateStepCount },
       mLastUpdateStepElapsedMilliseconds{ Other.mLastUpdateStepElapsedMilliseconds },
       mLastStepElapsedMilliseconds{ Other.mLastStepElapsedMilliseconds },
@@ -40,6 +256,8 @@ PhysicsWorld::PhysicsWorld(const PhysicsWorld& Other)
       mPublishedEvents{} {
     InitializeDependencies();
     InitializeSimulationLogics();
+    mFrameAccumulator.Initialize(mSettings.FixedTimeStep);
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
 PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
@@ -48,7 +266,6 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
     }
 
     mSettings = Other.mSettings;
-    mAccumulator = Other.mAccumulator;
     mLastUpdateStepCount = Other.mLastUpdateStepCount;
     mLastUpdateStepElapsedMilliseconds = Other.mLastUpdateStepElapsedMilliseconds;
     mLastStepElapsedMilliseconds = Other.mLastStepElapsedMilliseconds;
@@ -57,13 +274,15 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
     mPublishedEvents.clear();
     InitializeDependencies();
     InitializeSimulationLogics();
+    mFrameAccumulator.Initialize(mSettings.FixedTimeStep);
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 
     return *this;
 }
 
 PhysicsWorld::PhysicsWorld(PhysicsWorld&& Other) noexcept
     : mSettings{ Other.mSettings },
-      mAccumulator{ Other.mAccumulator },
+      mFrameAccumulator{ std::move(Other.mFrameAccumulator) },
       mLastUpdateStepCount{ Other.mLastUpdateStepCount },
       mLastUpdateStepElapsedMilliseconds{ Other.mLastUpdateStepElapsedMilliseconds },
       mLastStepElapsedMilliseconds{ Other.mLastStepElapsedMilliseconds },
@@ -71,13 +290,18 @@ PhysicsWorld::PhysicsWorld(PhysicsWorld&& Other) noexcept
       mSpatialQuery{ std::move(Other.mSpatialQuery) },
       mSimulationLogics{ std::move(Other.mSimulationLogics) },
       mPublishedEvents{ std::move(Other.mPublishedEvents) } {
+    if (mActorRepository != nullptr) {
+        mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
+    }
+
     Other.mSettings = WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{} };
-    Other.mAccumulator = 0.0F;
     Other.mLastUpdateStepCount = 0U;
     Other.mLastUpdateStepElapsedMilliseconds = 0.0;
     Other.mLastStepElapsedMilliseconds = 0.0;
     Other.InitializeDependencies();
     Other.InitializeSimulationLogics();
+    Other.mFrameAccumulator.Initialize(Other.mSettings.FixedTimeStep);
+    Other.mFrameAccumulator.SynchronizeStatePair(*Other.mActorRepository);
     Other.ClearPublishedEvents();
 }
 
@@ -87,7 +311,7 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
     }
 
     mSettings = Other.mSettings;
-    mAccumulator = Other.mAccumulator;
+    mFrameAccumulator = std::move(Other.mFrameAccumulator);
     mLastUpdateStepCount = Other.mLastUpdateStepCount;
     mLastUpdateStepElapsedMilliseconds = Other.mLastUpdateStepElapsedMilliseconds;
     mLastStepElapsedMilliseconds = Other.mLastStepElapsedMilliseconds;
@@ -95,14 +319,18 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
     mSpatialQuery = std::move(Other.mSpatialQuery);
     mSimulationLogics = std::move(Other.mSimulationLogics);
     mPublishedEvents = std::move(Other.mPublishedEvents);
+    if (mActorRepository != nullptr) {
+        mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
+    }
 
     Other.mSettings = WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{} };
-    Other.mAccumulator = 0.0F;
     Other.mLastUpdateStepCount = 0U;
     Other.mLastUpdateStepElapsedMilliseconds = 0.0;
     Other.mLastStepElapsedMilliseconds = 0.0;
     Other.InitializeDependencies();
     Other.InitializeSimulationLogics();
+    Other.mFrameAccumulator.Initialize(Other.mSettings.FixedTimeStep);
+    Other.mFrameAccumulator.SynchronizeStatePair(*Other.mActorRepository);
     Other.ClearPublishedEvents();
 
     return *this;
@@ -110,7 +338,7 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
 
 PhysicsWorld::PhysicsWorld(const WorldSettings& Settings)
     : mSettings{ Settings },
-      mAccumulator{},
+      mFrameAccumulator{ Settings.FixedTimeStep },
       mLastUpdateStepCount{},
       mLastUpdateStepElapsedMilliseconds{},
       mLastStepElapsedMilliseconds{},
@@ -120,38 +348,50 @@ PhysicsWorld::PhysicsWorld(const WorldSettings& Settings)
       mPublishedEvents{} {
     InitializeDependencies();
     InitializeSimulationLogics();
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
 void PhysicsWorld::Initialize(const WorldSettings& Settings) {
     mSettings = Settings;
-    mAccumulator = 0.0F;
+    mFrameAccumulator.Initialize(mSettings.FixedTimeStep);
     mLastUpdateStepCount = 0U;
     mLastUpdateStepElapsedMilliseconds = 0.0;
     mLastStepElapsedMilliseconds = 0.0;
     if (mActorRepository != nullptr) {
         mActorRepository->ClearActors();
     }
+    if (mActorRepository != nullptr) {
+        mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
+    }
     ClearPublishedEvents();
 }
 
 PhysicsDynamicActor* PhysicsWorld::CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc) {
-    return mActorRepository->CreateDynamicActor(Desc);
+    PhysicsDynamicActor* CreatedActor{ mActorRepository->CreateDynamicActor(Desc) };
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
+    return CreatedActor;
 }
 
 PhysicsKinematicActor* PhysicsWorld::CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc) {
-    return mActorRepository->CreateKinematicActor(Desc);
+    PhysicsKinematicActor* CreatedActor{ mActorRepository->CreateKinematicActor(Desc) };
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
+    return CreatedActor;
 }
 
 PhysicsTerrainActor* PhysicsWorld::CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc) {
-    return mActorRepository->CreateTerrainActor(Desc);
+    PhysicsTerrainActor* CreatedActor{ mActorRepository->CreateTerrainActor(Desc) };
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
+    return CreatedActor;
 }
 
 void PhysicsWorld::AddActor(std::unique_ptr<PhysicsActor> Actor) {
     mActorRepository->AddActor(std::move(Actor));
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
 void PhysicsWorld::ClearActors() {
     mActorRepository->ClearActors();
+    mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
 PhysicsActor* PhysicsWorld::GetActor(std::size_t Index) {
@@ -172,7 +412,11 @@ const PhysicsWorld::WorldSettings& PhysicsWorld::GetSettings() const {
 }
 
 float PhysicsWorld::GetAccumulator() const {
-    return mAccumulator;
+    return mFrameAccumulator.GetAccumulatedTime();
+}
+
+float PhysicsWorld::GetInterpolationAlpha() const {
+    return mFrameAccumulator.GetInterpolationAlpha();
 }
 
 std::size_t PhysicsWorld::GetLastUpdateStepCount() const {
@@ -185,6 +429,11 @@ double PhysicsWorld::GetLastUpdateStepElapsedMilliseconds() const {
 
 double PhysicsWorld::GetLastStepElapsedMilliseconds() const {
     return mLastStepElapsedMilliseconds;
+}
+
+bool PhysicsWorld::TryGetInterpolatedActorTransform(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
+    bool HasInterpolatedState{ mFrameAccumulator.TryGetInterpolatedState(Actor, OutPosition, OutRotation, OutScale) };
+    return HasInterpolatedState;
 }
 
 void PhysicsWorld::StepSimulation() {
@@ -205,17 +454,18 @@ void PhysicsWorld::Update(float DeltaTime) {
     mLastUpdateStepCount = 0U;
     mLastUpdateStepElapsedMilliseconds = 0.0;
     mLastStepElapsedMilliseconds = 0.0;
-    mAccumulator += DeltaTime;
+    mFrameAccumulator.AddDeltaTime(DeltaTime);
 
-    while (mAccumulator >= mSettings.FixedTimeStep) {
+    while (mFrameAccumulator.TryConsumeFixedStep()) {
+        mFrameAccumulator.CapturePreviousState(*mActorRepository);
         std::chrono::steady_clock::time_point StepStartTime{ std::chrono::steady_clock::now() };
         StepSimulation();
         std::chrono::steady_clock::time_point StepEndTime{ std::chrono::steady_clock::now() };
+        mFrameAccumulator.CaptureCurrentState(*mActorRepository);
         std::chrono::duration<double, std::milli> StepElapsedTime{ StepEndTime - StepStartTime };
         mLastUpdateStepElapsedMilliseconds += StepElapsedTime.count();
         mLastStepElapsedMilliseconds = StepElapsedTime.count();
         ++mLastUpdateStepCount;
-        mAccumulator -= mSettings.FixedTimeStep;
     }
 }
 

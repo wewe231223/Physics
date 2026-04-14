@@ -203,7 +203,25 @@ void Scene::UpdatePhysics(float DeltaTime) {
 
     std::size_t GameObjectCount{ mGameObjects.size() };
     for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
-        mGameObjects[ObjectIndex].PullTransformFromPhysicsActor();
+        GameObject& CurrentObject{ mGameObjects[ObjectIndex] };
+        PhysicsActor* PhysicsActorPointer{ CurrentObject.GetPhysicsActor() };
+        if (PhysicsActorPointer == nullptr) {
+            continue;
+        }
+
+        DirectX::SimpleMath::Vector3 InterpolatedPosition{};
+        DirectX::SimpleMath::Vector3 InterpolatedRotation{};
+        DirectX::SimpleMath::Vector3 InterpolatedScale{};
+        bool HasInterpolatedState{ mPhysicsWorld.TryGetInterpolatedActorTransform(*PhysicsActorPointer, InterpolatedPosition, InterpolatedRotation, InterpolatedScale) };
+        if (!HasInterpolatedState) {
+            CurrentObject.PullTransformFromPhysicsActor();
+            continue;
+        }
+
+        CurrentObject.GetTransform().SetPosition(glm::vec3{ InterpolatedPosition.x, InterpolatedPosition.y, InterpolatedPosition.z });
+        CurrentObject.GetTransform().SetRotation(glm::vec3{ InterpolatedRotation.x, InterpolatedRotation.y, InterpolatedRotation.z });
+        CurrentObject.GetTransform().SetScale(glm::vec3{ InterpolatedScale.x, InterpolatedScale.y, InterpolatedScale.z });
+        CurrentObject.UpdateBoundingBoxWorldMatrix();
     }
 }
 
