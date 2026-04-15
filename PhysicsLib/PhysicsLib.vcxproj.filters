@@ -4,6 +4,18 @@
     <Filter Include="Actors">
       <UniqueIdentifier>{6ab48a1d-74d6-4e41-88bb-16f02dabc751}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Actors\CollisionSolver">
+      <UniqueIdentifier>{a5d3e433-c9bb-42ca-b181-0f5eb5b0f8de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Actors\ConstraintSolver">
+      <UniqueIdentifier>{162ec0bc-f2f0-4f9d-acb7-d3fbcabc4a70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Actors\Integrater">
+      <UniqueIdentifier>{6fddf693-2864-4f48-b0f3-30dab4f08ce0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Actors\SolverType">
+      <UniqueIdentifier>{8f7fdd08-b4a0-4f49-a7e5-6c08ad8f13ef}</UniqueIdentifier>
+    </Filter>
     <Filter Include="World">
       <UniqueIdentifier>{f5df2b73-99b8-44de-a26e-47efec3f70df}</UniqueIdentifier>
     </Filter>
@@ -27,7 +39,28 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Actors\PhysicsActor.cpp">
+    <ClCompile Include="Actors\CollisionSolver\PhysicsDynamicCollisionSolver.cpp">
+      <Filter>Actors\CollisionSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\CollisionSolver\PhysicsKinematicCollisionSolver.cpp">
+      <Filter>Actors\CollisionSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\CollisionSolver\PhysicsStaticCollisionSolver.cpp">
+      <Filter>Actors\CollisionSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\ConstraintSolver\PhysicsNoConstraintSolver.cpp">
+      <Filter>Actors\ConstraintSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\Integrater\PhysicsDynamicIntegrater.cpp">
+      <Filter>Actors\Integrater</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\Integrater\PhysicsKinematicIntegrater.cpp">
+      <Filter>Actors\Integrater</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\Integrater\PhysicsStaticIntegrater.cpp">
+      <Filter>Actors\Integrater</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\PhysicsActorBase.cpp">
       <Filter>Actors</Filter>
     </ClCompile>
     <ClCompile Include="Actors\PhysicsDynamicActor.cpp">
@@ -41,6 +74,9 @@
     </ClCompile>
     <ClCompile Include="Actors\PhysicsTerrainActor.cpp">
       <Filter>Actors</Filter>
+    </ClCompile>
+    <ClCompile Include="Actors\SolverType\PhysicsSolverType.cpp">
+      <Filter>Actors\SolverType</Filter>
     </ClCompile>
     <ClCompile Include="Simulation\Mediator\IPhysicsWorldMediator.cpp">
       <Filter>Simulation\Mediator</Filter>
@@ -62,7 +98,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Actors\CollisionSolver\PhysicsDynamicCollisionSolver.h">
+      <Filter>Actors\CollisionSolver</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\CollisionSolver\PhysicsKinematicCollisionSolver.h">
+      <Filter>Actors\CollisionSolver</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\CollisionSolver\PhysicsStaticCollisionSolver.h">
+      <Filter>Actors\CollisionSolver</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\ConstraintSolver\PhysicsNoConstraintSolver.h">
+      <Filter>Actors\ConstraintSolver</Filter>
+    </ClInclude>
     <ClInclude Include="Actors\PhysicsActor.h">
+      <Filter>Actors</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\PhysicsActorBase.h">
       <Filter>Actors</Filter>
     </ClInclude>
     <ClInclude Include="Actors\PhysicsDynamicActor.h">
@@ -76,6 +127,21 @@
     </ClInclude>
     <ClInclude Include="Actors\PhysicsTerrainActor.h">
       <Filter>Actors</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\Integrater\PhysicsDynamicIntegrater.h">
+      <Filter>Actors\Integrater</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\Integrater\PhysicsKinematicIntegrater.h">
+      <Filter>Actors\Integrater</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\Integrater\PhysicsStaticIntegrater.h">
+      <Filter>Actors\Integrater</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\SolverType\PhysicsActorSolverType.h">
+      <Filter>Actors\SolverType</Filter>
+    </ClInclude>
+    <ClInclude Include="Actors\SolverType\PhysicsSolverType.h">
+      <Filter>Actors\SolverType</Filter>
     </ClInclude>
     <ClInclude Include="Container\SpscRingQueue.h">
       <Filter>Container</Filter>
