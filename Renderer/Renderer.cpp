@@ -24,7 +24,8 @@ Renderer::Renderer()
       mIsInitialized{},
       mShaderProgram{},
       mWasKey1Pressed{},
-      mWasKey2Pressed{} {
+      mWasKey2Pressed{},
+      mWasKey3Pressed{} {
 }
 
 Renderer::~Renderer() {
@@ -39,7 +40,8 @@ Renderer::Renderer(const Renderer& Other)
       mIsInitialized{},
       mShaderProgram{},
       mWasKey1Pressed{ Other.mWasKey1Pressed },
-      mWasKey2Pressed{ Other.mWasKey2Pressed } {
+      mWasKey2Pressed{ Other.mWasKey2Pressed },
+      mWasKey3Pressed{ Other.mWasKey3Pressed } {
 }
 
 Renderer& Renderer::operator=(const Renderer& Other) {
@@ -57,6 +59,7 @@ Renderer& Renderer::operator=(const Renderer& Other) {
     mShaderProgram = 0U;
     mWasKey1Pressed = Other.mWasKey1Pressed;
     mWasKey2Pressed = Other.mWasKey2Pressed;
+    mWasKey3Pressed = Other.mWasKey3Pressed;
 
     return *this;
 }
@@ -69,7 +72,8 @@ Renderer::Renderer(Renderer&& Other) noexcept
       mIsInitialized{ Other.mIsInitialized },
       mShaderProgram{ Other.mShaderProgram },
       mWasKey1Pressed{ Other.mWasKey1Pressed },
-      mWasKey2Pressed{ Other.mWasKey2Pressed } {
+      mWasKey2Pressed{ Other.mWasKey2Pressed },
+      mWasKey3Pressed{ Other.mWasKey3Pressed } {
     Other.mWindow = nullptr;
     Other.mWidth = 0;
     Other.mHeight = 0;
@@ -78,6 +82,7 @@ Renderer::Renderer(Renderer&& Other) noexcept
     Other.mShaderProgram = 0U;
     Other.mWasKey1Pressed = false;
     Other.mWasKey2Pressed = false;
+    Other.mWasKey3Pressed = false;
 }
 
 Renderer& Renderer::operator=(Renderer&& Other) noexcept {
@@ -95,6 +100,7 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     mShaderProgram = Other.mShaderProgram;
     mWasKey1Pressed = Other.mWasKey1Pressed;
     mWasKey2Pressed = Other.mWasKey2Pressed;
+    mWasKey3Pressed = Other.mWasKey3Pressed;
 
     Other.mWindow = nullptr;
     Other.mWidth = 0;
@@ -104,6 +110,7 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     Other.mShaderProgram = 0U;
     Other.mWasKey1Pressed = false;
     Other.mWasKey2Pressed = false;
+    Other.mWasKey3Pressed = false;
 
     return *this;
 }
@@ -162,6 +169,7 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
 
     bool IsKey1Pressed{ glfwGetKey(mWindow, GLFW_KEY_1) == GLFW_PRESS };
     bool IsKey2Pressed{ glfwGetKey(mWindow, GLFW_KEY_2) == GLFW_PRESS };
+    bool IsKey3Pressed{ glfwGetKey(mWindow, GLFW_KEY_3) == GLFW_PRESS };
 
     if (IsKey1Pressed && !mWasKey1Pressed) {
         ActiveSceneIndex = 0U;
@@ -173,8 +181,14 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
         ShouldRestartActiveScene = true;
     }
 
+    else if (IsKey3Pressed && !mWasKey3Pressed) {
+        ActiveSceneIndex = 2U;
+        ShouldRestartActiveScene = true;
+    }
+
     mWasKey1Pressed = IsKey1Pressed;
     mWasKey2Pressed = IsKey2Pressed;
+    mWasKey3Pressed = IsKey3Pressed;
 
     if (ShouldRestartActiveScene) {
         return;

@@ -45,4 +45,5 @@ private:
     unsigned int mShaderProgram;
     bool mWasKey1Pressed;
     bool mWasKey2Pressed;
+    bool mWasKey3Pressed;
 };

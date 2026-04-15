@@ -29,7 +29,6 @@ namespace {
             Bounds.mMinimum.x = std::min(Bounds.mMinimum.x, Corners[CornerIndex].x);
             Bounds.mMinimum.y = std::min(Bounds.mMinimum.y, Corners[CornerIndex].y);
             Bounds.mMinimum.z = std::min(Bounds.mMinimum.z, Corners[CornerIndex].z);
-
             Bounds.mMaximum.x = std::max(Bounds.mMaximum.x, Corners[CornerIndex].x);
             Bounds.mMaximum.y = std::max(Bounds.mMaximum.y, Corners[CornerIndex].y);
             Bounds.mMaximum.z = std::max(Bounds.mMaximum.z, Corners[CornerIndex].z);

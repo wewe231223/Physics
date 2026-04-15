@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -84,6 +85,8 @@ public:
 public:
     bool ResolveCollision(PhysicsActorBase& SelfActor, PhysicsActorBase& OtherActor, float DeltaTime) const override;
     bool ResolveDynamicCollision(const PhysicsActorBase& SelfActor, PhysicsActorBase& DynamicActor, float DeltaTime) const override;
+    static void BeginFrame(std::size_t PairCandidateCount);
+    static void EndFrame();
 };
 
 class PhysicsStaticCollisionSolver final : public IPhysicsCollisionSolver {

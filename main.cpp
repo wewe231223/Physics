@@ -322,6 +322,81 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
     TargetScene.BuildPhysicsActors();
     TargetScene.ConfigureBoundingBoxes(BoundingBoxMesh);
 }
+
+void ConfigureSceneThree(Scene& TargetScene, const std::shared_ptr<Mesh>& BoundingBoxMesh) {
+    Camera& MainCamera{ TargetScene.GetMainCamera() };
+    MainCamera.SetClearColor(0.07F, 0.10F, 0.14F, 1.0F);
+    MainCamera.GetTransform().SetPosition(glm::vec3{ -8.0F, 9.0F, 26.0F });
+    MainCamera.GetTransform().SetRotation(glm::vec3{ -0.30F, -0.52F, 0.0F });
+
+    std::shared_ptr<Mesh> FlatTerrainMesh{ CreateFlatTerrainMeshShared(30.0F, 96U, 96U) };
+    GameObject FlatTerrainObject{ "FlatTerrainScenarioThree" };
+    FlatTerrainObject.SetMesh(FlatTerrainMesh);
+    FlatTerrainObject.GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
+    TargetScene.AddGameObject(std::move(FlatTerrainObject));
+
+    for (std::size_t LayerIndex{ 0U }; LayerIndex < 4U; ++LayerIndex) {
+        for (std::size_t ColumnIndex{ 0U }; ColumnIndex < 6U; ++ColumnIndex) {
+            std::string ObjectName{ "ObliqueStackCube_" + std::to_string(LayerIndex) + "_" + std::to_string(ColumnIndex) };
+            std::size_t CreatedObjectIndex{ TargetScene.CreatePrimitiveGameObject(std::move(ObjectName), PrimitiveMeshType::Cube) };
+            GameObject* CreatedObject{ TargetScene.GetGameObject(CreatedObjectIndex) };
+            if (CreatedObject == nullptr) {
+                continue;
+            }
+
+            float PositionX{ 4.0F + static_cast<float>(ColumnIndex) * 1.45F };
+            float PositionY{ 0.45F + static_cast<float>(LayerIndex) * 0.95F };
+            float PositionZ{ -3.8F + static_cast<float>(ColumnIndex % 3U) * 1.45F };
+            float RotationY{ ((LayerIndex + ColumnIndex) % 2U == 0U) ? 0.72F : -0.72F };
+            float RotationZ{ ((LayerIndex + ColumnIndex) % 2U == 0U) ? 0.17F : -0.17F };
+            CreatedObject->GetTransform().SetPosition(glm::vec3{ PositionX, PositionY, PositionZ });
+            CreatedObject->GetTransform().SetRotation(glm::vec3{ 0.0F, RotationY, RotationZ });
+            CreatedObject->GetTransform().SetScale(glm::vec3{ 1.35F, 0.82F, 0.72F });
+        }
+    }
+
+    std::size_t LeftGateIndex{ TargetScene.CreatePrimitiveGameObject("ObliqueGateLeft", PrimitiveMeshType::Cube) };
+    GameObject* LeftGateObject{ TargetScene.GetGameObject(LeftGateIndex) };
+    if (LeftGateObject != nullptr) {
+        LeftGateObject->GetTransform().SetPosition(glm::vec3{ 12.4F, 1.35F, -1.8F });
+        LeftGateObject->GetTransform().SetRotation(glm::vec3{ 0.0F, 0.96F, 0.24F });
+        LeftGateObject->GetTransform().SetScale(glm::vec3{ 0.45F, 2.6F, 5.8F });
+    }
+
+    std::size_t RightGateIndex{ TargetScene.CreatePrimitiveGameObject("ObliqueGateRight", PrimitiveMeshType::Cube) };
+    GameObject* RightGateObject{ TargetScene.GetGameObject(RightGateIndex) };
+    if (RightGateObject != nullptr) {
+        RightGateObject->GetTransform().SetPosition(glm::vec3{ 14.2F, 1.35F, 3.8F });
+        RightGateObject->GetTransform().SetRotation(glm::vec3{ 0.0F, -0.94F, -0.24F });
+        RightGateObject->GetTransform().SetScale(glm::vec3{ 0.45F, 2.6F, 5.8F });
+    }
+
+    std::size_t ProjectileCubeIndex{ TargetScene.CreatePrimitiveGameObject("ObliqueProjectileCube", PrimitiveMeshType::Cube) };
+    GameObject* ProjectileCubeObject{ TargetScene.GetGameObject(ProjectileCubeIndex) };
+    if (ProjectileCubeObject != nullptr) {
+        ProjectileCubeObject->GetTransform().SetPosition(glm::vec3{ -18.0F, 1.25F, -1.0F });
+        ProjectileCubeObject->GetTransform().SetRotation(glm::vec3{ 0.0F, 0.42F, 0.21F });
+        ProjectileCubeObject->GetTransform().SetScale(glm::vec3{ 1.9F, 1.0F, 0.95F });
+        ProjectileCubeObject->SetPhysicsMass(14.0F);
+        DirectX::SimpleMath::Vector3 LaunchDirection{ 1.0F, 0.03F, 0.16F };
+        LaunchDirection.Normalize();
+        ProjectileCubeObject->SetInitialImpulse(LaunchDirection * 930.0F);
+    }
+
+    std::size_t ProjectileSphereIndex{ TargetScene.CreatePrimitiveGameObject("ObliqueProjectileSphere", PrimitiveMeshType::Sphere) };
+    GameObject* ProjectileSphereObject{ TargetScene.GetGameObject(ProjectileSphereIndex) };
+    if (ProjectileSphereObject != nullptr) {
+        ProjectileSphereObject->GetTransform().SetPosition(glm::vec3{ -11.0F, 7.0F, -8.0F });
+        ProjectileSphereObject->GetTransform().SetScale(glm::vec3{ 1.35F, 1.35F, 1.35F });
+        ProjectileSphereObject->SetPhysicsMass(6.0F);
+        DirectX::SimpleMath::Vector3 LaunchDirection{ 0.95F, -0.12F, 0.30F };
+        LaunchDirection.Normalize();
+        ProjectileSphereObject->SetInitialImpulse(LaunchDirection * 460.0F);
+    }
+
+    TargetScene.BuildPhysicsActors();
+    TargetScene.ConfigureBoundingBoxes(BoundingBoxMesh);
+}
 }
 
 int main() {
@@ -332,11 +407,13 @@ int main() {
     PhysicsWorld::WorldSettings WorldSettings{ CreateDefaultWorldSettings() };
     std::shared_ptr<Mesh> BoundingBoxMesh{ CreateBoundingBoxMeshShared() };
     std::vector<Scene> SceneTemplates{};
-    SceneTemplates.reserve(2U);
+    SceneTemplates.reserve(3U);
+    SceneTemplates.emplace_back();
     SceneTemplates.emplace_back();
     SceneTemplates.emplace_back();
     ConfigureSceneOne(SceneTemplates[0U], BoundingBoxMesh);
     ConfigureSceneTwo(SceneTemplates[1U], BoundingBoxMesh);
+    ConfigureSceneThree(SceneTemplates[2U], BoundingBoxMesh);
 
     std::vector<Scene> RenderScenes{ SceneTemplates };
 
@@ -381,8 +458,10 @@ int main() {
 
         bool ShouldSendResetCommand{ ShouldRestartActiveScene || InputSceneIndex != DisplayedSceneIndex };
         if (ShouldSendResetCommand) {
+            Camera PreservedCamera{ RenderScenes[DisplayedSceneIndex].GetMainCamera() };
             if (InputSceneIndex < RenderScenes.size()) {
                 RenderScenes[InputSceneIndex] = SceneTemplates[InputSceneIndex];
+                RenderScenes[InputSceneIndex].GetMainCamera() = PreservedCamera;
             }
 
             ++CurrentWorldVersion;

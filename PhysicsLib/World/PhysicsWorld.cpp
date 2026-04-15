@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <utility>
 
 #include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
@@ -47,9 +48,68 @@ bool ResolveDynamicCollisionPair(IPhysicsWorldMediator& WorldMediator, PhysicsDy
     return HasCollision;
 }
 
-void ResolveDynamicCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicCollisionPairCandidate>& PairCandidates, float DeltaTime) {
+std::uintptr_t GetActorPointerValue(const PhysicsDynamicActor* Actor) {
+    std::uintptr_t PointerValue{ reinterpret_cast<std::uintptr_t>(Actor) };
+    return PointerValue;
+}
+
+void SortAndDeduplicatePairCandidates(std::vector<PhysicsDynamicCollisionPairCandidate>& PairCandidates) {
+    std::sort(PairCandidates.begin(), PairCandidates.end(), [](const PhysicsDynamicCollisionPairCandidate& LeftPair, const PhysicsDynamicCollisionPairCandidate& RightPair) {
+        std::uintptr_t LeftFirstPointer{ GetActorPointerValue(LeftPair.mFirstActor) };
+        std::uintptr_t LeftSecondPointer{ GetActorPointerValue(LeftPair.mSecondActor) };
+        if (LeftFirstPointer > LeftSecondPointer) {
+            std::swap(LeftFirstPointer, LeftSecondPointer);
+        }
+
+        std::uintptr_t RightFirstPointer{ GetActorPointerValue(RightPair.mFirstActor) };
+        std::uintptr_t RightSecondPointer{ GetActorPointerValue(RightPair.mSecondActor) };
+        if (RightFirstPointer > RightSecondPointer) {
+            std::swap(RightFirstPointer, RightSecondPointer);
+        }
+
+        if (LeftFirstPointer == RightFirstPointer) {
+            return LeftSecondPointer < RightSecondPointer;
+        }
+
+        return LeftFirstPointer < RightFirstPointer;
+    });
+
+    std::size_t WriteIndex{};
+    for (std::size_t ReadIndex{ 0U }; ReadIndex < PairCandidates.size(); ++ReadIndex) {
+        PhysicsDynamicActor* FirstActor{ PairCandidates[ReadIndex].mFirstActor };
+        PhysicsDynamicActor* SecondActor{ PairCandidates[ReadIndex].mSecondActor };
+        if (FirstActor == nullptr || SecondActor == nullptr || FirstActor == SecondActor) {
+            continue;
+        }
+
+        std::uintptr_t FirstPointer{ GetActorPointerValue(FirstActor) };
+        std::uintptr_t SecondPointer{ GetActorPointerValue(SecondActor) };
+        if (FirstPointer > SecondPointer) {
+            std::swap(FirstPointer, SecondPointer);
+            std::swap(FirstActor, SecondActor);
+        }
+
+        if (WriteIndex > 0U) {
+            std::uintptr_t PreviousFirstPointer{ GetActorPointerValue(PairCandidates[WriteIndex - 1U].mFirstActor) };
+            std::uintptr_t PreviousSecondPointer{ GetActorPointerValue(PairCandidates[WriteIndex - 1U].mSecondActor) };
+            if (PreviousFirstPointer == FirstPointer && PreviousSecondPointer == SecondPointer) {
+                continue;
+            }
+        }
+
+        PairCandidates[WriteIndex] = PhysicsDynamicCollisionPairCandidate{ FirstActor, SecondActor };
+        ++WriteIndex;
+    }
+
+    PairCandidates.resize(WriteIndex);
+}
+
+void ResolveDynamicCollisions(IPhysicsWorldMediator& WorldMediator, std::vector<PhysicsDynamicCollisionPairCandidate>& PairCandidates, float DeltaTime) {
+    PhysicsDynamicCollisionSolver::BeginFrame(PairCandidates.size());
+    SortAndDeduplicatePairCandidates(PairCandidates);
     std::size_t PairCandidateCount{ PairCandidates.size() };
     if (PairCandidateCount == 0U) {
+        PhysicsDynamicCollisionSolver::EndFrame();
         return;
     }
 
@@ -90,6 +150,8 @@ void ResolveDynamicCollisions(IPhysicsWorldMediator& WorldMediator, const std::v
             break;
         }
     }
+
+    PhysicsDynamicCollisionSolver::EndFrame();
 }
 
 void ResolveStaticCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicActor*>& DynamicActors, const std::vector<const PhysicsStaticActor*>& StaticActors, float DeltaTime) {

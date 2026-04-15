@@ -1,7 +1,10 @@
-﻿#include <algorithm>
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cmath>
 #include <limits>
+#include <unordered_map>
 #include <utility>
 
 #include "PhysicsLib/Actors/PhysicsActor.h"
@@ -10,50 +13,15 @@
 #undef max
 #undef min
 
+#include "PhysicsLib/Actors/PhysicsDynamicCollisionInternal.inl"
+
 namespace {
-    struct AxisAlignedBounds {
-        DirectX::SimpleMath::Vector3 Minimum;
-        DirectX::SimpleMath::Vector3 Maximum;
-    };
-
-    constexpr float DynamicCollisionSeparationBias{ 0.001F };
-
     DirectX::BoundingOrientedBox MakeDefaultBoundingOrientedBox() {
         DirectX::BoundingOrientedBox BoundingBoxValue{};
         BoundingBoxValue.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
         BoundingBoxValue.Extents = DirectX::XMFLOAT3{ 0.5F, 0.5F, 0.5F };
         BoundingBoxValue.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
         return BoundingBoxValue;
-    }
-
-    AxisAlignedBounds MakeAxisAlignedBounds(const DirectX::BoundingOrientedBox& BoundingBox) {
-        DirectX::XMFLOAT3 Corners[8]{};
-        BoundingBox.GetCorners(Corners);
-
-        AxisAlignedBounds Bounds{};
-        Bounds.Minimum = DirectX::SimpleMath::Vector3{ Corners[0].x, Corners[0].y, Corners[0].z };
-        Bounds.Maximum = Bounds.Minimum;
-
-        for (std::size_t CornerIndex{ 1U }; CornerIndex < 8U; ++CornerIndex) {
-            Bounds.Minimum.x = std::min(Bounds.Minimum.x, Corners[CornerIndex].x);
-            Bounds.Minimum.y = std::min(Bounds.Minimum.y, Corners[CornerIndex].y);
-            Bounds.Minimum.z = std::min(Bounds.Minimum.z, Corners[CornerIndex].z);
-            Bounds.Maximum.x = std::max(Bounds.Maximum.x, Corners[CornerIndex].x);
-            Bounds.Maximum.y = std::max(Bounds.Maximum.y, Corners[CornerIndex].y);
-            Bounds.Maximum.z = std::max(Bounds.Maximum.z, Corners[CornerIndex].z);
-        }
-
-        return Bounds;
-    }
-
-    DirectX::SimpleMath::Vector3 CalculateBoundsCenter(const AxisAlignedBounds& Bounds) {
-        DirectX::SimpleMath::Vector3 Center{ (Bounds.Minimum + Bounds.Maximum) * 0.5F };
-        return Center;
-    }
-
-    DirectX::SimpleMath::Vector3 CalculateBoundsHalfExtent(const AxisAlignedBounds& Bounds) {
-        DirectX::SimpleMath::Vector3 HalfExtent{ (Bounds.Maximum - Bounds.Minimum) * 0.5F };
-        return HalfExtent;
     }
 }
 
@@ -199,9 +167,15 @@ PhysicsDynamicCollisionSolver& PhysicsDynamicCollisionSolver::operator=(PhysicsD
     return *this;
 }
 
-bool PhysicsDynamicCollisionSolver::ResolveCollision(PhysicsActorBase& SelfActor, PhysicsActorBase& OtherActor, float DeltaTime) const {
-    (void)DeltaTime;
+void PhysicsDynamicCollisionSolver::BeginFrame(std::size_t PairCandidateCount) {
+    BeginDynamicCollisionPairCacheFrame(PairCandidateCount);
+}
 
+void PhysicsDynamicCollisionSolver::EndFrame() {
+    EndDynamicCollisionPairCacheFrame();
+}
+
+bool PhysicsDynamicCollisionSolver::ResolveCollision(PhysicsActorBase& SelfActor, PhysicsActorBase& OtherActor, float DeltaTime) const {
     if (SelfActor.GetActorType() != PhysicsActorBase::PhysicsActorType::Dynamic || OtherActor.GetActorType() != PhysicsActorBase::PhysicsActorType::Dynamic) {
         return false;
     }
@@ -210,9 +184,7 @@ bool PhysicsDynamicCollisionSolver::ResolveCollision(PhysicsActorBase& SelfActor
         return false;
     }
 
-    float SelfInverseMass{ SelfActor.GetInverseMass() };
-    float OtherInverseMass{ OtherActor.GetInverseMass() };
-    if (SelfInverseMass <= 0.0F || OtherInverseMass <= 0.0F) {
+    if (SelfActor.GetInverseMass() <= 0.0F || OtherActor.GetInverseMass() <= 0.0F) {
         return false;
     }
 
@@ -222,79 +194,69 @@ bool PhysicsDynamicCollisionSolver::ResolveCollision(PhysicsActorBase& SelfActor
         return false;
     }
 
-    AxisAlignedBounds SelfAabb{ MakeAxisAlignedBounds(SelfBounds) };
-    AxisAlignedBounds OtherAabb{ MakeAxisAlignedBounds(OtherBounds) };
-    DirectX::SimpleMath::Vector3 SelfCenter{ CalculateBoundsCenter(SelfAabb) };
-    DirectX::SimpleMath::Vector3 OtherCenter{ CalculateBoundsCenter(OtherAabb) };
-    DirectX::SimpleMath::Vector3 SelfHalfExtent{ CalculateBoundsHalfExtent(SelfAabb) };
-    DirectX::SimpleMath::Vector3 OtherHalfExtent{ CalculateBoundsHalfExtent(OtherAabb) };
-    DirectX::SimpleMath::Vector3 DeltaCenter{ OtherCenter - SelfCenter };
+    DynamicObb SelfObb{ CreateDynamicObb(SelfBounds) };
+    DynamicObb OtherObb{ CreateDynamicObb(OtherBounds) };
+    DynamicPairCacheKey PairCacheKey{ CreateDynamicPairCacheKey(SelfActor, OtherActor) };
+    auto CacheIterator{ DynamicPersistentPairCache.find(PairCacheKey) };
+    bool HasPersistentCache{ CacheIterator != DynamicPersistentPairCache.end() };
+    bool HasPreviousFramePersistentCache{ HasPersistentCache && (CacheIterator->second.mLastFrameIndex + 1U == DynamicPersistentPairCacheFrameIndex) };
+    if (CacheIterator != DynamicPersistentPairCache.end()) {
+        DirectX::SimpleMath::Vector3 CachedAxis{};
+        if (TryGetAxisFromPersistentCache(CacheIterator->second, SelfObb, OtherObb, CachedAxis)) {
+            float CachedAxisOverlap{ CalculateAxisOverlap(SelfObb, OtherObb, CachedAxis) };
+            if (CachedAxisOverlap <= 0.0F) {
+                DynamicPersistentPairCache.erase(CacheIterator);
+                return false;
+            }
+        }
+    }
 
-    float OverlapX{ (SelfHalfExtent.x + OtherHalfExtent.x) - std::abs(DeltaCenter.x) };
-    float OverlapY{ (SelfHalfExtent.y + OtherHalfExtent.y) - std::abs(DeltaCenter.y) };
-    float OverlapZ{ (SelfHalfExtent.z + OtherHalfExtent.z) - std::abs(DeltaCenter.z) };
-    if (OverlapX <= 0.0F || OverlapY <= 0.0F || OverlapZ <= 0.0F) {
+    DynamicContactManifold ContactManifold{};
+    bool HasBuiltManifoldFromCache{};
+    if (HasPreviousFramePersistentCache) {
+        HasBuiltManifoldFromCache = TryBuildContactManifoldFromPersistentCache(CacheIterator->second, SelfObb, OtherObb, ContactManifold);
+    }
+
+    if (!HasBuiltManifoldFromCache) {
+        DynamicSatResult SatResult{};
+        if (!ComputeObbSatResult(SelfObb, OtherObb, SatResult)) {
+            if (CacheIterator != DynamicPersistentPairCache.end()) {
+                DynamicPersistentPairCache.erase(CacheIterator);
+            }
+
+            return false;
+        }
+
+        if (!BuildContactManifoldFromSatResult(SelfObb, OtherObb, SatResult, ContactManifold)) {
+            if (CacheIterator != DynamicPersistentPairCache.end()) {
+                DynamicPersistentPairCache.erase(CacheIterator);
+            }
+
+            return false;
+        }
+
+        if (HasPreviousFramePersistentCache) {
+            SeedManifoldWithPersistentCache(CacheIterator->second, ContactManifold, true);
+        }
+    }
+
+    if (ContactManifold.mContactCount == 0U) {
+        if (CacheIterator != DynamicPersistentPairCache.end()) {
+            DynamicPersistentPairCache.erase(CacheIterator);
+        }
+
         return false;
     }
 
-    float PenetrationDepth{ OverlapX };
-    DirectX::SimpleMath::Vector3 CollisionNormal{ DeltaCenter.x >= 0.0F ? 1.0F : -1.0F, 0.0F, 0.0F };
-    if (OverlapY < PenetrationDepth) {
-        PenetrationDepth = OverlapY;
-        CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, DeltaCenter.y >= 0.0F ? 1.0F : -1.0F, 0.0F };
-    }
+    SolveContactManifoldWithPgs(ContactManifold, SelfActor, OtherActor, DeltaTime);
+    ApplyPositionCorrectionFromManifold(ContactManifold, SelfActor, OtherActor);
+    SelfActor.SetIsSleeping(false);
+    OtherActor.SetIsSleeping(false);
 
-    if (OverlapZ < PenetrationDepth) {
-        PenetrationDepth = OverlapZ;
-        CollisionNormal = DirectX::SimpleMath::Vector3{ 0.0F, 0.0F, DeltaCenter.z >= 0.0F ? 1.0F : -1.0F };
-    }
-
-    float CombinedInverseMass{ SelfInverseMass + OtherInverseMass };
-    if (CombinedInverseMass <= 0.0F) {
-        return false;
-    }
-
-    float SelfDisplacementFactor{ SelfInverseMass / CombinedInverseMass };
-    float OtherDisplacementFactor{ OtherInverseMass / CombinedInverseMass };
-    float CorrectedPenetrationDepth{ PenetrationDepth + DynamicCollisionSeparationBias };
-    DirectX::SimpleMath::Vector3 SeparationVector{ CollisionNormal * CorrectedPenetrationDepth };
-    DirectX::SimpleMath::Vector3 SelfCorrectedPosition{ SelfActor.GetPosition() - (SeparationVector * SelfDisplacementFactor) };
-    DirectX::SimpleMath::Vector3 OtherCorrectedPosition{ OtherActor.GetPosition() + (SeparationVector * OtherDisplacementFactor) };
-    SelfActor.SetPosition(SelfCorrectedPosition);
-    OtherActor.SetPosition(OtherCorrectedPosition);
-
-    DirectX::SimpleMath::Vector3 SelfVelocity{ SelfActor.GetVelocity() };
-    DirectX::SimpleMath::Vector3 OtherVelocity{ OtherActor.GetVelocity() };
-    DirectX::SimpleMath::Vector3 NormalRelativeVelocity{ OtherVelocity - SelfVelocity };
-    float RelativeNormalVelocity{ NormalRelativeVelocity.Dot(CollisionNormal) };
-    if (RelativeNormalVelocity >= 0.0F) {
-        return true;
-    }
-
-    float EffectiveRestitution{ std::min(SelfActor.GetRestitution(), OtherActor.GetRestitution()) };
-    float ImpulseMagnitude{ -(1.0F + EffectiveRestitution) * RelativeNormalVelocity / CombinedInverseMass };
-    DirectX::SimpleMath::Vector3 Impulse{ CollisionNormal * ImpulseMagnitude };
-    SelfVelocity -= Impulse * SelfInverseMass;
-    OtherVelocity += Impulse * OtherInverseMass;
-
-    float EffectiveFriction{ std::sqrt(std::max(0.0F, SelfActor.GetFriction() * OtherActor.GetFriction())) };
-    DirectX::SimpleMath::Vector3 RelativeVelocity{ OtherVelocity - SelfVelocity };
-    float RelativeVelocityAlongNormal{ RelativeVelocity.Dot(CollisionNormal) };
-    DirectX::SimpleMath::Vector3 TangentialVelocity{ RelativeVelocity - (CollisionNormal * RelativeVelocityAlongNormal) };
-    float TangentialVelocityLength{ TangentialVelocity.Length() };
-    if (TangentialVelocityLength > 0.0001F) {
-        DirectX::SimpleMath::Vector3 Tangent{ TangentialVelocity / TangentialVelocityLength };
-        float FrictionImpulseMagnitude{ -RelativeVelocity.Dot(Tangent) / CombinedInverseMass };
-        float MaximumFrictionImpulse{ ImpulseMagnitude * EffectiveFriction };
-        FrictionImpulseMagnitude = std::clamp(FrictionImpulseMagnitude, -MaximumFrictionImpulse, MaximumFrictionImpulse);
-        DirectX::SimpleMath::Vector3 FrictionImpulse{ Tangent * FrictionImpulseMagnitude };
-        SelfVelocity -= FrictionImpulse * SelfInverseMass;
-        OtherVelocity += FrictionImpulse * OtherInverseMass;
-    }
-
-    SelfActor.SetVelocity(SelfVelocity);
-    OtherActor.SetVelocity(OtherVelocity);
-
+    DynamicObb CorrectedSelfObb{ CreateDynamicObb(SelfActor.GetWorldBoundingBox()) };
+    DynamicObb CorrectedOtherObb{ CreateDynamicObb(OtherActor.GetWorldBoundingBox()) };
+    DynamicPersistentManifoldCache& PersistentCache{ DynamicPersistentPairCache[PairCacheKey] };
+    UpdatePersistentCacheFromManifold(CorrectedSelfObb, CorrectedOtherObb, ContactManifold, PersistentCache);
     return true;
 }
 
@@ -599,7 +561,6 @@ PhysicsActorBase::PhysicsActorBase(std::string Name)
 PhysicsActorBase::PhysicsActorBase(const ActorDesc& Desc)
     : PhysicsActorBase{} {
     mName = Desc.Name;
-    mLocalBoundingBox = Desc.LocalBoundingBox;
     mPosition = Desc.Position;
     mRotation = Desc.Rotation;
     mScale = Desc.Scale;
@@ -616,6 +577,7 @@ PhysicsActorBase::PhysicsActorBase(const ActorDesc& Desc)
     SetFriction(Desc.Friction);
     SetFlags(Desc.Flags);
     SetActorType(Desc.ActorType);
+    SetLocalBoundingBox(Desc.LocalBoundingBox);
     SetVelocity(Desc.Velocity);
     SetAcceleration(Desc.Acceleration);
     UpdateWorldBoundingBox();
