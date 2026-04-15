@@ -160,7 +160,6 @@
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Mesh.h" />
     <ClInclude Include="Scene\MeshFactory.h" />
-    <ClInclude Include="Scene\Concurrency\SpscRingQueue.h" />
     <ClInclude Include="Scene\PhysicsExchangeTypes.h" />
     <ClInclude Include="Scene\PhysicsRuntime.h" />
     <ClInclude Include="Scene\TerrainHeightMapLoader.h" />

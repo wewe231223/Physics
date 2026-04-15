@@ -14,7 +14,6 @@
 #include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
 
 class IPhysicsActorRepository;
-class IPhysicsSimulationLogic;
 class IPhysicsSpatialQuery;
 
 class PhysicsFrameAccumulator final {
@@ -112,7 +111,6 @@ public:
 
 private:
     void InitializeDependencies();
-    void InitializeSimulationLogics();
 
 private:
     WorldSettings mSettings;
@@ -122,6 +120,5 @@ private:
     double mLastStepElapsedMilliseconds;
     std::unique_ptr<IPhysicsActorRepository> mActorRepository;
     std::unique_ptr<IPhysicsSpatialQuery> mSpatialQuery;
-    std::vector<std::unique_ptr<IPhysicsSimulationLogic>> mSimulationLogics;
     std::vector<PhysicsSimulationEvent> mPublishedEvents;
 };

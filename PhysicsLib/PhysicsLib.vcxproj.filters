@@ -10,9 +10,6 @@
     <Filter Include="Simulation">
       <UniqueIdentifier>{0c34eb1a-5cc6-4c82-aa13-a5ee0f6d0a8e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Simulation\Logic">
-      <UniqueIdentifier>{4d8c6126-4f37-4b1e-a07d-bcb0a5e7bf4c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Simulation\Mediator">
       <UniqueIdentifier>{0d75cd39-0e04-420d-98ee-89dfa7e5605e}</UniqueIdentifier>
     </Filter>
@@ -24,6 +21,9 @@
     </Filter>
     <Filter Include="Simulation\Types">
       <UniqueIdentifier>{03b9f12d-ccf8-41e2-8268-6fa17a8bb8d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Container">
+      <UniqueIdentifier>{e16fe532-c803-4864-9afd-fa9ef7ca465b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -41,15 +41,6 @@
     </ClCompile>
     <ClCompile Include="Actors\PhysicsTerrainActor.cpp">
       <Filter>Actors</Filter>
-    </ClCompile>
-    <ClCompile Include="Simulation\Logic\IPhysicsSimulationLogic.cpp">
-      <Filter>Simulation\Logic</Filter>
-    </ClCompile>
-    <ClCompile Include="Simulation\Logic\PhysicsDynamicCollisionLogic.cpp">
-      <Filter>Simulation\Logic</Filter>
-    </ClCompile>
-    <ClCompile Include="Simulation\Logic\PhysicsDynamicIntegrationLogic.cpp">
-      <Filter>Simulation\Logic</Filter>
     </ClCompile>
     <ClCompile Include="Simulation\Mediator\IPhysicsWorldMediator.cpp">
       <Filter>Simulation\Mediator</Filter>
@@ -86,14 +77,8 @@
     <ClInclude Include="Actors\PhysicsTerrainActor.h">
       <Filter>Actors</Filter>
     </ClInclude>
-    <ClInclude Include="Simulation\Logic\IPhysicsSimulationLogic.h">
-      <Filter>Simulation\Logic</Filter>
-    </ClInclude>
-    <ClInclude Include="Simulation\Logic\PhysicsDynamicCollisionLogic.h">
-      <Filter>Simulation\Logic</Filter>
-    </ClInclude>
-    <ClInclude Include="Simulation\Logic\PhysicsDynamicIntegrationLogic.h">
-      <Filter>Simulation\Logic</Filter>
+    <ClInclude Include="Container\SpscRingQueue.h">
+      <Filter>Container</Filter>
     </ClInclude>
     <ClInclude Include="Simulation\Mediator\IPhysicsWorldMediator.h">
       <Filter>Simulation\Mediator</Filter>

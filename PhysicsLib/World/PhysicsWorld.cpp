@@ -4,15 +4,16 @@
 #include <chrono>
 #include <utility>
 
-#include "PhysicsLib/Simulation/Logic/IPhysicsSimulationLogic.h"
-#include "PhysicsLib/Simulation/Logic/PhysicsDynamicCollisionLogic.h"
-#include "PhysicsLib/Simulation/Logic/PhysicsDynamicIntegrationLogic.h"
 #include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
 #include "PhysicsLib/Simulation/Repository/PhysicsActorRepository.h"
 #include "PhysicsLib/Simulation/SpatialQuery/BruteForcePhysicsSpatialQuery.h"
 #include "PhysicsLib/Simulation/SpatialQuery/IPhysicsSpatialQuery.h"
 
 namespace {
+constexpr std::size_t DynamicCollisionSolverMinimumIterationCount{ 1U };
+constexpr std::size_t DynamicCollisionSolverMaximumIterationCount{ 4U };
+constexpr std::size_t DynamicCollisionPairsPerAdditionalIteration{ 24U };
+
 DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vector3& StartValue, const DirectX::SimpleMath::Vector3& EndValue, float Alpha) {
     DirectX::SimpleMath::Vector3 InterpolatedValue{ StartValue + ((EndValue - StartValue) * Alpha) };
     return InterpolatedValue;
@@ -21,6 +22,112 @@ DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vecto
 PhysicsFrameAccumulator::ActorState CreateActorStateFromActor(const PhysicsActorBase& Actor) {
     PhysicsFrameAccumulator::ActorState ActorStateValue{ &Actor, Actor.GetActorType(), Actor.GetPosition(), Actor.GetRotation(), Actor.GetScale() };
     return ActorStateValue;
+}
+
+void IntegrateDynamicActors(IPhysicsWorldMediator& WorldMediator, IPhysicsActorRepository& ActorRepository, float DeltaTime) {
+    std::vector<PhysicsDynamicActor*> DynamicActors{ ActorRepository.CollectDynamicActors() };
+    std::size_t DynamicActorCount{ DynamicActors.size() };
+    for (std::size_t ActorIndex{ 0U }; ActorIndex < DynamicActorCount; ++ActorIndex) {
+        PhysicsDynamicActor* DynamicActor{ DynamicActors[ActorIndex] };
+        if (DynamicActor == nullptr) {
+            continue;
+        }
+
+        DynamicActor->Integrate(WorldMediator, DeltaTime);
+        DynamicActor->SolveConstraints(WorldMediator, DeltaTime);
+    }
+}
+
+bool ResolveDynamicCollisionPair(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor, float DeltaTime) {
+    bool HasCollision{ FirstActor.ResolveActorCollision(SecondActor, DeltaTime) };
+    if (HasCollision) {
+        WorldMediator.PublishEvent(PhysicsSimulationEventType::DynamicCollisionResolved, &FirstActor, &SecondActor);
+    }
+
+    return HasCollision;
+}
+
+void ResolveDynamicCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicCollisionPairCandidate>& PairCandidates, float DeltaTime) {
+    std::size_t PairCandidateCount{ PairCandidates.size() };
+    if (PairCandidateCount == 0U) {
+        return;
+    }
+
+    std::size_t AdditionalIterationCount{ PairCandidateCount / DynamicCollisionPairsPerAdditionalIteration };
+    std::size_t SolverIterationCount{ DynamicCollisionSolverMinimumIterationCount + AdditionalIterationCount };
+    if (SolverIterationCount > DynamicCollisionSolverMaximumIterationCount) {
+        SolverIterationCount = DynamicCollisionSolverMaximumIterationCount;
+    }
+
+    for (std::size_t IterationIndex{ 0U }; IterationIndex < SolverIterationCount; ++IterationIndex) {
+        bool HasAnyCollision{};
+        for (std::size_t PairIndex{ 0U }; PairIndex < PairCandidateCount; ++PairIndex) {
+            PhysicsDynamicActor* FirstActor{ PairCandidates[PairIndex].mFirstActor };
+            PhysicsDynamicActor* SecondActor{ PairCandidates[PairIndex].mSecondActor };
+            if (FirstActor == nullptr || SecondActor == nullptr) {
+                continue;
+            }
+
+            if (!FirstActor->GetIsActive() || FirstActor->GetInverseMass() <= 0.0F) {
+                continue;
+            }
+
+            if (!SecondActor->GetIsActive() || SecondActor->GetInverseMass() <= 0.0F) {
+                continue;
+            }
+
+            bool HasCollision{ ResolveDynamicCollisionPair(WorldMediator, *FirstActor, *SecondActor, DeltaTime) };
+            if (!HasCollision) {
+                continue;
+            }
+
+            HasAnyCollision = true;
+            FirstActor->UpdateSleepState();
+            SecondActor->UpdateSleepState();
+        }
+
+        if (!HasAnyCollision) {
+            break;
+        }
+    }
+}
+
+void ResolveStaticCollisions(IPhysicsWorldMediator& WorldMediator, const std::vector<PhysicsDynamicActor*>& DynamicActors, const std::vector<const PhysicsStaticActor*>& StaticActors, float DeltaTime) {
+    std::size_t DynamicActorCount{ DynamicActors.size() };
+    if (DynamicActorCount == 0U) {
+        return;
+    }
+
+    std::size_t StaticActorCount{ StaticActors.size() };
+    if (StaticActorCount == 0U) {
+        return;
+    }
+
+    for (std::size_t DynamicActorIndex{ 0U }; DynamicActorIndex < DynamicActorCount; ++DynamicActorIndex) {
+        PhysicsDynamicActor* DynamicActor{ DynamicActors[DynamicActorIndex] };
+        if (DynamicActor == nullptr) {
+            continue;
+        }
+
+        if (!DynamicActor->GetIsActive() || DynamicActor->GetInverseMass() <= 0.0F) {
+            continue;
+        }
+
+        for (std::size_t StaticActorIndex{ 0U }; StaticActorIndex < StaticActorCount; ++StaticActorIndex) {
+            const PhysicsStaticActor* StaticActor{ StaticActors[StaticActorIndex] };
+            if (StaticActor == nullptr) {
+                continue;
+            }
+
+            bool HasCollision{ StaticActor->ResolveDynamicCollision(*DynamicActor, DeltaTime) };
+            if (!HasCollision) {
+                continue;
+            }
+
+            WorldMediator.PublishEvent(PhysicsSimulationEventType::StaticCollisionResolved, DynamicActor, StaticActor);
+            DynamicActor->UpdateSleepState();
+        }
+    }
 }
 }
 
@@ -210,10 +317,8 @@ PhysicsWorld::PhysicsWorld()
       mLastStepElapsedMilliseconds{},
       mActorRepository{},
       mSpatialQuery{},
-      mSimulationLogics{},
       mPublishedEvents{} {
     InitializeDependencies();
-    InitializeSimulationLogics();
     mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
@@ -228,10 +333,8 @@ PhysicsWorld::PhysicsWorld(const PhysicsWorld& Other)
       mLastStepElapsedMilliseconds{ Other.mLastStepElapsedMilliseconds },
       mActorRepository{ Other.mActorRepository != nullptr ? Other.mActorRepository->Clone() : nullptr },
       mSpatialQuery{ Other.mSpatialQuery != nullptr ? Other.mSpatialQuery->Clone() : nullptr },
-      mSimulationLogics{},
       mPublishedEvents{} {
     InitializeDependencies();
-    InitializeSimulationLogics();
     mFrameAccumulator.Initialize(mSettings.FixedTimeStep);
     mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
@@ -249,7 +352,6 @@ PhysicsWorld& PhysicsWorld::operator=(const PhysicsWorld& Other) {
     mSpatialQuery = Other.mSpatialQuery != nullptr ? Other.mSpatialQuery->Clone() : nullptr;
     mPublishedEvents.clear();
     InitializeDependencies();
-    InitializeSimulationLogics();
     mFrameAccumulator.Initialize(mSettings.FixedTimeStep);
     mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 
@@ -264,7 +366,6 @@ PhysicsWorld::PhysicsWorld(PhysicsWorld&& Other) noexcept
       mLastStepElapsedMilliseconds{ Other.mLastStepElapsedMilliseconds },
       mActorRepository{ std::move(Other.mActorRepository) },
       mSpatialQuery{ std::move(Other.mSpatialQuery) },
-      mSimulationLogics{ std::move(Other.mSimulationLogics) },
       mPublishedEvents{ std::move(Other.mPublishedEvents) } {
     if (mActorRepository != nullptr) {
         mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
@@ -275,7 +376,6 @@ PhysicsWorld::PhysicsWorld(PhysicsWorld&& Other) noexcept
     Other.mLastUpdateStepElapsedMilliseconds = 0.0;
     Other.mLastStepElapsedMilliseconds = 0.0;
     Other.InitializeDependencies();
-    Other.InitializeSimulationLogics();
     Other.mFrameAccumulator.Initialize(Other.mSettings.FixedTimeStep);
     Other.mFrameAccumulator.SynchronizeStatePair(*Other.mActorRepository);
     Other.ClearPublishedEvents();
@@ -293,7 +393,6 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
     mLastStepElapsedMilliseconds = Other.mLastStepElapsedMilliseconds;
     mActorRepository = std::move(Other.mActorRepository);
     mSpatialQuery = std::move(Other.mSpatialQuery);
-    mSimulationLogics = std::move(Other.mSimulationLogics);
     mPublishedEvents = std::move(Other.mPublishedEvents);
     if (mActorRepository != nullptr) {
         mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
@@ -304,7 +403,6 @@ PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&& Other) noexcept {
     Other.mLastUpdateStepElapsedMilliseconds = 0.0;
     Other.mLastStepElapsedMilliseconds = 0.0;
     Other.InitializeDependencies();
-    Other.InitializeSimulationLogics();
     Other.mFrameAccumulator.Initialize(Other.mSettings.FixedTimeStep);
     Other.mFrameAccumulator.SynchronizeStatePair(*Other.mActorRepository);
     Other.ClearPublishedEvents();
@@ -320,10 +418,8 @@ PhysicsWorld::PhysicsWorld(const WorldSettings& Settings)
       mLastStepElapsedMilliseconds{},
       mActorRepository{},
       mSpatialQuery{},
-      mSimulationLogics{},
       mPublishedEvents{} {
     InitializeDependencies();
-    InitializeSimulationLogics();
     mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
@@ -416,16 +512,13 @@ bool PhysicsWorld::TryGetInterpolatedActorTransform(const PhysicsActorBase& Acto
 
 void PhysicsWorld::StepSimulation() {
     ClearPublishedEvents();
-
-    std::size_t LogicCount{ mSimulationLogics.size() };
-    for (std::size_t LogicIndex{ 0U }; LogicIndex < LogicCount; ++LogicIndex) {
-        IPhysicsSimulationLogic* CurrentLogic{ mSimulationLogics[LogicIndex].get() };
-        if (CurrentLogic == nullptr) {
-            continue;
-        }
-
-        CurrentLogic->Execute(*this, mSettings.FixedTimeStep);
-    }
+    IPhysicsActorRepository& ActorRepository{ GetActorRepository() };
+    std::vector<PhysicsDynamicCollisionPairCandidate> PairCandidates{ GetSpatialQuery().QueryDynamicCollisionPairs(ActorRepository) };
+    std::vector<PhysicsDynamicActor*> DynamicActors{ ActorRepository.CollectDynamicActors() };
+    std::vector<const PhysicsStaticActor*> StaticActors{ ActorRepository.CollectStaticActors() };
+    ResolveDynamicCollisions(*this, PairCandidates, mSettings.FixedTimeStep);
+    ResolveStaticCollisions(*this, DynamicActors, StaticActors, mSettings.FixedTimeStep);
+    IntegrateDynamicActors(*this, ActorRepository, mSettings.FixedTimeStep);
 }
 
 void PhysicsWorld::Update(float DeltaTime) {
@@ -487,10 +580,4 @@ void PhysicsWorld::InitializeDependencies() {
     if (mSpatialQuery == nullptr) {
         mSpatialQuery = std::make_unique<BruteForcePhysicsSpatialQuery>();
     }
-}
-
-void PhysicsWorld::InitializeSimulationLogics() {
-    mSimulationLogics.clear();
-    mSimulationLogics.push_back(std::make_unique<PhysicsDynamicCollisionLogic>());
-    mSimulationLogics.push_back(std::make_unique<PhysicsDynamicIntegrationLogic>());
 }

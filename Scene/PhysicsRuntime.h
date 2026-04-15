@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Concurrency/SpscRingQueue.h"
+#include "PhysicsLib/Container/SpscRingQueue.h"
 #include "PhysicsExchangeTypes.h"
 #include "PhysicsLib/World/PhysicsWorld.h"
 #include "Scene.h"

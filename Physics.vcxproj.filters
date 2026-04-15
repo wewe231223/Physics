@@ -74,9 +74,6 @@
     <ClInclude Include="Scene\MeshFactory.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\Concurrency\SpscRingQueue.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Scene\PhysicsExchangeTypes.h">
       <Filter>Scene</Filter>
     </ClInclude>

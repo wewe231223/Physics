@@ -24,9 +24,6 @@
     <ClCompile Include="Actors\PhysicsKinematicActor.cpp" />
     <ClCompile Include="Actors\PhysicsStaticActor.cpp" />
     <ClCompile Include="Actors\PhysicsTerrainActor.cpp" />
-    <ClCompile Include="Simulation\Logic\IPhysicsSimulationLogic.cpp" />
-    <ClCompile Include="Simulation\Logic\PhysicsDynamicCollisionLogic.cpp" />
-    <ClCompile Include="Simulation\Logic\PhysicsDynamicIntegrationLogic.cpp" />
     <ClCompile Include="Simulation\Mediator\IPhysicsWorldMediator.cpp" />
     <ClCompile Include="Simulation\Repository\IPhysicsActorRepository.cpp" />
     <ClCompile Include="Simulation\Repository\PhysicsActorRepository.cpp" />
@@ -40,9 +37,7 @@
     <ClInclude Include="Actors\PhysicsKinematicActor.h" />
     <ClInclude Include="Actors\PhysicsStaticActor.h" />
     <ClInclude Include="Actors\PhysicsTerrainActor.h" />
-    <ClInclude Include="Simulation\Logic\IPhysicsSimulationLogic.h" />
-    <ClInclude Include="Simulation\Logic\PhysicsDynamicCollisionLogic.h" />
-    <ClInclude Include="Simulation\Logic\PhysicsDynamicIntegrationLogic.h" />
+    <ClInclude Include="Container\SpscRingQueue.h" />
     <ClInclude Include="Simulation\Mediator\IPhysicsWorldMediator.h" />
     <ClInclude Include="Simulation\Repository\IPhysicsActorRepository.h" />
     <ClInclude Include="Simulation\Repository\PhysicsActorRepository.h" />
