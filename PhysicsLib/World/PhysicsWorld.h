@@ -6,12 +6,12 @@
 
 #include <SimpleMath/SimpleMath.h>
 
-#include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
 #include "PhysicsLib/Actors/PhysicsActor.h"
 #include "PhysicsLib/Actors/PhysicsDynamicActor.h"
 #include "PhysicsLib/Actors/PhysicsKinematicActor.h"
-#include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
 #include "PhysicsLib/Actors/PhysicsTerrainActor.h"
+#include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
+#include "PhysicsLib/Simulation/Types/PhysicsSimulationTypes.h"
 
 class IPhysicsActorRepository;
 class IPhysicsSimulationLogic;
@@ -20,8 +20,8 @@ class IPhysicsSpatialQuery;
 class PhysicsFrameAccumulator final {
 public:
     struct ActorState {
-        const PhysicsActor* mActorPointer;
-        PhysicsActor::PhysicsActorType mActorType;
+        const PhysicsActorBase* mActorPointer;
+        PhysicsActorBase::PhysicsActorType mActorType;
         DirectX::SimpleMath::Vector3 mPosition;
         DirectX::SimpleMath::Vector3 mRotation;
         DirectX::SimpleMath::Vector3 mScale;
@@ -47,11 +47,11 @@ public:
     void SynchronizeStatePair(const IPhysicsActorRepository& ActorRepository);
     void CapturePreviousState(const IPhysicsActorRepository& ActorRepository);
     void CaptureCurrentState(const IPhysicsActorRepository& ActorRepository);
-    bool TryGetInterpolatedState(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
+    bool TryGetInterpolatedState(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
 
 private:
     void CaptureState(std::vector<ActorState>& OutStates, const IPhysicsActorRepository& ActorRepository) const;
-    bool TryGetActorState(const std::vector<ActorState>& States, const PhysicsActor& Actor, ActorState& OutActorState) const;
+    bool TryGetActorState(const std::vector<ActorState>& States, const PhysicsActorBase& Actor, ActorState& OutActorState) const;
 
 private:
     float mFixedTimeStep;
@@ -83,11 +83,11 @@ public:
     PhysicsDynamicActor* CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc);
     PhysicsKinematicActor* CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc);
     PhysicsTerrainActor* CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc);
-    void AddActor(std::unique_ptr<PhysicsActor> Actor);
+    void AddActor(std::unique_ptr<PhysicsActorBase> Actor);
     void ClearActors();
 
-    PhysicsActor* GetActor(std::size_t Index);
-    const PhysicsActor* GetActor(std::size_t Index) const;
+    PhysicsActorBase* GetActor(std::size_t Index);
+    const PhysicsActorBase* GetActor(std::size_t Index) const;
     std::size_t GetActorCount() const;
 
     const WorldSettings& GetSettings() const;
@@ -96,7 +96,7 @@ public:
     std::size_t GetLastUpdateStepCount() const;
     double GetLastUpdateStepElapsedMilliseconds() const;
     double GetLastStepElapsedMilliseconds() const;
-    bool TryGetInterpolatedActorTransform(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
+    bool TryGetInterpolatedActorTransform(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
 
     void StepSimulation();
     void Update(float DeltaTime);
@@ -106,7 +106,7 @@ public:
     const IPhysicsActorRepository& GetActorRepository() const override;
     IPhysicsSpatialQuery& GetSpatialQuery() override;
     const IPhysicsSpatialQuery& GetSpatialQuery() const override;
-    void PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActor* FirstActor, const PhysicsActor* SecondActor) override;
+    void PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActorBase* FirstActor, const PhysicsActorBase* SecondActor) override;
     void ClearPublishedEvents() override;
     const std::vector<PhysicsSimulationEvent>& GetPublishedEvents() const override;
 
@@ -125,4 +125,3 @@ private:
     std::vector<std::unique_ptr<IPhysicsSimulationLogic>> mSimulationLogics;
     std::vector<PhysicsSimulationEvent> mPublishedEvents;
 };
-

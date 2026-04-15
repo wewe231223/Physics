@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstddef>
 #include <memory>
@@ -22,11 +22,11 @@ public:
     PhysicsKinematicActor* CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc) override;
     PhysicsTerrainActor* CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc) override;
 
-    void AddActor(std::unique_ptr<PhysicsActor> Actor) override;
+    void AddActor(std::unique_ptr<PhysicsActorBase> Actor) override;
     void ClearActors() override;
 
-    PhysicsActor* GetActor(std::size_t Index) override;
-    const PhysicsActor* GetActor(std::size_t Index) const override;
+    PhysicsActorBase* GetActor(std::size_t Index) override;
+    const PhysicsActorBase* GetActor(std::size_t Index) const override;
     std::size_t GetActorCount() const override;
 
     std::vector<PhysicsDynamicActor*> CollectDynamicActors() override;
@@ -34,8 +34,5 @@ public:
     std::vector<const PhysicsStaticActor*> CollectStaticActors() const override;
 
 private:
-    std::unique_ptr<PhysicsActor> CloneActor(const PhysicsActor& SourceActor) const;
-
-private:
-    std::vector<std::unique_ptr<PhysicsActor>> mActors;
+    std::vector<std::unique_ptr<PhysicsActorBase>> mActors;
 };

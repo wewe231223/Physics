@@ -1,8 +1,8 @@
 #pragma once
 
 #include "IPhysicsSimulationLogic.h"
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
 
-class PhysicsDynamicActor;
 class IPhysicsWorldMediator;
 
 class PhysicsDynamicIntegrationLogic final : public IPhysicsSimulationLogic {

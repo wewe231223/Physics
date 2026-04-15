@@ -1,9 +1,13 @@
-#pragma once
-#include <SimpleMath/SimpleMath.h>
+﻿#pragma once
+
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <vector>
-#include "PhysicsStaticActor.h"
+
+#include <SimpleMath/SimpleMath.h>
+
+#include "PhysicsLib/Actors/PhysicsStaticActor.h"
 
 class PhysicsTerrainActor final : public PhysicsStaticActor {
 public:
@@ -36,7 +40,8 @@ public:
     ActorDesc GetActorDesc() const;
 
     bool TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const;
-    bool ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const override;
+    bool ResolveDynamicCollision(PhysicsActorBase& DynamicActor, float DeltaTime) const override;
+    std::unique_ptr<PhysicsActorBase> Clone() const override;
 
 private:
     bool TryGetSurfaceHeightAtLocalPosition(float LocalX, float LocalZ, float& OutLocalHeight) const;
@@ -44,9 +49,6 @@ private:
     std::size_t CalculateHeightFieldIndex(std::uint32_t X, std::uint32_t Z) const;
 
 private:
-    DirectX::SimpleMath::Vector3 mPosition;
-    DirectX::SimpleMath::Vector3 mRotation;
-    DirectX::SimpleMath::Vector3 mScale;
     float mHalfExtentX;
     float mHalfExtentZ;
     std::uint32_t mHeightFieldWidth;

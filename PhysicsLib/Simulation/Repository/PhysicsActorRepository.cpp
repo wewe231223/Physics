@@ -1,4 +1,4 @@
-#include "PhysicsActorRepository.h"
+﻿#include "PhysicsActorRepository.h"
 
 #include <utility>
 
@@ -15,12 +15,12 @@ PhysicsActorRepository::PhysicsActorRepository(const PhysicsActorRepository& Oth
     mActors.reserve(ActorCount);
 
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const std::unique_ptr<PhysicsActor>& SourceActorPointer{ Other.mActors[ActorIndex] };
+        const std::unique_ptr<PhysicsActorBase>& SourceActorPointer{ Other.mActors[ActorIndex] };
         if (SourceActorPointer == nullptr) {
             continue;
         }
 
-        std::unique_ptr<PhysicsActor> ClonedActor{ CloneActor(*SourceActorPointer) };
+        std::unique_ptr<PhysicsActorBase> ClonedActor{ SourceActorPointer->Clone() };
         if (ClonedActor == nullptr) {
             continue;
         }
@@ -39,12 +39,12 @@ PhysicsActorRepository& PhysicsActorRepository::operator=(const PhysicsActorRepo
     mActors.reserve(ActorCount);
 
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const std::unique_ptr<PhysicsActor>& SourceActorPointer{ Other.mActors[ActorIndex] };
+        const std::unique_ptr<PhysicsActorBase>& SourceActorPointer{ Other.mActors[ActorIndex] };
         if (SourceActorPointer == nullptr) {
             continue;
         }
 
-        std::unique_ptr<PhysicsActor> ClonedActor{ CloneActor(*SourceActorPointer) };
+        std::unique_ptr<PhysicsActorBase> ClonedActor{ SourceActorPointer->Clone() };
         if (ClonedActor == nullptr) {
             continue;
         }
@@ -75,27 +75,27 @@ std::unique_ptr<IPhysicsActorRepository> PhysicsActorRepository::Clone() const {
 }
 
 PhysicsDynamicActor* PhysicsActorRepository::CreateDynamicActor(const PhysicsDynamicActor::ActorDesc& Desc) {
-    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsDynamicActor>(Desc) };
+    std::unique_ptr<PhysicsActorBase> NewActor{ std::make_unique<PhysicsDynamicActor>(Desc) };
     PhysicsDynamicActor* CreatedActor{ static_cast<PhysicsDynamicActor*>(NewActor.get()) };
     mActors.push_back(std::move(NewActor));
     return CreatedActor;
 }
 
 PhysicsKinematicActor* PhysicsActorRepository::CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc) {
-    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsKinematicActor>(Desc) };
+    std::unique_ptr<PhysicsActorBase> NewActor{ std::make_unique<PhysicsKinematicActor>(Desc) };
     PhysicsKinematicActor* CreatedActor{ static_cast<PhysicsKinematicActor*>(NewActor.get()) };
     mActors.push_back(std::move(NewActor));
     return CreatedActor;
 }
 
 PhysicsTerrainActor* PhysicsActorRepository::CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc) {
-    std::unique_ptr<PhysicsActor> NewActor{ std::make_unique<PhysicsTerrainActor>(Desc) };
+    std::unique_ptr<PhysicsActorBase> NewActor{ std::make_unique<PhysicsTerrainActor>(Desc) };
     PhysicsTerrainActor* CreatedActor{ static_cast<PhysicsTerrainActor*>(NewActor.get()) };
     mActors.push_back(std::move(NewActor));
     return CreatedActor;
 }
 
-void PhysicsActorRepository::AddActor(std::unique_ptr<PhysicsActor> Actor) {
+void PhysicsActorRepository::AddActor(std::unique_ptr<PhysicsActorBase> Actor) {
     mActors.push_back(std::move(Actor));
 }
 
@@ -103,7 +103,7 @@ void PhysicsActorRepository::ClearActors() {
     mActors.clear();
 }
 
-PhysicsActor* PhysicsActorRepository::GetActor(std::size_t Index) {
+PhysicsActorBase* PhysicsActorRepository::GetActor(std::size_t Index) {
     if (Index >= mActors.size()) {
         return nullptr;
     }
@@ -111,7 +111,7 @@ PhysicsActor* PhysicsActorRepository::GetActor(std::size_t Index) {
     return mActors[Index].get();
 }
 
-const PhysicsActor* PhysicsActorRepository::GetActor(std::size_t Index) const {
+const PhysicsActorBase* PhysicsActorRepository::GetActor(std::size_t Index) const {
     if (Index >= mActors.size()) {
         return nullptr;
     }
@@ -130,8 +130,8 @@ std::vector<PhysicsDynamicActor*> PhysicsActorRepository::CollectDynamicActors()
     DynamicActors.reserve(ActorCount);
 
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
-        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+        PhysicsActorBase* CurrentActor{ mActors[ActorIndex].get() };
+        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Dynamic) {
             continue;
         }
 
@@ -148,8 +148,8 @@ std::vector<const PhysicsDynamicActor*> PhysicsActorRepository::CollectDynamicAc
     DynamicActors.reserve(ActorCount);
 
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
-        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+        const PhysicsActorBase* CurrentActor{ mActors[ActorIndex].get() };
+        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Dynamic) {
             continue;
         }
 
@@ -166,8 +166,8 @@ std::vector<const PhysicsStaticActor*> PhysicsActorRepository::CollectStaticActo
     StaticActors.reserve(ActorCount);
 
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* CurrentActor{ mActors[ActorIndex].get() };
-        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActor::PhysicsActorType::Static) {
+        const PhysicsActorBase* CurrentActor{ mActors[ActorIndex].get() };
+        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Static) {
             continue;
         }
 
@@ -176,28 +176,4 @@ std::vector<const PhysicsStaticActor*> PhysicsActorRepository::CollectStaticActo
     }
 
     return StaticActors;
-}
-
-std::unique_ptr<PhysicsActor> PhysicsActorRepository::CloneActor(const PhysicsActor& SourceActor) const {
-    if (SourceActor.GetActorType() == PhysicsActor::PhysicsActorType::Static) {
-        const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(&SourceActor) };
-        if (TerrainActor != nullptr) {
-            std::unique_ptr<PhysicsActor> ClonedTerrainActor{ std::make_unique<PhysicsTerrainActor>(*TerrainActor) };
-            return ClonedTerrainActor;
-        }
-
-        const PhysicsStaticActor* StaticActor{ static_cast<const PhysicsStaticActor*>(&SourceActor) };
-        std::unique_ptr<PhysicsActor> ClonedStaticActor{ std::make_unique<PhysicsStaticActor>(*StaticActor) };
-        return ClonedStaticActor;
-    }
-
-    if (SourceActor.GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
-        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(&SourceActor) };
-        std::unique_ptr<PhysicsActor> ClonedKinematicActor{ std::make_unique<PhysicsKinematicActor>(*KinematicActor) };
-        return ClonedKinematicActor;
-    }
-
-    const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(&SourceActor) };
-    std::unique_ptr<PhysicsActor> ClonedDynamicActor{ std::make_unique<PhysicsDynamicActor>(*DynamicActor) };
-    return ClonedDynamicActor;
 }

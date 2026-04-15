@@ -2,8 +2,9 @@
 
 #include <cstdint>
 
-class PhysicsActor;
-class PhysicsDynamicActor;
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
+
+class PhysicsActorBase;
 
 enum class PhysicsSimulationEventType : std::uint32_t {
     StaticCollisionResolved = 0U,
@@ -17,6 +18,6 @@ struct PhysicsDynamicCollisionPairCandidate {
 
 struct PhysicsSimulationEvent {
     PhysicsSimulationEventType mEventType;
-    const PhysicsActor* mFirstActor;
-    const PhysicsActor* mSecondActor;
+    const PhysicsActorBase* mFirstActor;
+    const PhysicsActorBase* mSecondActor;
 };

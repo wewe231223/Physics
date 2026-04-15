@@ -248,7 +248,7 @@ PhysicsDynamicActor::ActorDesc GameObject::GetPhysicsDynamicActorDesc() const {
         ActorBoundingBox = mMesh->GetBoundingBox();
     }
 
-    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, mPhysicsMass, PhysicsActor::PhysicsActorFlags::None, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
+    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, mPhysicsMass, PhysicsActorBase::PhysicsActorFlags::None, PhysicsActorBase::PhysicsActorType::Dynamic, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
     return ActorDesc;
 }
 

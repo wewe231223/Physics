@@ -1,6 +1,7 @@
 ﻿#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <utility>
 
 #include "PhysicsLib/Actors/PhysicsTerrainActor.h"
@@ -10,9 +11,6 @@
 
 PhysicsTerrainActor::PhysicsTerrainActor()
     : PhysicsStaticActor{},
-      mPosition{},
-      mRotation{},
-      mScale{ 1.0F, 1.0F, 1.0F },
       mHalfExtentX{ 0.5F },
       mHalfExtentZ{ 0.5F },
       mHeightFieldWidth{},
@@ -28,9 +26,6 @@ PhysicsTerrainActor::~PhysicsTerrainActor() {
 
 PhysicsTerrainActor::PhysicsTerrainActor(const PhysicsTerrainActor& Other)
     : PhysicsStaticActor{ Other },
-      mPosition{ Other.mPosition },
-      mRotation{ Other.mRotation },
-      mScale{ Other.mScale },
       mHalfExtentX{ Other.mHalfExtentX },
       mHalfExtentZ{ Other.mHalfExtentZ },
       mHeightFieldWidth{ Other.mHeightFieldWidth },
@@ -47,9 +42,6 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(const PhysicsTerrainActor& O
     }
 
     PhysicsStaticActor::operator=(Other);
-    mPosition = Other.mPosition;
-    mRotation = Other.mRotation;
-    mScale = Other.mScale;
     mHalfExtentX = Other.mHalfExtentX;
     mHalfExtentZ = Other.mHalfExtentZ;
     mHeightFieldWidth = Other.mHeightFieldWidth;
@@ -64,9 +56,6 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(const PhysicsTerrainActor& O
 
 PhysicsTerrainActor::PhysicsTerrainActor(PhysicsTerrainActor&& Other) noexcept
     : PhysicsStaticActor{ std::move(Other) },
-      mPosition{ Other.mPosition },
-      mRotation{ Other.mRotation },
-      mScale{ Other.mScale },
       mHalfExtentX{ Other.mHalfExtentX },
       mHalfExtentZ{ Other.mHalfExtentZ },
       mHeightFieldWidth{ Other.mHeightFieldWidth },
@@ -83,9 +72,6 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(PhysicsTerrainActor&& Other)
     }
 
     PhysicsStaticActor::operator=(std::move(Other));
-    mPosition = Other.mPosition;
-    mRotation = Other.mRotation;
-    mScale = Other.mScale;
     mHalfExtentX = Other.mHalfExtentX;
     mHalfExtentZ = Other.mHalfExtentZ;
     mHeightFieldWidth = Other.mHeightFieldWidth;
@@ -100,9 +86,6 @@ PhysicsTerrainActor& PhysicsTerrainActor::operator=(PhysicsTerrainActor&& Other)
 
 PhysicsTerrainActor::PhysicsTerrainActor(const ActorDesc& Desc)
     : PhysicsStaticActor{},
-      mPosition{ Desc.Position },
-      mRotation{ Desc.Rotation },
-      mScale{ Desc.Scale },
       mHalfExtentX{ Desc.HalfExtentX },
       mHalfExtentZ{ Desc.HalfExtentZ },
       mHeightFieldWidth{ Desc.HeightFieldWidth },
@@ -111,12 +94,15 @@ PhysicsTerrainActor::PhysicsTerrainActor(const ActorDesc& Desc)
       mHeightFieldMaxHeight{ Desc.HeightFieldMaxHeight },
       mHeightFieldCenterOrigin{ Desc.HeightFieldCenterOrigin },
       mHeightFieldValues{ Desc.HeightFieldValues } {
+    SetPosition(Desc.Position);
+    SetRotation(Desc.Rotation);
+    SetScale(Desc.Scale);
 }
 
 void PhysicsTerrainActor::SetActorDesc(const ActorDesc& Desc) {
-    mPosition = Desc.Position;
-    mRotation = Desc.Rotation;
-    mScale = Desc.Scale;
+    SetPosition(Desc.Position);
+    SetRotation(Desc.Rotation);
+    SetScale(Desc.Scale);
     mHalfExtentX = Desc.HalfExtentX;
     mHalfExtentZ = Desc.HalfExtentZ;
     mHeightFieldWidth = Desc.HeightFieldWidth;
@@ -128,14 +114,17 @@ void PhysicsTerrainActor::SetActorDesc(const ActorDesc& Desc) {
 }
 
 PhysicsTerrainActor::ActorDesc PhysicsTerrainActor::GetActorDesc() const {
-    ActorDesc Desc{ mPosition, mRotation, mScale, mHalfExtentX, mHalfExtentZ, mHeightFieldWidth, mHeightFieldHeight, mHeightFieldCellSpacing, mHeightFieldMaxHeight, mHeightFieldCenterOrigin, mHeightFieldValues };
+    ActorDesc Desc{ GetPosition(), GetRotation(), GetScale(), mHalfExtentX, mHalfExtentZ, mHeightFieldWidth, mHeightFieldHeight, mHeightFieldCellSpacing, mHeightFieldMaxHeight, mHeightFieldCenterOrigin, mHeightFieldValues };
     return Desc;
 }
 
 bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const {
-    DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(mScale) };
-    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(mRotation.y, mRotation.x, mRotation.z) };
-    DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(mPosition) };
+    const DirectX::SimpleMath::Vector3& Position{ GetPosition() };
+    const DirectX::SimpleMath::Vector3& Rotation{ GetRotation() };
+    const DirectX::SimpleMath::Vector3& Scale{ GetScale() };
+    DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Scale) };
+    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z) };
+    DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(Position) };
     DirectX::SimpleMath::Matrix WorldMatrix{ ScalingMatrix * RotationMatrix * TranslationMatrix };
     DirectX::SimpleMath::Matrix InverseWorldMatrix{ WorldMatrix.Invert() };
     DirectX::SimpleMath::Vector3 LocalPoint{ DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3{ WorldX, 0.0F, WorldZ }, InverseWorldMatrix) };
@@ -151,38 +140,47 @@ bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float
     return true;
 }
 
-bool PhysicsTerrainActor::ResolveDynamicCollision(PhysicsDynamicActor& DynamicActor) const {
+bool PhysicsTerrainActor::ResolveDynamicCollision(PhysicsActorBase& DynamicActor, float DeltaTime) const {
+    (void)DeltaTime;
+
+    if (DynamicActor.GetActorType() != PhysicsActorBase::PhysicsActorType::Dynamic) {
+        return false;
+    }
+
     float DynamicInverseMass{ DynamicActor.GetInverseMass() };
     if (DynamicInverseMass <= 0.0F) {
         return false;
     }
 
-    float TerrainHalfExtentX{ mHalfExtentX * std::abs(mScale.x) };
-    float TerrainHalfExtentZ{ mHalfExtentZ * std::abs(mScale.z) };
+    const DirectX::SimpleMath::Vector3& Position{ GetPosition() };
+    const DirectX::SimpleMath::Vector3& Rotation{ GetRotation() };
+    const DirectX::SimpleMath::Vector3& Scale{ GetScale() };
+    float TerrainHalfExtentX{ mHalfExtentX * std::abs(Scale.x) };
+    float TerrainHalfExtentZ{ mHalfExtentZ * std::abs(Scale.z) };
 
     if (mHeightFieldWidth > 1U && mHeightFieldHeight > 1U && mHeightFieldCellSpacing > 0.0F) {
-        float HeightFieldHalfExtentX{ (static_cast<float>(mHeightFieldWidth - 1U) * mHeightFieldCellSpacing * 0.5F) * std::abs(mScale.x) };
-        float HeightFieldHalfExtentZ{ (static_cast<float>(mHeightFieldHeight - 1U) * mHeightFieldCellSpacing * 0.5F) * std::abs(mScale.z) };
+        float HeightFieldHalfExtentX{ (static_cast<float>(mHeightFieldWidth - 1U) * mHeightFieldCellSpacing * 0.5F) * std::abs(Scale.x) };
+        float HeightFieldHalfExtentZ{ (static_cast<float>(mHeightFieldHeight - 1U) * mHeightFieldCellSpacing * 0.5F) * std::abs(Scale.z) };
         TerrainHalfExtentX = std::max(TerrainHalfExtentX, HeightFieldHalfExtentX);
         TerrainHalfExtentZ = std::max(TerrainHalfExtentZ, HeightFieldHalfExtentZ);
     }
 
     const DirectX::BoundingOrientedBox& PredictedWorldBoundingBox{ DynamicActor.GetWorldBoundingBox() };
-    float TerrainHalfExtentY{ mHeightFieldMaxHeight * std::abs(mScale.y) + PredictedWorldBoundingBox.Extents.y };
+    float TerrainHalfExtentY{ mHeightFieldMaxHeight * std::abs(Scale.y) + PredictedWorldBoundingBox.Extents.y };
     DirectX::BoundingOrientedBox TerrainBoundingBox{};
-    TerrainBoundingBox.Center = DirectX::XMFLOAT3{ mPosition.x, mPosition.y + (TerrainHalfExtentY * 0.5F), mPosition.z };
+    TerrainBoundingBox.Center = DirectX::XMFLOAT3{ Position.x, Position.y + (TerrainHalfExtentY * 0.5F), Position.z };
     TerrainBoundingBox.Extents = DirectX::XMFLOAT3{ TerrainHalfExtentX, TerrainHalfExtentY, TerrainHalfExtentZ };
     TerrainBoundingBox.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
-    DirectX::SimpleMath::Quaternion TerrainRotationQuaternion{ DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(mRotation.y, mRotation.x, mRotation.z) };
+    DirectX::SimpleMath::Quaternion TerrainRotationQuaternion{ DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z) };
     TerrainBoundingBox.Orientation = DirectX::XMFLOAT4{ TerrainRotationQuaternion.x, TerrainRotationQuaternion.y, TerrainRotationQuaternion.z, TerrainRotationQuaternion.w };
 
     if (!TerrainBoundingBox.Intersects(PredictedWorldBoundingBox)) {
         return false;
     }
 
-    DirectX::SimpleMath::Matrix TerrainScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(mScale) };
-    DirectX::SimpleMath::Matrix TerrainRotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(mRotation.y, mRotation.x, mRotation.z) };
-    DirectX::SimpleMath::Matrix TerrainTranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(mPosition) };
+    DirectX::SimpleMath::Matrix TerrainScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Scale) };
+    DirectX::SimpleMath::Matrix TerrainRotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z) };
+    DirectX::SimpleMath::Matrix TerrainTranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(Position) };
     DirectX::SimpleMath::Matrix TerrainWorldMatrix{ TerrainScalingMatrix * TerrainRotationMatrix * TerrainTranslationMatrix };
     DirectX::SimpleMath::Matrix InverseTerrainWorldMatrix{ TerrainWorldMatrix.Invert() };
     DirectX::SimpleMath::Matrix InverseTransposeTerrainWorldMatrix{ InverseTerrainWorldMatrix.Transpose() };
@@ -263,6 +261,11 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(PhysicsDynamicActor& DynamicAc
     DynamicActor.SetVelocity(CorrectedVelocity);
 
     return true;
+}
+
+std::unique_ptr<PhysicsActorBase> PhysicsTerrainActor::Clone() const {
+    std::unique_ptr<PhysicsActorBase> ClonedActor{ std::make_unique<PhysicsTerrainActor>(*this) };
+    return ClonedActor;
 }
 
 bool PhysicsTerrainActor::TryGetSurfaceHeightAtLocalPosition(float LocalX, float LocalZ, float& OutLocalHeight) const {
@@ -353,4 +356,3 @@ std::size_t PhysicsTerrainActor::CalculateHeightFieldIndex(std::uint32_t X, std:
     std::size_t Index{ static_cast<std::size_t>(Z) * static_cast<std::size_t>(mHeightFieldWidth) + static_cast<std::size_t>(X) };
     return Index;
 }
-

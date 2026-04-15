@@ -26,15 +26,14 @@ public:
     virtual PhysicsKinematicActor* CreateKinematicActor(const PhysicsKinematicActor::ActorDesc& Desc) = 0;
     virtual PhysicsTerrainActor* CreateTerrainActor(const PhysicsTerrainActor::ActorDesc& Desc) = 0;
 
-    virtual void AddActor(std::unique_ptr<PhysicsActor> Actor) = 0;
+    virtual void AddActor(std::unique_ptr<PhysicsActorBase> Actor) = 0;
     virtual void ClearActors() = 0;
 
-    virtual PhysicsActor* GetActor(std::size_t Index) = 0;
-    virtual const PhysicsActor* GetActor(std::size_t Index) const = 0;
+    virtual PhysicsActorBase* GetActor(std::size_t Index) = 0;
+    virtual const PhysicsActorBase* GetActor(std::size_t Index) const = 0;
     virtual std::size_t GetActorCount() const = 0;
 
     virtual std::vector<PhysicsDynamicActor*> CollectDynamicActors() = 0;
     virtual std::vector<const PhysicsDynamicActor*> CollectDynamicActors() const = 0;
     virtual std::vector<const PhysicsStaticActor*> CollectStaticActors() const = 0;
 };
-

@@ -164,10 +164,10 @@ void Scene::BuildPhysicsActors() {
         SpawnInfo.mName = CurrentObject.GetName();
         SpawnInfo.mIsActive = CurrentObject.GetIsActive();
         if (CurrentObject.IsTerrainObject()) {
-            SpawnInfo.mActorType = PhysicsActor::PhysicsActorType::Static;
+            SpawnInfo.mActorType = PhysicsActorBase::PhysicsActorType::Static;
             SpawnInfo.mTerrainActorDesc = CurrentObject.GetPhysicsTerrainActorDesc();
         } else {
-            SpawnInfo.mActorType = PhysicsActor::PhysicsActorType::Dynamic;
+            SpawnInfo.mActorType = PhysicsActorBase::PhysicsActorType::Dynamic;
             SpawnInfo.mDynamicActorDesc = CurrentObject.GetPhysicsDynamicActorDesc();
             SpawnInfo.mHasInitialImpulse = CurrentObject.HasInitialImpulse();
             SpawnInfo.mInitialImpulse = CurrentObject.GetInitialImpulse();
@@ -223,7 +223,7 @@ void Scene::ApplyPhysicsSnapshot(const PhysicsSnapshot& Snapshot) {
         CurrentObject.SetIsActive(SnapshotActor.mIsActive);
         CurrentObject.ApplyPhysicsState(SnapshotActor.mPosition, SnapshotActor.mRotation, SnapshotActor.mScale);
 
-        if (CurrentObject.GetBoundingBoxVisible() && SnapshotActor.mActorType != PhysicsActor::PhysicsActorType::Static) {
+        if (CurrentObject.GetBoundingBoxVisible() && SnapshotActor.mActorType != PhysicsActorBase::PhysicsActorType::Static) {
             CurrentObject.SetBoundingBoxFromPhysicsState(SnapshotActor.mWorldBoundingBox, SnapshotActor.mRotation);
         } else {
             CurrentObject.ClearBoundingBoxWorldMatrix();

@@ -25,7 +25,7 @@ public:
         ActorId mActorId{ InvalidActorId };
         std::string mName{};
         bool mIsActive{ true };
-        PhysicsActor::PhysicsActorType mActorType{ PhysicsActor::PhysicsActorType::Dynamic };
+        PhysicsActorBase::PhysicsActorType mActorType{ PhysicsActorBase::PhysicsActorType::Dynamic };
         PhysicsDynamicActor::ActorDesc mDynamicActorDesc{};
         PhysicsTerrainActor::ActorDesc mTerrainActorDesc{};
         bool mHasInitialImpulse{};

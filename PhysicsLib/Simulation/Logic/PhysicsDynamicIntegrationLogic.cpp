@@ -1,47 +1,15 @@
 ﻿#include "PhysicsDynamicIntegrationLogic.h"
 
-#include <algorithm>
+#include <cstddef>
 #include <utility>
+#include <vector>
 
+#include "PhysicsLib/Actors/PhysicsDynamicActor.h"
 #include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
 
-#undef min 
-#undef max 
-
 void PhysicsDynamicIntegrationLogic::IntegrateActor(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& DynamicActor, float DeltaTime) const {
-    if (!DynamicActor.GetIsActive()) {
-        return;
-    }
-
-    float ActorInverseMass{ DynamicActor.GetInverseMass() };
-    if (ActorInverseMass <= 0.0F) {
-        return;
-    }
-
-    if (DynamicActor.GetIsSleeping()) {
-        return;
-    }
-
-    float ActorMass{ DynamicActor.GetMass() };
-    DirectX::SimpleMath::Vector3 TotalAcceleration{ WorldMediator.GetGravity() + DynamicActor.GetAcceleration() };
-    DirectX::SimpleMath::Vector3 TotalForce{ (TotalAcceleration * ActorMass) + DynamicActor.GetAccumulatedForce() };
-    DirectX::SimpleMath::Vector3 NextLinearMomentum{ DynamicActor.GetLinearMomentum() + (TotalForce * DeltaTime) };
-    DirectX::SimpleMath::Vector3 NextVelocity{ NextLinearMomentum * ActorInverseMass };
-    float DampingFactor{ std::max(0.0F, 1.0F - (DynamicActor.GetLinearDamping() * DeltaTime)) };
-    NextVelocity *= DampingFactor;
-    NextLinearMomentum = NextVelocity * ActorMass;
-    DirectX::SimpleMath::Vector3 NextAngularMomentum{ DynamicActor.GetAngularMomentum() };
-    float AngularDampingFactor{ std::max(0.0F, 1.0F - (DynamicActor.GetAngularDamping() * DeltaTime)) };
-    NextAngularMomentum *= AngularDampingFactor;
-
-    DirectX::SimpleMath::Vector3 NextPosition{ DynamicActor.GetPosition() + (NextVelocity * DeltaTime) };
-    DynamicActor.SetPosition(NextPosition);
-    DynamicActor.SetVelocity(NextVelocity);
-    DynamicActor.SetAngularMomentum(NextAngularMomentum);
-
-    DynamicActor.SetLinearMomentum(DynamicActor.GetVelocity() * ActorMass);
-    DynamicActor.ClearAccumulatedForce();
-    DynamicActor.UpdateSleepState();
+    DynamicActor.Integrate(WorldMediator, DeltaTime);
+    DynamicActor.SolveConstraints(WorldMediator, DeltaTime);
 }
 
 PhysicsDynamicIntegrationLogic::PhysicsDynamicIntegrationLogic() {
@@ -91,5 +59,3 @@ void PhysicsDynamicIntegrationLogic::Execute(IPhysicsWorldMediator& WorldMediato
         IntegrateActor(WorldMediator, *DynamicActor, DeltaTime);
     }
 }
-
-

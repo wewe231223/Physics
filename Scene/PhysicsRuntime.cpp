@@ -265,8 +265,8 @@ void PhysicsRuntime::ApplyImpulseCommand(const PhysicsAddImpulseCommand& Command
     }
 
     std::size_t ActorIndex{ static_cast<std::size_t>(Command.mActorId) };
-    PhysicsActor* TargetActor{ mPhysicsWorld.GetActor(ActorIndex) };
-    if (TargetActor == nullptr || TargetActor->GetActorType() != PhysicsActor::PhysicsActorType::Dynamic) {
+    PhysicsActorBase* TargetActor{ mPhysicsWorld.GetActor(ActorIndex) };
+    if (TargetActor == nullptr || TargetActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Dynamic) {
         return;
     }
 
@@ -290,7 +290,7 @@ void PhysicsRuntime::BuildWorldFromScene(std::size_t SceneIndex) {
     std::size_t SpawnCount{ SpawnInfos.size() };
     for (std::size_t SpawnIndex{ 0U }; SpawnIndex < SpawnCount; ++SpawnIndex) {
         const Scene::PhysicsActorSpawnInfo& CurrentSpawnInfo{ SpawnInfos[SpawnIndex] };
-        if (CurrentSpawnInfo.mActorType == PhysicsActor::PhysicsActorType::Static) {
+        if (CurrentSpawnInfo.mActorType == PhysicsActorBase::PhysicsActorType::Static) {
             PhysicsTerrainActor* CreatedTerrainActor{ mPhysicsWorld.CreateTerrainActor(CurrentSpawnInfo.mTerrainActorDesc) };
             if (CreatedTerrainActor != nullptr) {
                 CreatedTerrainActor->SetName(CurrentSpawnInfo.mName);
@@ -299,7 +299,7 @@ void PhysicsRuntime::BuildWorldFromScene(std::size_t SceneIndex) {
             continue;
         }
 
-        if (CurrentSpawnInfo.mActorType == PhysicsActor::PhysicsActorType::Kinematic) {
+        if (CurrentSpawnInfo.mActorType == PhysicsActorBase::PhysicsActorType::Kinematic) {
             continue;
         }
 
@@ -329,7 +329,7 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
 
     WriteBuffer.mActorCount = ActorCount;
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* CurrentActor{ mPhysicsWorld.GetActor(ActorIndex) };
+        const PhysicsActorBase* CurrentActor{ mPhysicsWorld.GetActor(ActorIndex) };
         PhysicsActorSnapshot& SnapshotActor{ WriteBuffer.mActors[ActorIndex] };
         if (CurrentActor == nullptr) {
             SnapshotActor = PhysicsActorSnapshot{};
@@ -340,7 +340,7 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
         SnapshotActor.mActorType = CurrentActor->GetActorType();
         SnapshotActor.mIsActive = CurrentActor->GetIsActive();
 
-        if (CurrentActor->GetActorType() == PhysicsActor::PhysicsActorType::Dynamic) {
+        if (CurrentActor->GetActorType() == PhysicsActorBase::PhysicsActorType::Dynamic) {
             const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(CurrentActor) };
             SnapshotActor.mPosition = DynamicActor->GetPosition();
             SnapshotActor.mRotation = DynamicActor->GetRotation();
@@ -349,7 +349,7 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
             continue;
         }
 
-        if (CurrentActor->GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
+        if (CurrentActor->GetActorType() == PhysicsActorBase::PhysicsActorType::Kinematic) {
             const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(CurrentActor) };
             SnapshotActor.mPosition = KinematicActor->GetPosition();
             SnapshotActor.mRotation = KinematicActor->GetRotation();

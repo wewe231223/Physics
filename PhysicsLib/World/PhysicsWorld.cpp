@@ -4,13 +4,13 @@
 #include <chrono>
 #include <utility>
 
-#include "PhysicsLib/Simulation/SpatialQuery/BruteForcePhysicsSpatialQuery.h"
-#include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
 #include "PhysicsLib/Simulation/Logic/IPhysicsSimulationLogic.h"
-#include "PhysicsLib/Simulation/SpatialQuery/IPhysicsSpatialQuery.h"
-#include "PhysicsLib/Simulation/Repository/PhysicsActorRepository.h"
 #include "PhysicsLib/Simulation/Logic/PhysicsDynamicCollisionLogic.h"
 #include "PhysicsLib/Simulation/Logic/PhysicsDynamicIntegrationLogic.h"
+#include "PhysicsLib/Simulation/Repository/IPhysicsActorRepository.h"
+#include "PhysicsLib/Simulation/Repository/PhysicsActorRepository.h"
+#include "PhysicsLib/Simulation/SpatialQuery/BruteForcePhysicsSpatialQuery.h"
+#include "PhysicsLib/Simulation/SpatialQuery/IPhysicsSpatialQuery.h"
 
 namespace {
 DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vector3& StartValue, const DirectX::SimpleMath::Vector3& EndValue, float Alpha) {
@@ -18,32 +18,8 @@ DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vecto
     return InterpolatedValue;
 }
 
-PhysicsFrameAccumulator::ActorState CreateActorStateFromActor(const PhysicsActor& Actor) {
-    PhysicsFrameAccumulator::ActorState ActorStateValue{ &Actor, Actor.GetActorType(), DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{ 1.0F, 1.0F, 1.0F } };
-    if (Actor.GetActorType() == PhysicsActor::PhysicsActorType::Dynamic) {
-        const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(&Actor) };
-        ActorStateValue.mPosition = DynamicActor->GetPosition();
-        ActorStateValue.mRotation = DynamicActor->GetRotation();
-        ActorStateValue.mScale = DynamicActor->GetScale();
-        return ActorStateValue;
-    }
-
-    if (Actor.GetActorType() == PhysicsActor::PhysicsActorType::Kinematic) {
-        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(&Actor) };
-        ActorStateValue.mPosition = KinematicActor->GetPosition();
-        ActorStateValue.mRotation = KinematicActor->GetRotation();
-        ActorStateValue.mScale = KinematicActor->GetScale();
-        return ActorStateValue;
-    }
-
-    const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(&Actor) };
-    if (TerrainActor != nullptr) {
-        PhysicsTerrainActor::ActorDesc TerrainActorDesc{ TerrainActor->GetActorDesc() };
-        ActorStateValue.mPosition = TerrainActorDesc.Position;
-        ActorStateValue.mRotation = TerrainActorDesc.Rotation;
-        ActorStateValue.mScale = TerrainActorDesc.Scale;
-    }
-
+PhysicsFrameAccumulator::ActorState CreateActorStateFromActor(const PhysicsActorBase& Actor) {
+    PhysicsFrameAccumulator::ActorState ActorStateValue{ &Actor, Actor.GetActorType(), Actor.GetPosition(), Actor.GetRotation(), Actor.GetScale() };
     return ActorStateValue;
 }
 }
@@ -165,7 +141,7 @@ void PhysicsFrameAccumulator::CaptureCurrentState(const IPhysicsActorRepository&
     CaptureState(mCurrentStates, ActorRepository);
 }
 
-bool PhysicsFrameAccumulator::TryGetInterpolatedState(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
+bool PhysicsFrameAccumulator::TryGetInterpolatedState(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
     ActorState PreviousState{};
     ActorState CurrentState{};
     bool HasPreviousState{ TryGetActorState(mPreviousStates, Actor, PreviousState) };
@@ -201,7 +177,7 @@ void PhysicsFrameAccumulator::CaptureState(std::vector<ActorState>& OutStates, c
     std::size_t ActorCount{ ActorRepository.GetActorCount() };
     OutStates.reserve(ActorCount);
     for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
-        const PhysicsActor* ActorPointer{ ActorRepository.GetActor(ActorIndex) };
+        const PhysicsActorBase* ActorPointer{ ActorRepository.GetActor(ActorIndex) };
         if (ActorPointer == nullptr) {
             continue;
         }
@@ -211,7 +187,7 @@ void PhysicsFrameAccumulator::CaptureState(std::vector<ActorState>& OutStates, c
     }
 }
 
-bool PhysicsFrameAccumulator::TryGetActorState(const std::vector<ActorState>& States, const PhysicsActor& Actor, ActorState& OutActorState) const {
+bool PhysicsFrameAccumulator::TryGetActorState(const std::vector<ActorState>& States, const PhysicsActorBase& Actor, ActorState& OutActorState) const {
     std::size_t StateCount{ States.size() };
     for (std::size_t StateIndex{ 0U }; StateIndex < StateCount; ++StateIndex) {
         const ActorState& CurrentState{ States[StateIndex] };
@@ -360,9 +336,11 @@ void PhysicsWorld::Initialize(const WorldSettings& Settings) {
     if (mActorRepository != nullptr) {
         mActorRepository->ClearActors();
     }
+
     if (mActorRepository != nullptr) {
         mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
     }
+
     ClearPublishedEvents();
 }
 
@@ -384,7 +362,7 @@ PhysicsTerrainActor* PhysicsWorld::CreateTerrainActor(const PhysicsTerrainActor:
     return CreatedActor;
 }
 
-void PhysicsWorld::AddActor(std::unique_ptr<PhysicsActor> Actor) {
+void PhysicsWorld::AddActor(std::unique_ptr<PhysicsActorBase> Actor) {
     mActorRepository->AddActor(std::move(Actor));
     mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
@@ -394,11 +372,11 @@ void PhysicsWorld::ClearActors() {
     mFrameAccumulator.SynchronizeStatePair(*mActorRepository);
 }
 
-PhysicsActor* PhysicsWorld::GetActor(std::size_t Index) {
+PhysicsActorBase* PhysicsWorld::GetActor(std::size_t Index) {
     return mActorRepository->GetActor(Index);
 }
 
-const PhysicsActor* PhysicsWorld::GetActor(std::size_t Index) const {
+const PhysicsActorBase* PhysicsWorld::GetActor(std::size_t Index) const {
     return mActorRepository->GetActor(Index);
 }
 
@@ -431,7 +409,7 @@ double PhysicsWorld::GetLastStepElapsedMilliseconds() const {
     return mLastStepElapsedMilliseconds;
 }
 
-bool PhysicsWorld::TryGetInterpolatedActorTransform(const PhysicsActor& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
+bool PhysicsWorld::TryGetInterpolatedActorTransform(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
     bool HasInterpolatedState{ mFrameAccumulator.TryGetInterpolatedState(Actor, OutPosition, OutRotation, OutScale) };
     return HasInterpolatedState;
 }
@@ -489,7 +467,7 @@ const IPhysicsSpatialQuery& PhysicsWorld::GetSpatialQuery() const {
     return *mSpatialQuery;
 }
 
-void PhysicsWorld::PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActor* FirstActor, const PhysicsActor* SecondActor) {
+void PhysicsWorld::PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActorBase* FirstActor, const PhysicsActorBase* SecondActor) {
     mPublishedEvents.push_back(PhysicsSimulationEvent{ EventType, FirstActor, SecondActor });
 }
 
@@ -516,4 +494,3 @@ void PhysicsWorld::InitializeSimulationLogics() {
     mSimulationLogics.push_back(std::make_unique<PhysicsDynamicCollisionLogic>());
     mSimulationLogics.push_back(std::make_unique<PhysicsDynamicIntegrationLogic>());
 }
-

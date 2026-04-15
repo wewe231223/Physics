@@ -26,9 +26,7 @@ public:
     virtual IPhysicsSpatialQuery& GetSpatialQuery() = 0;
     virtual const IPhysicsSpatialQuery& GetSpatialQuery() const = 0;
 
-    virtual void PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActor* FirstActor, const PhysicsActor* SecondActor) = 0;
+    virtual void PublishEvent(PhysicsSimulationEventType EventType, const PhysicsActorBase* FirstActor, const PhysicsActorBase* SecondActor) = 0;
     virtual void ClearPublishedEvents() = 0;
     virtual const std::vector<PhysicsSimulationEvent>& GetPublishedEvents() const = 0;
 };
-
-

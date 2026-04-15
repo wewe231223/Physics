@@ -40,7 +40,7 @@ struct PhysicsCommand final {
 
 struct PhysicsActorSnapshot final {
     ActorId mActorId{ InvalidActorId };
-    PhysicsActor::PhysicsActorType mActorType{ PhysicsActor::PhysicsActorType::Dynamic };
+    PhysicsActorBase::PhysicsActorType mActorType{ PhysicsActorBase::PhysicsActorType::Dynamic };
     bool mIsActive{};
     DirectX::SimpleMath::Vector3 mPosition{};
     DirectX::SimpleMath::Vector3 mRotation{};
