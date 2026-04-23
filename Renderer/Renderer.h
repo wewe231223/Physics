@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <string>
 
+#include <glm/vec3.hpp>
+
 struct GLFWwindow;
 
 #undef CreateWindow
@@ -21,7 +23,8 @@ public:
 public:
     bool Initialize();
     bool ShouldClose() const;
-    void ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene);
+    void ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene, glm::vec3& KinematicMoveDirection);
+    bool GetIsKinematicControlMode() const;
     void SetWindowTitle(const std::string& Title);
     void RenderFrame(const Scene& CurrentScene) const;
     void Present() const;
@@ -46,4 +49,6 @@ private:
     bool mWasKey1Pressed;
     bool mWasKey2Pressed;
     bool mWasKey3Pressed;
+    bool mWasKeyF2Pressed;
+    bool mIsKinematicControlMode;
 };

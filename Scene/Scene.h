@@ -54,6 +54,7 @@ public:
 
     const std::vector<PhysicsActorSpawnInfo>& GetPhysicsActorSpawnInfos() const;
     std::size_t GetPhysicsActorCount() const;
+    ActorId GetFirstKinematicActorId() const;
 
     void BuildPhysicsActors();
     void ConfigureBoundingBoxes(const std::shared_ptr<Mesh>& BoundingBoxMesh);

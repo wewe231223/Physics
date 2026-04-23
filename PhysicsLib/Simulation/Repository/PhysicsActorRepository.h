@@ -31,6 +31,8 @@ public:
 
     std::vector<PhysicsDynamicActor*> CollectDynamicActors() override;
     std::vector<const PhysicsDynamicActor*> CollectDynamicActors() const override;
+    std::vector<PhysicsKinematicActor*> CollectKinematicActors() override;
+    std::vector<const PhysicsKinematicActor*> CollectKinematicActors() const override;
     std::vector<const PhysicsStaticActor*> CollectStaticActors() const override;
 
 private:

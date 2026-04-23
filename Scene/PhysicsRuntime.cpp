@@ -129,6 +129,16 @@ bool PhysicsRuntime::EnqueueAddImpulse(ActorId ActorIdValue, const DirectX::Simp
     return Enqueued;
 }
 
+bool PhysicsRuntime::EnqueueSetKinematicVelocity(ActorId ActorIdValue, const DirectX::SimpleMath::Vector3& Velocity) {
+    PhysicsCommand NewCommand{};
+    NewCommand.mType = PhysicsCommandType::SetKinematicVelocity;
+    NewCommand.mSetKinematicVelocity.mActorId = ActorIdValue;
+    NewCommand.mSetKinematicVelocity.mVelocity = Velocity;
+
+    bool Enqueued{ mCommandQueue.TryEnqueue(NewCommand) };
+    return Enqueued;
+}
+
 std::uint32_t PhysicsRuntime::GetReadableSnapshotIndex() const {
     std::uint32_t ReadableSnapshotIndex{ mReadableSnapshotIndex.load(std::memory_order_acquire) };
     return ReadableSnapshotIndex;
@@ -241,6 +251,11 @@ void PhysicsRuntime::ProcessCommand(const PhysicsCommand& Command, double& OutTi
 
     if (Command.mType == PhysicsCommandType::AddImpulse) {
         ApplyImpulseCommand(Command.mAddImpulse);
+        return;
+    }
+
+    if (Command.mType == PhysicsCommandType::SetKinematicVelocity) {
+        ApplySetKinematicVelocityCommand(Command.mSetKinematicVelocity);
     }
 }
 
@@ -274,6 +289,21 @@ void PhysicsRuntime::ApplyImpulseCommand(const PhysicsAddImpulseCommand& Command
     DynamicActor->AddImpulse(Command.mImpulse);
 }
 
+void PhysicsRuntime::ApplySetKinematicVelocityCommand(const PhysicsSetKinematicVelocityCommand& Command) {
+    if (Command.mActorId == InvalidActorId) {
+        return;
+    }
+
+    std::size_t ActorIndex{ static_cast<std::size_t>(Command.mActorId) };
+    PhysicsActorBase* TargetActor{ mPhysicsWorld.GetActor(ActorIndex) };
+    if (TargetActor == nullptr || TargetActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Kinematic) {
+        return;
+    }
+
+    PhysicsKinematicActor* KinematicActor{ static_cast<PhysicsKinematicActor*>(TargetActor) };
+    KinematicActor->SetVelocity(Command.mVelocity);
+}
+
 void PhysicsRuntime::BuildWorldFromScene(std::size_t SceneIndex) {
     mPhysicsWorld.Initialize(mSettings.mWorldSettings);
 
@@ -300,6 +330,12 @@ void PhysicsRuntime::BuildWorldFromScene(std::size_t SceneIndex) {
         }
 
         if (CurrentSpawnInfo.mActorType == PhysicsActorBase::PhysicsActorType::Kinematic) {
+            PhysicsKinematicActor* CreatedKinematicActor{ mPhysicsWorld.CreateKinematicActor(CurrentSpawnInfo.mDynamicActorDesc) };
+            if (CreatedKinematicActor != nullptr) {
+                CreatedKinematicActor->SetName(CurrentSpawnInfo.mName);
+                CreatedKinematicActor->SetIsActive(CurrentSpawnInfo.mIsActive);
+            }
+
             continue;
         }
 

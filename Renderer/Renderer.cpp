@@ -7,13 +7,14 @@
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
-
+namespace {
 void FramebufferSizeCallback(GLFWwindow* Window, int Width, int Height) {
     (void)Window;
     glViewport(0, 0, Width, Height);
+}
 }
 
 Renderer::Renderer()
@@ -25,7 +26,9 @@ Renderer::Renderer()
       mShaderProgram{},
       mWasKey1Pressed{},
       mWasKey2Pressed{},
-      mWasKey3Pressed{} {
+      mWasKey3Pressed{},
+      mWasKeyF2Pressed{},
+      mIsKinematicControlMode{} {
 }
 
 Renderer::~Renderer() {
@@ -41,7 +44,9 @@ Renderer::Renderer(const Renderer& Other)
       mShaderProgram{},
       mWasKey1Pressed{ Other.mWasKey1Pressed },
       mWasKey2Pressed{ Other.mWasKey2Pressed },
-      mWasKey3Pressed{ Other.mWasKey3Pressed } {
+      mWasKey3Pressed{ Other.mWasKey3Pressed },
+      mWasKeyF2Pressed{ Other.mWasKeyF2Pressed },
+      mIsKinematicControlMode{ Other.mIsKinematicControlMode } {
 }
 
 Renderer& Renderer::operator=(const Renderer& Other) {
@@ -60,6 +65,8 @@ Renderer& Renderer::operator=(const Renderer& Other) {
     mWasKey1Pressed = Other.mWasKey1Pressed;
     mWasKey2Pressed = Other.mWasKey2Pressed;
     mWasKey3Pressed = Other.mWasKey3Pressed;
+    mWasKeyF2Pressed = Other.mWasKeyF2Pressed;
+    mIsKinematicControlMode = Other.mIsKinematicControlMode;
 
     return *this;
 }
@@ -73,7 +80,9 @@ Renderer::Renderer(Renderer&& Other) noexcept
       mShaderProgram{ Other.mShaderProgram },
       mWasKey1Pressed{ Other.mWasKey1Pressed },
       mWasKey2Pressed{ Other.mWasKey2Pressed },
-      mWasKey3Pressed{ Other.mWasKey3Pressed } {
+      mWasKey3Pressed{ Other.mWasKey3Pressed },
+      mWasKeyF2Pressed{ Other.mWasKeyF2Pressed },
+      mIsKinematicControlMode{ Other.mIsKinematicControlMode } {
     Other.mWindow = nullptr;
     Other.mWidth = 0;
     Other.mHeight = 0;
@@ -83,6 +92,8 @@ Renderer::Renderer(Renderer&& Other) noexcept
     Other.mWasKey1Pressed = false;
     Other.mWasKey2Pressed = false;
     Other.mWasKey3Pressed = false;
+    Other.mWasKeyF2Pressed = false;
+    Other.mIsKinematicControlMode = false;
 }
 
 Renderer& Renderer::operator=(Renderer&& Other) noexcept {
@@ -101,6 +112,8 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     mWasKey1Pressed = Other.mWasKey1Pressed;
     mWasKey2Pressed = Other.mWasKey2Pressed;
     mWasKey3Pressed = Other.mWasKey3Pressed;
+    mWasKeyF2Pressed = Other.mWasKeyF2Pressed;
+    mIsKinematicControlMode = Other.mIsKinematicControlMode;
 
     Other.mWindow = nullptr;
     Other.mWidth = 0;
@@ -111,6 +124,8 @@ Renderer& Renderer::operator=(Renderer&& Other) noexcept {
     Other.mWasKey1Pressed = false;
     Other.mWasKey2Pressed = false;
     Other.mWasKey3Pressed = false;
+    Other.mWasKeyF2Pressed = false;
+    Other.mIsKinematicControlMode = false;
 
     return *this;
 }
@@ -160,8 +175,9 @@ bool Renderer::ShouldClose() const {
     return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
 }
 
-void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene) {
+void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, bool& ShouldRestartActiveScene, glm::vec3& KinematicMoveDirection) {
     ShouldRestartActiveScene = false;
+    KinematicMoveDirection = glm::vec3{};
 
     if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
@@ -170,6 +186,7 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
     bool IsKey1Pressed{ glfwGetKey(mWindow, GLFW_KEY_1) == GLFW_PRESS };
     bool IsKey2Pressed{ glfwGetKey(mWindow, GLFW_KEY_2) == GLFW_PRESS };
     bool IsKey3Pressed{ glfwGetKey(mWindow, GLFW_KEY_3) == GLFW_PRESS };
+    bool IsKeyF2Pressed{ glfwGetKey(mWindow, GLFW_KEY_F2) == GLFW_PRESS };
 
     if (IsKey1Pressed && !mWasKey1Pressed) {
         ActiveSceneIndex = 0U;
@@ -186,9 +203,14 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
         ShouldRestartActiveScene = true;
     }
 
+    if (IsKeyF2Pressed && !mWasKeyF2Pressed) {
+        mIsKinematicControlMode = !mIsKinematicControlMode;
+    }
+
     mWasKey1Pressed = IsKey1Pressed;
     mWasKey2Pressed = IsKey2Pressed;
     mWasKey3Pressed = IsKey3Pressed;
+    mWasKeyF2Pressed = IsKeyF2Pressed;
 
     if (ShouldRestartActiveScene) {
         return;
@@ -198,20 +220,43 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
     float MoveSpeed{ 0.7F };
     float RotationSpeed{ 0.01F };
 
-    if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, MoveSpeed });
-    }
+    if (mIsKinematicControlMode) {
+        if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
+            KinematicMoveDirection += glm::vec3{ 0.0F, 0.0F, 1.0F };
+        }
 
-    if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
-    }
+        if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
+            KinematicMoveDirection += glm::vec3{ 0.0F, 0.0F, -1.0F };
+        }
 
-    if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
-    }
+        if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
+            KinematicMoveDirection += glm::vec3{ -1.0F, 0.0F, 0.0F };
+        }
 
-    if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
-        MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
+        if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
+            KinematicMoveDirection += glm::vec3{ 1.0F, 0.0F, 0.0F };
+        }
+
+        float KinematicMoveDirectionLength{ glm::length(KinematicMoveDirection) };
+        if (KinematicMoveDirectionLength > 0.0001F) {
+            KinematicMoveDirection = glm::normalize(KinematicMoveDirection);
+        }
+    } else {
+        if (glfwGetKey(mWindow, GLFW_KEY_W) == GLFW_PRESS) {
+            MainCamera.Move(glm::vec3{ 0.0F, 0.0F, MoveSpeed });
+        }
+
+        if (glfwGetKey(mWindow, GLFW_KEY_S) == GLFW_PRESS) {
+            MainCamera.Move(glm::vec3{ 0.0F, 0.0F, -MoveSpeed });
+        }
+
+        if (glfwGetKey(mWindow, GLFW_KEY_A) == GLFW_PRESS) {
+            MainCamera.Move(glm::vec3{ -MoveSpeed, 0.0F, 0.0F });
+        }
+
+        if (glfwGetKey(mWindow, GLFW_KEY_D) == GLFW_PRESS) {
+            MainCamera.Move(glm::vec3{ MoveSpeed, 0.0F, 0.0F });
+        }
     }
 
     if (glfwGetKey(mWindow, GLFW_KEY_Q) == GLFW_PRESS) {
@@ -237,6 +282,10 @@ void Renderer::ProcessInput(Scene& CurrentScene, std::size_t& ActiveSceneIndex, 
     if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
         MainCamera.Rotate(glm::vec3{ 0.0F, -RotationSpeed, 0.0F });
     }
+}
+
+bool Renderer::GetIsKinematicControlMode() const {
+    return mIsKinematicControlMode;
 }
 
 void Renderer::SetWindowTitle(const std::string& Title) {

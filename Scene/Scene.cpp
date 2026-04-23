@@ -147,6 +147,24 @@ std::size_t Scene::GetPhysicsActorCount() const {
     return ActorCount;
 }
 
+ActorId Scene::GetFirstKinematicActorId() const {
+    std::size_t GameObjectCount{ mGameObjects.size() };
+    for (std::size_t ObjectIndex{ 0U }; ObjectIndex < GameObjectCount; ++ObjectIndex) {
+        const GameObject& CurrentObject{ mGameObjects[ObjectIndex] };
+        if (CurrentObject.GetPhysicsActorType() != PhysicsActorBase::PhysicsActorType::Kinematic) {
+            continue;
+        }
+
+        if (!CurrentObject.HasActorId()) {
+            continue;
+        }
+
+        return CurrentObject.GetActorId();
+    }
+
+    return InvalidActorId;
+}
+
 void Scene::BuildPhysicsActors() {
     mPhysicsActorSpawnInfos.clear();
     mActorIdToGameObjectIndex.clear();
@@ -166,6 +184,9 @@ void Scene::BuildPhysicsActors() {
         if (CurrentObject.IsTerrainObject()) {
             SpawnInfo.mActorType = PhysicsActorBase::PhysicsActorType::Static;
             SpawnInfo.mTerrainActorDesc = CurrentObject.GetPhysicsTerrainActorDesc();
+        } else if (CurrentObject.GetPhysicsActorType() == PhysicsActorBase::PhysicsActorType::Kinematic) {
+            SpawnInfo.mActorType = PhysicsActorBase::PhysicsActorType::Kinematic;
+            SpawnInfo.mDynamicActorDesc = CurrentObject.GetPhysicsDynamicActorDesc();
         } else {
             SpawnInfo.mActorType = PhysicsActorBase::PhysicsActorType::Dynamic;
             SpawnInfo.mDynamicActorDesc = CurrentObject.GetPhysicsDynamicActorDesc();

@@ -35,5 +35,7 @@ public:
 
     virtual std::vector<PhysicsDynamicActor*> CollectDynamicActors() = 0;
     virtual std::vector<const PhysicsDynamicActor*> CollectDynamicActors() const = 0;
+    virtual std::vector<PhysicsKinematicActor*> CollectKinematicActors() = 0;
+    virtual std::vector<const PhysicsKinematicActor*> CollectKinematicActors() const = 0;
     virtual std::vector<const PhysicsStaticActor*> CollectStaticActors() const = 0;
 };

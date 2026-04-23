@@ -31,6 +31,9 @@
 #endif
 
 namespace {
+constexpr float KinematicMoveSpeed{ 12.0F };
+const glm::vec3 KinematicHighlightColor{ 1.0F, 0.92F, 0.18F };
+
 PhysicsWorld::WorldSettings CreateDefaultWorldSettings() {
     PhysicsWorld::WorldSettings WorldSettings{ 1.0F / 60.0F, DirectX::SimpleMath::Vector3{ 0.0F, -9.8F, 0.0F } };
     return WorldSettings;
@@ -216,6 +219,26 @@ void PlaceDynamicObjectsOnTerrain(Scene& TargetScene, std::size_t TerrainObjectI
     }
 }
 
+void ApplySolidColorToGameObjectMesh(GameObject& TargetObject, const glm::vec3& Color) {
+    const std::shared_ptr<Mesh>& SourceMesh{ TargetObject.GetMesh() };
+    if (SourceMesh == nullptr) {
+        return;
+    }
+
+    Mesh ColoredMesh{ *SourceMesh };
+    std::size_t VertexCount{ ColoredMesh.GetVertices().size() };
+    if (VertexCount == 0U) {
+        return;
+    }
+
+    std::vector<glm::vec3> Colors{};
+    Colors.resize(VertexCount, Color);
+    ColoredMesh.SetColors(Colors);
+    std::shared_ptr<Mesh> ColoredMeshShared{ std::make_shared<Mesh>(std::move(ColoredMesh)) };
+    TargetObject.SetMesh(ColoredMeshShared);
+    TargetObject.UpdateWorldMatrix();
+}
+
 void ConfigureSceneOne(Scene& TargetScene, const std::shared_ptr<Mesh>& BoundingBoxMesh) {
     Camera& MainCamera{ TargetScene.GetMainCamera() };
     MainCamera.SetClearColor(0.1F, 0.2F, 0.3F, 1.0F);
@@ -238,6 +261,7 @@ void ConfigureSceneOne(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
     std::size_t DroppedSquarePyramidIndex{ TargetScene.CreatePrimitiveGameObject("DroppedSquarePyramid", PrimitiveMeshType::SquarePyramid) };
     std::size_t GroundCubeIndex{ TargetScene.CreatePrimitiveGameObject("GroundCube", PrimitiveMeshType::Cube) };
     std::size_t GroundSphereIndex{ TargetScene.CreatePrimitiveGameObject("GroundSphere", PrimitiveMeshType::Sphere) };
+    std::size_t KinematicWalkerIndex{ TargetScene.CreatePrimitiveGameObject("KinematicWalker", PrimitiveMeshType::Sphere) };
 
     GameObject* DroppedCubeObject{ TargetScene.GetGameObject(DroppedCubeIndex) };
     if (DroppedCubeObject != nullptr) {
@@ -269,8 +293,16 @@ void ConfigureSceneOne(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
         GroundSphereObject->GetTransform().SetPosition(glm::vec3{ 4.0F, 0.0F, -4.0F });
     }
 
-    std::vector<std::size_t> GroundObjectIndices{ GroundCubeIndex, GroundSphereIndex };
-    PlaceDynamicObjectsOnTerrain(TargetScene, TerrainObjectIndex, GroundObjectIndices);
+    GameObject* KinematicWalkerObject{ TargetScene.GetGameObject(KinematicWalkerIndex) };
+    if (KinematicWalkerObject != nullptr) {
+        KinematicWalkerObject->SetPhysicsActorType(PhysicsActorBase::PhysicsActorType::Kinematic);
+        KinematicWalkerObject->GetTransform().SetPosition(glm::vec3{ -10.0F, 0.0F, -10.0F });
+        KinematicWalkerObject->GetTransform().SetScale(glm::vec3{ 1.2F, 1.2F, 1.2F });
+        ApplySolidColorToGameObjectMesh(*KinematicWalkerObject, KinematicHighlightColor);
+    }
+
+    std::vector<std::size_t> SurfaceAlignedObjectIndices{ GroundCubeIndex, GroundSphereIndex, KinematicWalkerIndex };
+    PlaceDynamicObjectsOnTerrain(TargetScene, TerrainObjectIndex, SurfaceAlignedObjectIndices);
 
     TargetScene.BuildPhysicsActors();
     TargetScene.ConfigureBoundingBoxes(BoundingBoxMesh);
@@ -286,7 +318,7 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
     GameObject FlatTerrainObject{ "FlatTerrain" };
     FlatTerrainObject.SetMesh(FlatTerrainMesh);
     FlatTerrainObject.GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
-    TargetScene.AddGameObject(std::move(FlatTerrainObject));
+    std::size_t TerrainObjectIndex{ TargetScene.AddGameObject(std::move(FlatTerrainObject)) };
 
     for (std::size_t LayerIndex{ 0U }; LayerIndex < 6U; ++LayerIndex) {
         for (std::size_t RowIndex{ 0U }; RowIndex < 3U; ++RowIndex) {
@@ -319,6 +351,18 @@ void ConfigureSceneTwo(Scene& TargetScene, const std::shared_ptr<Mesh>& Bounding
         ProjectileObject->SetInitialImpulse(LaunchDirection * LaunchImpulseMagnitude);
     }
 
+    std::size_t KinematicWalkerIndex{ TargetScene.CreatePrimitiveGameObject("KinematicWalkerSceneTwo", PrimitiveMeshType::Sphere) };
+    GameObject* KinematicWalkerObject{ TargetScene.GetGameObject(KinematicWalkerIndex) };
+    if (KinematicWalkerObject != nullptr) {
+        KinematicWalkerObject->SetPhysicsActorType(PhysicsActorBase::PhysicsActorType::Kinematic);
+        KinematicWalkerObject->GetTransform().SetPosition(glm::vec3{ -10.0F, 0.0F, -8.5F });
+        KinematicWalkerObject->GetTransform().SetScale(glm::vec3{ 1.2F, 1.2F, 1.2F });
+        ApplySolidColorToGameObjectMesh(*KinematicWalkerObject, KinematicHighlightColor);
+    }
+
+    std::vector<std::size_t> SurfaceAlignedObjectIndices{ KinematicWalkerIndex };
+    PlaceDynamicObjectsOnTerrain(TargetScene, TerrainObjectIndex, SurfaceAlignedObjectIndices);
+
     TargetScene.BuildPhysicsActors();
     TargetScene.ConfigureBoundingBoxes(BoundingBoxMesh);
 }
@@ -333,7 +377,7 @@ void ConfigureSceneThree(Scene& TargetScene, const std::shared_ptr<Mesh>& Boundi
     GameObject FlatTerrainObject{ "FlatTerrainScenarioThree" };
     FlatTerrainObject.SetMesh(FlatTerrainMesh);
     FlatTerrainObject.GetTransform().SetPosition(glm::vec3{ 0.0F, 0.0F, 0.0F });
-    TargetScene.AddGameObject(std::move(FlatTerrainObject));
+    std::size_t TerrainObjectIndex{ TargetScene.AddGameObject(std::move(FlatTerrainObject)) };
 
     for (std::size_t LayerIndex{ 0U }; LayerIndex < 4U; ++LayerIndex) {
         for (std::size_t ColumnIndex{ 0U }; ColumnIndex < 6U; ++ColumnIndex) {
@@ -394,6 +438,18 @@ void ConfigureSceneThree(Scene& TargetScene, const std::shared_ptr<Mesh>& Boundi
         ProjectileSphereObject->SetInitialImpulse(LaunchDirection * 460.0F);
     }
 
+    std::size_t KinematicWalkerIndex{ TargetScene.CreatePrimitiveGameObject("KinematicWalkerSceneThree", PrimitiveMeshType::Sphere) };
+    GameObject* KinematicWalkerObject{ TargetScene.GetGameObject(KinematicWalkerIndex) };
+    if (KinematicWalkerObject != nullptr) {
+        KinematicWalkerObject->SetPhysicsActorType(PhysicsActorBase::PhysicsActorType::Kinematic);
+        KinematicWalkerObject->GetTransform().SetPosition(glm::vec3{ -9.0F, 0.0F, 6.0F });
+        KinematicWalkerObject->GetTransform().SetScale(glm::vec3{ 1.2F, 1.2F, 1.2F });
+        ApplySolidColorToGameObjectMesh(*KinematicWalkerObject, KinematicHighlightColor);
+    }
+
+    std::vector<std::size_t> SurfaceAlignedObjectIndices{ KinematicWalkerIndex };
+    PlaceDynamicObjectsOnTerrain(TargetScene, TerrainObjectIndex, SurfaceAlignedObjectIndices);
+
     TargetScene.BuildPhysicsActors();
     TargetScene.ConfigureBoundingBoxes(BoundingBoxMesh);
 }
@@ -450,7 +506,8 @@ int main() {
 
         std::size_t InputSceneIndex{ DisplayedSceneIndex };
         bool ShouldRestartActiveScene{};
-        MainRenderer.ProcessInput(RenderScenes[DisplayedSceneIndex], InputSceneIndex, ShouldRestartActiveScene);
+        glm::vec3 KinematicMoveDirection{};
+        MainRenderer.ProcessInput(RenderScenes[DisplayedSceneIndex], InputSceneIndex, ShouldRestartActiveScene, KinematicMoveDirection);
 
         if (InputSceneIndex >= RenderScenes.size()) {
             InputSceneIndex = 0U;
@@ -469,6 +526,12 @@ int main() {
             RequestedWorldVersion = CurrentWorldVersion;
             HasPendingSceneSwitch = true;
             Runtime.EnqueueResetScene(RequestedSceneIndex, RequestedWorldVersion);
+        } else {
+            ActorId KinematicActorId{ RenderScenes[DisplayedSceneIndex].GetFirstKinematicActorId() };
+            if (KinematicActorId != InvalidActorId) {
+                DirectX::SimpleMath::Vector3 KinematicVelocity{ KinematicMoveDirection.x * KinematicMoveSpeed, 0.0F, KinematicMoveDirection.z * KinematicMoveSpeed };
+                Runtime.EnqueueSetKinematicVelocity(KinematicActorId, KinematicVelocity);
+            }
         }
 
         std::uint32_t ReadableSnapshotIndex{ Runtime.GetReadableSnapshotIndex() };
@@ -490,8 +553,9 @@ int main() {
 
         Scene& ActiveScene{ RenderScenes[DisplayedSceneIndex] };
         double PhysicsLastStepElapsedMilliseconds{ CurrentSnapshot.mLastStepElapsedMilliseconds };
+        std::string WasdInputTargetText{ MainRenderer.GetIsKinematicControlMode() ? "WASD->Kinematic" : "WASD->Camera" };
         std::ostringstream WindowTitleStream{};
-        WindowTitleStream << "FPS: " << std::fixed << std::setprecision(1) << CurrentFramesPerSecond << " | PhysicsStepTime: " << std::setprecision(3) << PhysicsLastStepElapsedMilliseconds << " ms";
+        WindowTitleStream << "Input: " << WasdInputTargetText << " | FPS: " << std::fixed << std::setprecision(1) << CurrentFramesPerSecond << " | PhysicsStepTime: " << std::setprecision(3) << PhysicsLastStepElapsedMilliseconds << " ms";
         MainRenderer.SetWindowTitle(WindowTitleStream.str());
         ActiveScene.Update();
         MainRenderer.RenderFrame(ActiveScene);

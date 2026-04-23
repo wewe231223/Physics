@@ -3,10 +3,56 @@
 
 #include "PhysicsLib/Actors/Integrater/PhysicsKinematicIntegrater.h"
 #include "PhysicsLib/Actors/PhysicsActorBase.h"
+#include "PhysicsLib/Actors/PhysicsTerrainActor.h"
 #include "PhysicsLib/Simulation/Mediator/IPhysicsWorldMediator.h"
 
 #undef max
 #undef min
+
+namespace {
+bool TryGetHighestTerrainSurfaceHeight(const IPhysicsActorRepository& ActorRepository, float WorldX, float WorldZ, float& OutSurfaceHeight) {
+    std::vector<const PhysicsStaticActor*> StaticActors{ ActorRepository.CollectStaticActors() };
+    std::size_t StaticActorCount{ StaticActors.size() };
+    bool HasSurfaceHeight{};
+    float HighestSurfaceHeight{};
+
+    for (std::size_t StaticActorIndex{ 0U }; StaticActorIndex < StaticActorCount; ++StaticActorIndex) {
+        const PhysicsStaticActor* StaticActor{ StaticActors[StaticActorIndex] };
+        if (StaticActor == nullptr) {
+            continue;
+        }
+
+        const PhysicsTerrainActor* TerrainActor{ dynamic_cast<const PhysicsTerrainActor*>(StaticActor) };
+        if (TerrainActor == nullptr) {
+            continue;
+        }
+
+        float SurfaceHeight{};
+        bool HasCurrentSurfaceHeight{ TerrainActor->TryGetSurfaceHeightAtWorldPosition(WorldX, WorldZ, SurfaceHeight) };
+        if (!HasCurrentSurfaceHeight) {
+            continue;
+        }
+
+        if (!HasSurfaceHeight || SurfaceHeight > HighestSurfaceHeight) {
+            HighestSurfaceHeight = SurfaceHeight;
+            HasSurfaceHeight = true;
+        }
+    }
+
+    if (!HasSurfaceHeight) {
+        return false;
+    }
+
+    OutSurfaceHeight = HighestSurfaceHeight;
+    return true;
+}
+
+float GetActorHalfHeight(const PhysicsActorBase& Actor) {
+    const DirectX::BoundingOrientedBox& WorldBoundingBox{ Actor.GetWorldBoundingBox() };
+    float HalfHeight{ std::max(WorldBoundingBox.Extents.y, 0.0F) };
+    return HalfHeight;
+}
+}
 
 PhysicsKinematicIntegrater::PhysicsKinematicIntegrater() {
 }
@@ -52,9 +98,20 @@ void PhysicsKinematicIntegrater::Integrate(IPhysicsWorldMediator& WorldMediator,
     }
 
     DirectX::SimpleMath::Vector3 NextVelocity{ Actor.GetVelocity() };
+    NextVelocity.y = 0.0F;
     float DampingFactor{ std::max(0.0F, 1.0F - (Actor.GetLinearDamping() * DeltaTime)) };
     NextVelocity *= DampingFactor;
     DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
+
+    const IPhysicsActorRepository& ActorRepository{ WorldMediator.GetActorRepository() };
+    float SurfaceHeight{};
+    bool HasSurfaceHeight{ TryGetHighestTerrainSurfaceHeight(ActorRepository, NextPosition.x, NextPosition.z, SurfaceHeight) };
+    if (HasSurfaceHeight) {
+        float HalfHeight{ GetActorHalfHeight(Actor) };
+        NextPosition.y = SurfaceHeight + HalfHeight + 0.02F;
+        NextVelocity.y = 0.0F;
+    }
+
     Actor.SetVelocity(NextVelocity);
     Actor.SetPosition(NextPosition);
     Actor.ClearAccumulatedForce();

@@ -16,6 +16,7 @@ GameObject::GameObject()
       mBoundingBoxVisible{},
       mBoundingBoxWorldMatrix{ 1.0F },
       mActorId{ InvalidActorId },
+      mPhysicsActorType{ PhysicsActorBase::PhysicsActorType::Dynamic },
       mPhysicsMass{ 1.0F },
       mHasInitialImpulse{},
       mInitialImpulse{} {
@@ -34,6 +35,7 @@ GameObject::GameObject(const GameObject& Other)
       mBoundingBoxVisible{ Other.mBoundingBoxVisible },
       mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
       mActorId{ Other.mActorId },
+      mPhysicsActorType{ Other.mPhysicsActorType },
       mPhysicsMass{ Other.mPhysicsMass },
       mHasInitialImpulse{ Other.mHasInitialImpulse },
       mInitialImpulse{ Other.mInitialImpulse } {
@@ -53,6 +55,7 @@ GameObject& GameObject::operator=(const GameObject& Other) {
     mBoundingBoxVisible = Other.mBoundingBoxVisible;
     mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
     mActorId = Other.mActorId;
+    mPhysicsActorType = Other.mPhysicsActorType;
     mPhysicsMass = Other.mPhysicsMass;
     mHasInitialImpulse = Other.mHasInitialImpulse;
     mInitialImpulse = Other.mInitialImpulse;
@@ -70,6 +73,7 @@ GameObject::GameObject(GameObject&& Other) noexcept
       mBoundingBoxVisible{ Other.mBoundingBoxVisible },
       mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
       mActorId{ Other.mActorId },
+      mPhysicsActorType{ Other.mPhysicsActorType },
       mPhysicsMass{ Other.mPhysicsMass },
       mHasInitialImpulse{ Other.mHasInitialImpulse },
       mInitialImpulse{ Other.mInitialImpulse } {
@@ -79,6 +83,7 @@ GameObject::GameObject(GameObject&& Other) noexcept
     Other.mBoundingBoxVisible = false;
     Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
     Other.mActorId = InvalidActorId;
+    Other.mPhysicsActorType = PhysicsActorBase::PhysicsActorType::Dynamic;
     Other.mPhysicsMass = 1.0F;
     Other.mHasInitialImpulse = false;
     Other.mInitialImpulse = DirectX::SimpleMath::Vector3{};
@@ -98,6 +103,7 @@ GameObject& GameObject::operator=(GameObject&& Other) noexcept {
     mBoundingBoxVisible = Other.mBoundingBoxVisible;
     mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
     mActorId = Other.mActorId;
+    mPhysicsActorType = Other.mPhysicsActorType;
     mPhysicsMass = Other.mPhysicsMass;
     mHasInitialImpulse = Other.mHasInitialImpulse;
     mInitialImpulse = Other.mInitialImpulse;
@@ -108,6 +114,7 @@ GameObject& GameObject::operator=(GameObject&& Other) noexcept {
     Other.mBoundingBoxVisible = false;
     Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
     Other.mActorId = InvalidActorId;
+    Other.mPhysicsActorType = PhysicsActorBase::PhysicsActorType::Dynamic;
     Other.mPhysicsMass = 1.0F;
     Other.mHasInitialImpulse = false;
     Other.mInitialImpulse = DirectX::SimpleMath::Vector3{};
@@ -125,6 +132,7 @@ GameObject::GameObject(std::string Name)
       mBoundingBoxVisible{},
       mBoundingBoxWorldMatrix{ 1.0F },
       mActorId{ InvalidActorId },
+      mPhysicsActorType{ PhysicsActorBase::PhysicsActorType::Dynamic },
       mPhysicsMass{ 1.0F },
       mHasInitialImpulse{},
       mInitialImpulse{} {
@@ -208,6 +216,14 @@ bool GameObject::HasActorId() const {
     return mActorId != InvalidActorId;
 }
 
+void GameObject::SetPhysicsActorType(PhysicsActorBase::PhysicsActorType ActorTypeValue) {
+    mPhysicsActorType = ActorTypeValue;
+}
+
+PhysicsActorBase::PhysicsActorType GameObject::GetPhysicsActorType() const {
+    return mPhysicsActorType;
+}
+
 void GameObject::SetPhysicsMass(float PhysicsMass) {
     mPhysicsMass = std::max(PhysicsMass, 0.0001F);
 }
@@ -248,7 +264,7 @@ PhysicsDynamicActor::ActorDesc GameObject::GetPhysicsDynamicActorDesc() const {
         ActorBoundingBox = mMesh->GetBoundingBox();
     }
 
-    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, mPhysicsMass, PhysicsActorBase::PhysicsActorFlags::None, PhysicsActorBase::PhysicsActorType::Dynamic, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
+    PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, mPhysicsMass, PhysicsActorBase::PhysicsActorFlags::None, mPhysicsActorType, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
     return ActorDesc;
 }
 

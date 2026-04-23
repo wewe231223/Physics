@@ -19,7 +19,8 @@ constexpr ActorId InvalidActorId{ std::numeric_limits<ActorId>::max() };
 
 enum class PhysicsCommandType : std::uint32_t {
     ResetScene = 0U,
-    AddImpulse = 1U
+    AddImpulse = 1U,
+    SetKinematicVelocity = 2U
 };
 
 struct PhysicsResetSceneCommand final {
@@ -32,10 +33,16 @@ struct PhysicsAddImpulseCommand final {
     DirectX::SimpleMath::Vector3 mImpulse{};
 };
 
+struct PhysicsSetKinematicVelocityCommand final {
+    ActorId mActorId{ InvalidActorId };
+    DirectX::SimpleMath::Vector3 mVelocity{};
+};
+
 struct PhysicsCommand final {
     PhysicsCommandType mType{ PhysicsCommandType::ResetScene };
     PhysicsResetSceneCommand mResetScene{};
     PhysicsAddImpulseCommand mAddImpulse{};
+    PhysicsSetKinematicVelocityCommand mSetKinematicVelocity{};
 };
 
 struct PhysicsActorSnapshot final {

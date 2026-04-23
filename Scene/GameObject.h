@@ -52,6 +52,9 @@ public:
     ActorId GetActorId() const;
     bool HasActorId() const;
 
+    void SetPhysicsActorType(PhysicsActorBase::PhysicsActorType ActorTypeValue);
+    PhysicsActorBase::PhysicsActorType GetPhysicsActorType() const;
+
     void SetPhysicsMass(float PhysicsMass);
     float GetPhysicsMass() const;
     void SetInitialImpulse(const DirectX::SimpleMath::Vector3& InitialImpulse);
@@ -76,6 +79,7 @@ private:
     bool mBoundingBoxVisible;
     glm::mat4 mBoundingBoxWorldMatrix;
     ActorId mActorId;
+    PhysicsActorBase::PhysicsActorType mPhysicsActorType;
     float mPhysicsMass;
     bool mHasInitialImpulse;
     DirectX::SimpleMath::Vector3 mInitialImpulse;

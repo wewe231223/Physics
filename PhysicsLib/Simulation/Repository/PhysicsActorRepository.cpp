@@ -160,6 +160,42 @@ std::vector<const PhysicsDynamicActor*> PhysicsActorRepository::CollectDynamicAc
     return DynamicActors;
 }
 
+std::vector<PhysicsKinematicActor*> PhysicsActorRepository::CollectKinematicActors() {
+    std::vector<PhysicsKinematicActor*> KinematicActors{};
+    std::size_t ActorCount{ mActors.size() };
+    KinematicActors.reserve(ActorCount);
+
+    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
+        PhysicsActorBase* CurrentActor{ mActors[ActorIndex].get() };
+        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Kinematic) {
+            continue;
+        }
+
+        PhysicsKinematicActor* KinematicActor{ static_cast<PhysicsKinematicActor*>(CurrentActor) };
+        KinematicActors.push_back(KinematicActor);
+    }
+
+    return KinematicActors;
+}
+
+std::vector<const PhysicsKinematicActor*> PhysicsActorRepository::CollectKinematicActors() const {
+    std::vector<const PhysicsKinematicActor*> KinematicActors{};
+    std::size_t ActorCount{ mActors.size() };
+    KinematicActors.reserve(ActorCount);
+
+    for (std::size_t ActorIndex{ 0U }; ActorIndex < ActorCount; ++ActorIndex) {
+        const PhysicsActorBase* CurrentActor{ mActors[ActorIndex].get() };
+        if (CurrentActor == nullptr || CurrentActor->GetActorType() != PhysicsActorBase::PhysicsActorType::Kinematic) {
+            continue;
+        }
+
+        const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(CurrentActor) };
+        KinematicActors.push_back(KinematicActor);
+    }
+
+    return KinematicActors;
+}
+
 std::vector<const PhysicsStaticActor*> PhysicsActorRepository::CollectStaticActors() const {
     std::vector<const PhysicsStaticActor*> StaticActors{};
     std::size_t ActorCount{ mActors.size() };

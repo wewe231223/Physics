@@ -39,6 +39,20 @@ void IntegrateDynamicActors(IPhysicsWorldMediator& WorldMediator, IPhysicsActorR
     }
 }
 
+void IntegrateKinematicActors(IPhysicsWorldMediator& WorldMediator, IPhysicsActorRepository& ActorRepository, float DeltaTime) {
+    std::vector<PhysicsKinematicActor*> KinematicActors{ ActorRepository.CollectKinematicActors() };
+    std::size_t KinematicActorCount{ KinematicActors.size() };
+    for (std::size_t ActorIndex{ 0U }; ActorIndex < KinematicActorCount; ++ActorIndex) {
+        PhysicsKinematicActor* KinematicActor{ KinematicActors[ActorIndex] };
+        if (KinematicActor == nullptr) {
+            continue;
+        }
+
+        KinematicActor->Integrate(WorldMediator, DeltaTime);
+        KinematicActor->SolveConstraints(WorldMediator, DeltaTime);
+    }
+}
+
 bool ResolveDynamicCollisionPair(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor, float DeltaTime) {
     bool HasCollision{ FirstActor.ResolveActorCollision(SecondActor, DeltaTime) };
     if (HasCollision) {
@@ -581,6 +595,7 @@ void PhysicsWorld::StepSimulation() {
     ResolveDynamicCollisions(*this, PairCandidates, mSettings.FixedTimeStep);
     ResolveStaticCollisions(*this, DynamicActors, StaticActors, mSettings.FixedTimeStep);
     IntegrateDynamicActors(*this, ActorRepository, mSettings.FixedTimeStep);
+    IntegrateKinematicActors(*this, ActorRepository, mSettings.FixedTimeStep);
 }
 
 void PhysicsWorld::Update(float DeltaTime) {

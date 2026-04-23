@@ -35,6 +35,7 @@ public:
 
     bool EnqueueResetScene(std::size_t SceneIndex, std::uint32_t WorldVersion);
     bool EnqueueAddImpulse(ActorId ActorIdValue, const DirectX::SimpleMath::Vector3& Impulse);
+    bool EnqueueSetKinematicVelocity(ActorId ActorIdValue, const DirectX::SimpleMath::Vector3& Velocity);
 
     std::uint32_t GetReadableSnapshotIndex() const;
     const PhysicsSnapshot& GetSnapshot(std::uint32_t SnapshotIndex) const;
@@ -48,6 +49,7 @@ private:
     void ProcessCommand(const PhysicsCommand& Command, double& OutTimeAccumulatorSeconds);
     void ApplyResetSceneCommand(const PhysicsResetSceneCommand& Command, double& OutTimeAccumulatorSeconds);
     void ApplyImpulseCommand(const PhysicsAddImpulseCommand& Command);
+    void ApplySetKinematicVelocityCommand(const PhysicsSetKinematicVelocityCommand& Command);
     void BuildWorldFromScene(std::size_t SceneIndex);
     void PublishSnapshot(std::size_t LastUpdateStepCount, double LastUpdateStepElapsedMilliseconds, double LastStepElapsedMilliseconds);
 
