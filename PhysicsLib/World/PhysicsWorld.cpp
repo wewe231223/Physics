@@ -20,8 +20,27 @@ DirectX::SimpleMath::Vector3 InterpolateVector3(const DirectX::SimpleMath::Vecto
     return InterpolatedValue;
 }
 
+DirectX::SimpleMath::Quaternion NormalizeQuaternionOrIdentity(const DirectX::SimpleMath::Quaternion& QuaternionValue) {
+    DirectX::SimpleMath::Quaternion NormalizedQuaternion{ QuaternionValue };
+    if (NormalizedQuaternion.LengthSquared() <= 0.0F) {
+        NormalizedQuaternion = DirectX::SimpleMath::Quaternion{ 0.0F, 0.0F, 0.0F, 1.0F };
+    } else {
+        NormalizedQuaternion.Normalize();
+    }
+
+    return NormalizedQuaternion;
+}
+
+DirectX::SimpleMath::Quaternion InterpolateQuaternion(const DirectX::SimpleMath::Quaternion& StartValue, const DirectX::SimpleMath::Quaternion& EndValue, float Alpha) {
+    DirectX::SimpleMath::Quaternion StartOrientation{ NormalizeQuaternionOrIdentity(StartValue) };
+    DirectX::SimpleMath::Quaternion EndOrientation{ NormalizeQuaternionOrIdentity(EndValue) };
+    DirectX::SimpleMath::Quaternion InterpolatedOrientation{ DirectX::SimpleMath::Quaternion::Slerp(StartOrientation, EndOrientation, Alpha) };
+    DirectX::SimpleMath::Quaternion NormalizedInterpolatedOrientation{ NormalizeQuaternionOrIdentity(InterpolatedOrientation) };
+    return NormalizedInterpolatedOrientation;
+}
+
 PhysicsFrameAccumulator::ActorState CreateActorStateFromActor(const PhysicsActorBase& Actor) {
-    PhysicsFrameAccumulator::ActorState ActorStateValue{ &Actor, Actor.GetActorType(), Actor.GetPosition(), Actor.GetRotation(), Actor.GetScale() };
+    PhysicsFrameAccumulator::ActorState ActorStateValue{ &Actor, Actor.GetActorType(), Actor.GetPosition(), Actor.GetOrientation(), Actor.GetScale() };
     return ActorStateValue;
 }
 
@@ -358,7 +377,7 @@ void PhysicsFrameAccumulator::CaptureCurrentState(const IPhysicsActorRepository&
     CaptureState(mCurrentStates, ActorRepository);
 }
 
-bool PhysicsFrameAccumulator::TryGetInterpolatedState(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
+bool PhysicsFrameAccumulator::TryGetInterpolatedState(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Quaternion& OutOrientation, DirectX::SimpleMath::Vector3& OutScale) const {
     ActorState PreviousState{};
     ActorState CurrentState{};
     bool HasPreviousState{ TryGetActorState(mPreviousStates, Actor, PreviousState) };
@@ -369,21 +388,21 @@ bool PhysicsFrameAccumulator::TryGetInterpolatedState(const PhysicsActorBase& Ac
 
     if (!HasPreviousState) {
         OutPosition = CurrentState.mPosition;
-        OutRotation = CurrentState.mRotation;
+        OutOrientation = CurrentState.mOrientation;
         OutScale = CurrentState.mScale;
         return true;
     }
 
     if (!HasCurrentState) {
         OutPosition = PreviousState.mPosition;
-        OutRotation = PreviousState.mRotation;
+        OutOrientation = PreviousState.mOrientation;
         OutScale = PreviousState.mScale;
         return true;
     }
 
     float InterpolationAlpha{ GetInterpolationAlpha() };
     OutPosition = InterpolateVector3(PreviousState.mPosition, CurrentState.mPosition, InterpolationAlpha);
-    OutRotation = InterpolateVector3(PreviousState.mRotation, CurrentState.mRotation, InterpolationAlpha);
+    OutOrientation = InterpolateQuaternion(PreviousState.mOrientation, CurrentState.mOrientation, InterpolationAlpha);
     OutScale = InterpolateVector3(PreviousState.mScale, CurrentState.mScale, InterpolationAlpha);
     return true;
 }
@@ -615,8 +634,8 @@ double PhysicsWorld::GetLastStepElapsedMilliseconds() const {
     return mLastStepElapsedMilliseconds;
 }
 
-bool PhysicsWorld::TryGetInterpolatedActorTransform(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const {
-    bool HasInterpolatedState{ mFrameAccumulator.TryGetInterpolatedState(Actor, OutPosition, OutRotation, OutScale) };
+bool PhysicsWorld::TryGetInterpolatedActorTransform(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Quaternion& OutOrientation, DirectX::SimpleMath::Vector3& OutScale) const {
+    bool HasInterpolatedState{ mFrameAccumulator.TryGetInterpolatedState(Actor, OutPosition, OutOrientation, OutScale) };
     return HasInterpolatedState;
 }
 

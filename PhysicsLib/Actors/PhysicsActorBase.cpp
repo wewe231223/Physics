@@ -53,8 +53,8 @@ PhysicsActorBase::PhysicsActorBase(const ActorDesc& Desc)
     : PhysicsActorBase{} {
     mName = Desc.Name;
     mRigidBody.mPosition = Desc.Position;
-    mRigidBody.mRotation = Desc.Rotation;
-    UpdateRigidBodyOrientationFromEulerRotation();
+    mRigidBody.mOrientation = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(Desc.Rotation.y, Desc.Rotation.x, Desc.Rotation.z);
+    NormalizeRigidBodyOrientation();
     mRigidBody.mScale = Desc.Scale;
     mRigidBody.mVelocity = Desc.Velocity;
     mRigidBody.mAcceleration = Desc.Acceleration;
@@ -152,7 +152,7 @@ const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetAngularMomentum() const
 
 void PhysicsActorBase::SetRigidBody(const RigidBody& RigidBodyState) {
     mRigidBody = RigidBodyState;
-    UpdateEulerRotationFromRigidBodyOrientation();
+    NormalizeRigidBodyOrientation();
     UpdateWorldBoundingBox();
 }
 
@@ -208,13 +208,31 @@ const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetPosition() const {
 }
 
 void PhysicsActorBase::SetRotation(const DirectX::SimpleMath::Vector3& Rotation) {
-    mRigidBody.mRotation = Rotation;
-    UpdateRigidBodyOrientationFromEulerRotation();
+    mRigidBody.mOrientation = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z);
+    NormalizeRigidBodyOrientation();
     UpdateWorldBoundingBox();
 }
 
-const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetRotation() const {
-    return mRigidBody.mRotation;
+DirectX::SimpleMath::Vector3 PhysicsActorBase::GetRotation() const {
+    DirectX::SimpleMath::Quaternion NormalizedOrientation{ mRigidBody.mOrientation };
+    if (NormalizedOrientation.LengthSquared() <= 0.0F) {
+        NormalizedOrientation = DirectX::SimpleMath::Quaternion{ 0.0F, 0.0F, 0.0F, 1.0F };
+    } else {
+        NormalizedOrientation.Normalize();
+    }
+
+    DirectX::SimpleMath::Vector3 Rotation{ NormalizedOrientation.ToEuler() };
+    return Rotation;
+}
+
+void PhysicsActorBase::SetOrientation(const DirectX::SimpleMath::Quaternion& Orientation) {
+    mRigidBody.mOrientation = Orientation;
+    NormalizeRigidBodyOrientation();
+    UpdateWorldBoundingBox();
+}
+
+const DirectX::SimpleMath::Quaternion& PhysicsActorBase::GetOrientation() const {
+    return mRigidBody.mOrientation;
 }
 
 void PhysicsActorBase::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
@@ -347,6 +365,7 @@ void PhysicsActorBase::UpdateSleepState() {
 }
 
 void PhysicsActorBase::UpdateWorldBoundingBox() {
+    NormalizeRigidBodyOrientation();
     DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(mRigidBody.mScale) };
     DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromQuaternion(mRigidBody.mOrientation) };
     DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(mRigidBody.mPosition) };
@@ -355,24 +374,13 @@ void PhysicsActorBase::UpdateWorldBoundingBox() {
     UpdateFatWorldBoundingBox();
 }
 
-void PhysicsActorBase::UpdateRigidBodyOrientationFromEulerRotation() {
-    mRigidBody.mOrientation = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(mRigidBody.mRotation.y, mRigidBody.mRotation.x, mRigidBody.mRotation.z);
+void PhysicsActorBase::NormalizeRigidBodyOrientation() {
     if (mRigidBody.mOrientation.LengthSquared() <= 0.0F) {
         mRigidBody.mOrientation = DirectX::SimpleMath::Quaternion{ 0.0F, 0.0F, 0.0F, 1.0F };
         return;
     }
 
     mRigidBody.mOrientation.Normalize();
-}
-
-void PhysicsActorBase::UpdateEulerRotationFromRigidBodyOrientation() {
-    if (mRigidBody.mOrientation.LengthSquared() <= 0.0F) {
-        mRigidBody.mOrientation = DirectX::SimpleMath::Quaternion{ 0.0F, 0.0F, 0.0F, 1.0F };
-    } else {
-        mRigidBody.mOrientation.Normalize();
-    }
-
-    mRigidBody.mRotation = mRigidBody.mOrientation.ToEuler();
 }
 
 void PhysicsActorBase::UpdateFatWorldBoundingBox() {

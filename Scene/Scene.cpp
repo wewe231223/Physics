@@ -242,10 +242,10 @@ void Scene::ApplyPhysicsSnapshot(const PhysicsSnapshot& Snapshot) {
 
         GameObject& CurrentObject{ mGameObjects[ObjectIndex] };
         CurrentObject.SetIsActive(SnapshotActor.mIsActive);
-        CurrentObject.ApplyPhysicsState(SnapshotActor.mPosition, SnapshotActor.mRotation, SnapshotActor.mScale);
+        CurrentObject.ApplyPhysicsState(SnapshotActor.mPosition, SnapshotActor.mOrientation, SnapshotActor.mScale);
 
         if (CurrentObject.GetBoundingBoxVisible() && SnapshotActor.mActorType != PhysicsActorBase::PhysicsActorType::Static) {
-            CurrentObject.SetBoundingBoxFromPhysicsState(SnapshotActor.mWorldBoundingBox, SnapshotActor.mRotation);
+            CurrentObject.SetBoundingBoxFromPhysicsState(SnapshotActor.mWorldBoundingBox, SnapshotActor.mOrientation);
         } else {
             CurrentObject.ClearBoundingBoxWorldMatrix();
         }

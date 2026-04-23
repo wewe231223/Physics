@@ -22,7 +22,7 @@ public:
         const PhysicsActorBase* mActorPointer;
         PhysicsActorBase::PhysicsActorType mActorType;
         DirectX::SimpleMath::Vector3 mPosition;
-        DirectX::SimpleMath::Vector3 mRotation;
+        DirectX::SimpleMath::Quaternion mOrientation;
         DirectX::SimpleMath::Vector3 mScale;
     };
 
@@ -46,7 +46,7 @@ public:
     void SynchronizeStatePair(const IPhysicsActorRepository& ActorRepository);
     void CapturePreviousState(const IPhysicsActorRepository& ActorRepository);
     void CaptureCurrentState(const IPhysicsActorRepository& ActorRepository);
-    bool TryGetInterpolatedState(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
+    bool TryGetInterpolatedState(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Quaternion& OutOrientation, DirectX::SimpleMath::Vector3& OutScale) const;
 
 private:
     void CaptureState(std::vector<ActorState>& OutStates, const IPhysicsActorRepository& ActorRepository) const;
@@ -95,7 +95,7 @@ public:
     std::size_t GetLastUpdateStepCount() const;
     double GetLastUpdateStepElapsedMilliseconds() const;
     double GetLastStepElapsedMilliseconds() const;
-    bool TryGetInterpolatedActorTransform(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Vector3& OutRotation, DirectX::SimpleMath::Vector3& OutScale) const;
+    bool TryGetInterpolatedActorTransform(const PhysicsActorBase& Actor, DirectX::SimpleMath::Vector3& OutPosition, DirectX::SimpleMath::Quaternion& OutOrientation, DirectX::SimpleMath::Vector3& OutScale) const;
 
     void StepSimulation();
     void Update(float DeltaTime);

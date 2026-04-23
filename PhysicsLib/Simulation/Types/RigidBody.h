@@ -4,7 +4,7 @@
 
 struct RigidBody {
     DirectX::SimpleMath::Vector3 mPosition{};
-    DirectX::SimpleMath::Vector3 mRotation{};
+    DirectX::SimpleMath::Quaternion mOrientation{ 0.0F, 0.0F, 0.0F, 1.0F };
     DirectX::SimpleMath::Vector3 mScale{ 1.0F, 1.0F, 1.0F };
     float mMass{ 1.0F };
     float mInverseMass{ 1.0F };
@@ -19,7 +19,6 @@ struct RigidBody {
     float mRestitution{ 0.1F };
     float mLinearDamping{ 0.03F };
     float mAngularDamping{ 0.03F };
-    DirectX::SimpleMath::Quaternion mOrientation{ 0.0F, 0.0F, 0.0F, 1.0F };
     DirectX::SimpleMath::Vector3 mAngularVelocity{};
     DirectX::SimpleMath::Vector3 mTorque{};
     DirectX::SimpleMath::Matrix mInverseInertiaTensorWorld{ 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F };

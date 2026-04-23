@@ -105,7 +105,9 @@ public:
     const DirectX::SimpleMath::Vector3& GetPosition() const;
 
     void SetRotation(const DirectX::SimpleMath::Vector3& Rotation);
-    const DirectX::SimpleMath::Vector3& GetRotation() const;
+    DirectX::SimpleMath::Vector3 GetRotation() const;
+    void SetOrientation(const DirectX::SimpleMath::Quaternion& Orientation);
+    const DirectX::SimpleMath::Quaternion& GetOrientation() const;
 
     void SetScale(const DirectX::SimpleMath::Vector3& Scale);
     const DirectX::SimpleMath::Vector3& GetScale() const;
@@ -150,8 +152,7 @@ public:
     virtual std::unique_ptr<PhysicsActorBase> Clone() const = 0;
 
 private:
-    void UpdateRigidBodyOrientationFromEulerRotation();
-    void UpdateEulerRotationFromRigidBodyOrientation();
+    void NormalizeRigidBodyOrientation();
     void UpdateFatWorldBoundingBox();
 
 private:

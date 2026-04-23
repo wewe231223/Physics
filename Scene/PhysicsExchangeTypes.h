@@ -50,7 +50,7 @@ struct PhysicsActorSnapshot final {
     PhysicsActorBase::PhysicsActorType mActorType{ PhysicsActorBase::PhysicsActorType::Dynamic };
     bool mIsActive{};
     DirectX::SimpleMath::Vector3 mPosition{};
-    DirectX::SimpleMath::Vector3 mRotation{};
+    DirectX::SimpleMath::Quaternion mOrientation{ 0.0F, 0.0F, 0.0F, 1.0F };
     DirectX::SimpleMath::Vector3 mScale{ 1.0F, 1.0F, 1.0F };
     DirectX::BoundingOrientedBox mWorldBoundingBox{};
 };

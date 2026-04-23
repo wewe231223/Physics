@@ -120,10 +120,10 @@ PhysicsTerrainActor::ActorDesc PhysicsTerrainActor::GetActorDesc() const {
 
 bool PhysicsTerrainActor::TryGetSurfaceHeightAtWorldPosition(float WorldX, float WorldZ, float& OutWorldHeight) const {
     const DirectX::SimpleMath::Vector3& Position{ GetPosition() };
-    const DirectX::SimpleMath::Vector3& Rotation{ GetRotation() };
+    const DirectX::SimpleMath::Quaternion& Orientation{ GetOrientation() };
     const DirectX::SimpleMath::Vector3& Scale{ GetScale() };
     DirectX::SimpleMath::Matrix ScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Scale) };
-    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z) };
+    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromQuaternion(Orientation) };
     DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(Position) };
     DirectX::SimpleMath::Matrix WorldMatrix{ ScalingMatrix * RotationMatrix * TranslationMatrix };
     DirectX::SimpleMath::Matrix InverseWorldMatrix{ WorldMatrix.Invert() };
@@ -153,7 +153,7 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(PhysicsActorBase& DynamicActor
     }
 
     const DirectX::SimpleMath::Vector3& Position{ GetPosition() };
-    const DirectX::SimpleMath::Vector3& Rotation{ GetRotation() };
+    const DirectX::SimpleMath::Quaternion& Orientation{ GetOrientation() };
     const DirectX::SimpleMath::Vector3& Scale{ GetScale() };
     float TerrainHalfExtentX{ mHalfExtentX * std::abs(Scale.x) };
     float TerrainHalfExtentZ{ mHalfExtentZ * std::abs(Scale.z) };
@@ -170,16 +170,14 @@ bool PhysicsTerrainActor::ResolveDynamicCollision(PhysicsActorBase& DynamicActor
     DirectX::BoundingOrientedBox TerrainBoundingBox{};
     TerrainBoundingBox.Center = DirectX::XMFLOAT3{ Position.x, Position.y + (TerrainHalfExtentY * 0.5F), Position.z };
     TerrainBoundingBox.Extents = DirectX::XMFLOAT3{ TerrainHalfExtentX, TerrainHalfExtentY, TerrainHalfExtentZ };
-    TerrainBoundingBox.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
-    DirectX::SimpleMath::Quaternion TerrainRotationQuaternion{ DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z) };
-    TerrainBoundingBox.Orientation = DirectX::XMFLOAT4{ TerrainRotationQuaternion.x, TerrainRotationQuaternion.y, TerrainRotationQuaternion.z, TerrainRotationQuaternion.w };
+    TerrainBoundingBox.Orientation = DirectX::XMFLOAT4{ Orientation.x, Orientation.y, Orientation.z, Orientation.w };
 
     if (!TerrainBoundingBox.Intersects(PredictedWorldBoundingBox)) {
         return false;
     }
 
     DirectX::SimpleMath::Matrix TerrainScalingMatrix{ DirectX::SimpleMath::Matrix::CreateScale(Scale) };
-    DirectX::SimpleMath::Matrix TerrainRotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll(Rotation.y, Rotation.x, Rotation.z) };
+    DirectX::SimpleMath::Matrix TerrainRotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromQuaternion(Orientation) };
     DirectX::SimpleMath::Matrix TerrainTranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(Position) };
     DirectX::SimpleMath::Matrix TerrainWorldMatrix{ TerrainScalingMatrix * TerrainRotationMatrix * TerrainTranslationMatrix };
     DirectX::SimpleMath::Matrix InverseTerrainWorldMatrix{ TerrainWorldMatrix.Invert() };

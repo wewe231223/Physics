@@ -65,8 +65,8 @@ public:
     PhysicsDynamicActor::ActorDesc GetPhysicsDynamicActorDesc() const;
     PhysicsTerrainActor::ActorDesc GetPhysicsTerrainActorDesc() const;
 
-    void ApplyPhysicsState(const DirectX::SimpleMath::Vector3& Position, const DirectX::SimpleMath::Vector3& Rotation, const DirectX::SimpleMath::Vector3& Scale);
-    void SetBoundingBoxFromPhysicsState(const DirectX::BoundingOrientedBox& WorldBoundingBox, const DirectX::SimpleMath::Vector3& Rotation);
+    void ApplyPhysicsState(const DirectX::SimpleMath::Vector3& Position, const DirectX::SimpleMath::Quaternion& Orientation, const DirectX::SimpleMath::Vector3& Scale);
+    void SetBoundingBoxFromPhysicsState(const DirectX::BoundingOrientedBox& WorldBoundingBox, const DirectX::SimpleMath::Quaternion& Orientation);
     void ClearBoundingBoxWorldMatrix();
 
 private:

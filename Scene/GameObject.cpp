@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 GameObject::GameObject()
     : mName{ "GameObject" },
@@ -301,24 +302,23 @@ PhysicsTerrainActor::ActorDesc GameObject::GetPhysicsTerrainActorDesc() const {
     return ActorDesc;
 }
 
-void GameObject::ApplyPhysicsState(const DirectX::SimpleMath::Vector3& Position, const DirectX::SimpleMath::Vector3& Rotation, const DirectX::SimpleMath::Vector3& Scale) {
+void GameObject::ApplyPhysicsState(const DirectX::SimpleMath::Vector3& Position, const DirectX::SimpleMath::Quaternion& Orientation, const DirectX::SimpleMath::Vector3& Scale) {
+    DirectX::SimpleMath::Vector3 Rotation{ Orientation.ToEuler() };
     mTransform.SetPosition(glm::vec3{ Position.x, Position.y, Position.z });
     mTransform.SetRotation(glm::vec3{ Rotation.x, Rotation.y, Rotation.z });
     mTransform.SetScale(glm::vec3{ Scale.x, Scale.y, Scale.z });
 }
 
-void GameObject::SetBoundingBoxFromPhysicsState(const DirectX::BoundingOrientedBox& WorldBoundingBox, const DirectX::SimpleMath::Vector3& Rotation) {
+void GameObject::SetBoundingBoxFromPhysicsState(const DirectX::BoundingOrientedBox& WorldBoundingBox, const DirectX::SimpleMath::Quaternion& Orientation) {
     DirectX::XMFLOAT3 Center{ WorldBoundingBox.Center };
     DirectX::XMFLOAT3 Extents{ WorldBoundingBox.Extents };
     glm::vec3 BoundingBoxPosition{ Center.x, Center.y, Center.z };
-    glm::vec3 BoundingBoxRotation{ Rotation.x, Rotation.y, Rotation.z };
     glm::vec3 BoundingBoxScale{ Extents.x * 2.0F, Extents.y * 2.0F, Extents.z * 2.0F };
     glm::mat4 TranslationMatrix{ glm::translate(glm::mat4{ 1.0F }, BoundingBoxPosition) };
-    glm::mat4 RotationXMatrix{ glm::rotate(glm::mat4{ 1.0F }, BoundingBoxRotation.x, glm::vec3{ 1.0F, 0.0F, 0.0F }) };
-    glm::mat4 RotationYMatrix{ glm::rotate(glm::mat4{ 1.0F }, BoundingBoxRotation.y, glm::vec3{ 0.0F, 1.0F, 0.0F }) };
-    glm::mat4 RotationZMatrix{ glm::rotate(glm::mat4{ 1.0F }, BoundingBoxRotation.z, glm::vec3{ 0.0F, 0.0F, 1.0F }) };
+    glm::quat BoundingBoxRotationQuaternion{ Orientation.w, Orientation.x, Orientation.y, Orientation.z };
+    glm::mat4 RotationMatrix{ glm::mat4_cast(BoundingBoxRotationQuaternion) };
     glm::mat4 ScaleMatrix{ glm::scale(glm::mat4{ 1.0F }, BoundingBoxScale) };
-    mBoundingBoxWorldMatrix = TranslationMatrix * RotationZMatrix * RotationYMatrix * RotationXMatrix * ScaleMatrix;
+    mBoundingBoxWorldMatrix = TranslationMatrix * RotationMatrix * ScaleMatrix;
 }
 
 void GameObject::ClearBoundingBoxWorldMatrix() {

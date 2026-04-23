@@ -379,7 +379,7 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
         if (CurrentActor->GetActorType() == PhysicsActorBase::PhysicsActorType::Dynamic) {
             const PhysicsDynamicActor* DynamicActor{ static_cast<const PhysicsDynamicActor*>(CurrentActor) };
             SnapshotActor.mPosition = DynamicActor->GetPosition();
-            SnapshotActor.mRotation = DynamicActor->GetRotation();
+            SnapshotActor.mOrientation = DynamicActor->GetOrientation();
             SnapshotActor.mScale = DynamicActor->GetScale();
             SnapshotActor.mWorldBoundingBox = DynamicActor->GetWorldBoundingBox();
             continue;
@@ -388,7 +388,7 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
         if (CurrentActor->GetActorType() == PhysicsActorBase::PhysicsActorType::Kinematic) {
             const PhysicsKinematicActor* KinematicActor{ static_cast<const PhysicsKinematicActor*>(CurrentActor) };
             SnapshotActor.mPosition = KinematicActor->GetPosition();
-            SnapshotActor.mRotation = KinematicActor->GetRotation();
+            SnapshotActor.mOrientation = KinematicActor->GetOrientation();
             SnapshotActor.mScale = KinematicActor->GetScale();
             SnapshotActor.mWorldBoundingBox = KinematicActor->GetWorldBoundingBox();
             continue;
@@ -398,7 +398,7 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
         if (TerrainActor != nullptr) {
             PhysicsTerrainActor::ActorDesc TerrainActorDesc{ TerrainActor->GetActorDesc() };
             SnapshotActor.mPosition = TerrainActorDesc.Position;
-            SnapshotActor.mRotation = TerrainActorDesc.Rotation;
+            SnapshotActor.mOrientation = TerrainActor->GetOrientation();
             SnapshotActor.mScale = TerrainActorDesc.Scale;
 
             DirectX::BoundingOrientedBox TerrainWorldBoundingBox{};
@@ -407,14 +407,13 @@ void PhysicsRuntime::PublishSnapshot(std::size_t LastUpdateStepCount, double Las
             float WorldExtentZ{ std::abs(TerrainActorDesc.HalfExtentZ * TerrainActorDesc.Scale.z) };
             float WorldExtentY{ std::max(std::abs(TerrainActorDesc.HeightFieldMaxHeight * TerrainActorDesc.Scale.y), 0.5F) };
             TerrainWorldBoundingBox.Extents = DirectX::XMFLOAT3{ WorldExtentX, WorldExtentY, WorldExtentZ };
-            DirectX::SimpleMath::Quaternion TerrainRotationQuaternion{ DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(TerrainActorDesc.Rotation.y, TerrainActorDesc.Rotation.x, TerrainActorDesc.Rotation.z) };
-            TerrainWorldBoundingBox.Orientation = DirectX::XMFLOAT4{ TerrainRotationQuaternion.x, TerrainRotationQuaternion.y, TerrainRotationQuaternion.z, TerrainRotationQuaternion.w };
+            TerrainWorldBoundingBox.Orientation = DirectX::XMFLOAT4{ SnapshotActor.mOrientation.x, SnapshotActor.mOrientation.y, SnapshotActor.mOrientation.z, SnapshotActor.mOrientation.w };
             SnapshotActor.mWorldBoundingBox = TerrainWorldBoundingBox;
             continue;
         }
 
         SnapshotActor.mPosition = DirectX::SimpleMath::Vector3{};
-        SnapshotActor.mRotation = DirectX::SimpleMath::Vector3{};
+        SnapshotActor.mOrientation = DirectX::SimpleMath::Quaternion{ 0.0F, 0.0F, 0.0F, 1.0F };
         SnapshotActor.mScale = DirectX::SimpleMath::Vector3{ 1.0F, 1.0F, 1.0F };
         SnapshotActor.mWorldBoundingBox = DirectX::BoundingOrientedBox{};
     }
