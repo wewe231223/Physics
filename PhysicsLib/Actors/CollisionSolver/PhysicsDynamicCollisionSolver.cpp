@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cmath>
 #include <limits>
-#include <unordered_map>
 #include <utility>
 
 #include "PhysicsLib/Actors/CollisionSolver/PhysicsDynamicCollisionSolver.h"
@@ -48,11 +47,10 @@ PhysicsDynamicCollisionSolver& PhysicsDynamicCollisionSolver::operator=(PhysicsD
 }
 
 void PhysicsDynamicCollisionSolver::BeginFrame(std::size_t PairCandidateCount) {
-    BeginDynamicCollisionPairCacheFrame(PairCandidateCount);
+    (void)PairCandidateCount;
 }
 
 void PhysicsDynamicCollisionSolver::EndFrame() {
-    EndDynamicCollisionPairCacheFrame();
 }
 
 bool PhysicsDynamicCollisionSolver::ResolveCollision(PhysicsActorBase& SelfActor, PhysicsActorBase& OtherActor, float DeltaTime) const {
@@ -76,67 +74,17 @@ bool PhysicsDynamicCollisionSolver::ResolveCollision(PhysicsActorBase& SelfActor
 
     DynamicObb SelfObb{ CreateDynamicObb(SelfBounds) };
     DynamicObb OtherObb{ CreateDynamicObb(OtherBounds) };
-    DynamicPairCacheKey PairCacheKey{ CreateDynamicPairCacheKey(SelfActor, OtherActor) };
-    auto CacheIterator{ DynamicPersistentPairCache.find(PairCacheKey) };
-    bool HasPersistentCache{ CacheIterator != DynamicPersistentPairCache.end() };
-    bool HasPreviousFramePersistentCache{ HasPersistentCache && (CacheIterator->second.mLastFrameIndex + 1U == DynamicPersistentPairCacheFrameIndex) };
-    if (CacheIterator != DynamicPersistentPairCache.end()) {
-        DirectX::SimpleMath::Vector3 CachedAxis{};
-        if (TryGetAxisFromPersistentCache(CacheIterator->second, SelfObb, OtherObb, CachedAxis)) {
-            float CachedAxisOverlap{ CalculateAxisOverlap(SelfObb, OtherObb, CachedAxis) };
-            if (CachedAxisOverlap <= 0.0F) {
-                DynamicPersistentPairCache.erase(CacheIterator);
-                return false;
-            }
-        }
-    }
-
-    DynamicContactManifold ContactManifold{};
-    bool HasBuiltManifoldFromCache{};
-    if (HasPreviousFramePersistentCache) {
-        HasBuiltManifoldFromCache = TryBuildContactManifoldFromPersistentCache(CacheIterator->second, SelfObb, OtherObb, ContactManifold);
-    }
-
-    if (!HasBuiltManifoldFromCache) {
-        DynamicSatResult SatResult{};
-        if (!ComputeObbSatResult(SelfObb, OtherObb, SatResult)) {
-            if (CacheIterator != DynamicPersistentPairCache.end()) {
-                DynamicPersistentPairCache.erase(CacheIterator);
-            }
-
-            return false;
-        }
-
-        if (!BuildContactManifoldFromSatResult(SelfObb, OtherObb, SatResult, ContactManifold)) {
-            if (CacheIterator != DynamicPersistentPairCache.end()) {
-                DynamicPersistentPairCache.erase(CacheIterator);
-            }
-
-            return false;
-        }
-
-        if (HasPreviousFramePersistentCache) {
-            SeedManifoldWithPersistentCache(CacheIterator->second, ContactManifold, true);
-        }
-    }
-
-    if (ContactManifold.mContactCount == 0U) {
-        if (CacheIterator != DynamicPersistentPairCache.end()) {
-            DynamicPersistentPairCache.erase(CacheIterator);
-        }
-
+    DynamicSatResult SatResult{};
+    if (!ComputeObbSatResult(SelfObb, OtherObb, SatResult)) {
         return false;
     }
 
-    SolveContactManifoldWithPgs(ContactManifold, SelfActor, OtherActor, DeltaTime);
-    ApplyPositionCorrectionFromManifold(ContactManifold, SelfActor, OtherActor);
+    if (!ResolveCollisionFromSatResult(SelfActor, OtherActor, SatResult, DeltaTime)) {
+        return false;
+    }
+
     SelfActor.SetIsSleeping(false);
     OtherActor.SetIsSleeping(false);
-
-    DynamicObb CorrectedSelfObb{ CreateDynamicObb(SelfActor.GetWorldBoundingBox()) };
-    DynamicObb CorrectedOtherObb{ CreateDynamicObb(OtherActor.GetWorldBoundingBox()) };
-    DynamicPersistentManifoldCache& PersistentCache{ DynamicPersistentPairCache[PairCacheKey] };
-    UpdatePersistentCacheFromManifold(CorrectedSelfObb, CorrectedOtherObb, ContactManifold, PersistentCache);
     return true;
 }
 
