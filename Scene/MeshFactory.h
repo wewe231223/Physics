@@ -16,7 +16,6 @@ public:
 public:
     static Mesh CreateCube(float Size);
     static Mesh CreateSphere(float Radius, unsigned int SectorCount, unsigned int StackCount);
-    static Mesh CreateCylinder(float Radius, float Height, unsigned int SegmentCount);
     static Mesh CreateTriangularPyramid(float Size);
     static Mesh CreateSquarePyramid(float Size);
     static Mesh CreateGrid(float HalfExtent, unsigned int DivisionCount);

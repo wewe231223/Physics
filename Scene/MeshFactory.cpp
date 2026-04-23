@@ -154,58 +154,6 @@ Mesh MeshFactory::CreateSphere(float Radius, unsigned int SectorCount, unsigned 
     return CreatedMesh;
 }
 
-Mesh MeshFactory::CreateCylinder(float Radius, float Height, unsigned int SegmentCount) {
-    Mesh CreatedMesh{};
-
-    unsigned int SafeSegmentCount{ SegmentCount < 3U ? 3U : SegmentCount };
-    float HalfHeight{ Height * 0.5F };
-    std::vector<glm::vec3> Vertices{};
-    std::vector<unsigned int> Indices{};
-    Vertices.reserve(static_cast<std::size_t>(SafeSegmentCount) * 2U + 2U);
-    Indices.reserve(static_cast<std::size_t>(SafeSegmentCount) * 12U);
-
-    for (unsigned int SegmentIndex{ 0U }; SegmentIndex < SafeSegmentCount; ++SegmentIndex) {
-        float SegmentRatio{ static_cast<float>(SegmentIndex) / static_cast<float>(SafeSegmentCount) };
-        float Theta{ 2.0F * glm::pi<float>() * SegmentRatio };
-        float X{ Radius * std::cos(Theta) };
-        float Z{ Radius * std::sin(Theta) };
-        Vertices.push_back(glm::vec3{ X, -HalfHeight, Z });
-        Vertices.push_back(glm::vec3{ X, HalfHeight, Z });
-    }
-
-    unsigned int BottomCenterIndex{ static_cast<unsigned int>(Vertices.size()) };
-    Vertices.push_back(glm::vec3{ 0.0F, -HalfHeight, 0.0F });
-    unsigned int TopCenterIndex{ static_cast<unsigned int>(Vertices.size()) };
-    Vertices.push_back(glm::vec3{ 0.0F, HalfHeight, 0.0F });
-
-    for (unsigned int SegmentIndex{ 0U }; SegmentIndex < SafeSegmentCount; ++SegmentIndex) {
-        unsigned int NextSegmentIndex{ (SegmentIndex + 1U) % SafeSegmentCount };
-        unsigned int Bottom0{ SegmentIndex * 2U };
-        unsigned int Top0{ Bottom0 + 1U };
-        unsigned int Bottom1{ NextSegmentIndex * 2U };
-        unsigned int Top1{ Bottom1 + 1U };
-        Indices.push_back(Bottom0);
-        Indices.push_back(Bottom1);
-        Indices.push_back(Top0);
-        Indices.push_back(Top0);
-        Indices.push_back(Bottom1);
-        Indices.push_back(Top1);
-        Indices.push_back(BottomCenterIndex);
-        Indices.push_back(Bottom0);
-        Indices.push_back(Bottom1);
-        Indices.push_back(TopCenterIndex);
-        Indices.push_back(Top1);
-        Indices.push_back(Top0);
-    }
-
-    CreatedMesh.SetVertices(Vertices);
-    CreatedMesh.SetColors(CreateSolidColors(Vertices.size(), glm::vec3{ 0.90F, 0.58F, 0.22F }));
-    CreatedMesh.SetIndices(Indices);
-    CreatedMesh.SetTopology(MeshTopology::Triangles);
-
-    return CreatedMesh;
-}
-
 Mesh MeshFactory::CreateTriangularPyramid(float Size) {
     Mesh CreatedMesh{};
 

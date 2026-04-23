@@ -14,7 +14,6 @@
 enum class PrimitiveMeshType {
     Cube,
     Sphere,
-    Cylinder,
     TriangularPyramid,
     SquarePyramid,
     Grid
@@ -70,7 +69,6 @@ private:
     std::vector<GameObject> mGameObjects;
     std::shared_ptr<Mesh> mCubeMesh;
     std::shared_ptr<Mesh> mSphereMesh;
-    std::shared_ptr<Mesh> mCylinderMesh;
     std::shared_ptr<Mesh> mTriangularPyramidMesh;
     std::shared_ptr<Mesh> mSquarePyramidMesh;
     std::shared_ptr<Mesh> mGridMesh;

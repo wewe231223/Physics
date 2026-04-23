@@ -9,93 +9,12 @@
 #undef min
 
 namespace {
-constexpr float InertiaTensorEpsilon{ 0.000001F };
-
 DirectX::BoundingOrientedBox MakeDefaultBoundingOrientedBox() {
     DirectX::BoundingOrientedBox BoundingBoxValue{};
     BoundingBoxValue.Center = DirectX::XMFLOAT3{ 0.0F, 0.0F, 0.0F };
     BoundingBoxValue.Extents = DirectX::XMFLOAT3{ 0.5F, 0.5F, 0.5F };
     BoundingBoxValue.Orientation = DirectX::XMFLOAT4{ 0.0F, 0.0F, 0.0F, 1.0F };
     return BoundingBoxValue;
-}
-
-DirectX::SimpleMath::Matrix MakeTensorMatrix(float X, float Y, float Z) {
-    DirectX::SimpleMath::Matrix TensorMatrix{ X, 0.0F, 0.0F, 0.0F, 0.0F, Y, 0.0F, 0.0F, 0.0F, 0.0F, Z, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F };
-    return TensorMatrix;
-}
-
-DirectX::SimpleMath::Vector3 GetScaledHalfExtents(const DirectX::BoundingOrientedBox& BoundingBox, const DirectX::SimpleMath::Vector3& Scale) {
-    DirectX::SimpleMath::Vector3 HalfExtents{ std::abs(BoundingBox.Extents.x * Scale.x), std::abs(BoundingBox.Extents.y * Scale.y), std::abs(BoundingBox.Extents.z * Scale.z) };
-    return HalfExtents;
-}
-
-DirectX::SimpleMath::Matrix CalculateBoxLocalInertiaTensor(float Mass, const DirectX::SimpleMath::Vector3& HalfExtents) {
-    float Width{ HalfExtents.x * 2.0F };
-    float Height{ HalfExtents.y * 2.0F };
-    float Depth{ HalfExtents.z * 2.0F };
-    float Factor{ Mass / 12.0F };
-    float InertiaX{ Factor * ((Height * Height) + (Depth * Depth)) };
-    float InertiaY{ Factor * ((Width * Width) + (Depth * Depth)) };
-    float InertiaZ{ Factor * ((Width * Width) + (Height * Height)) };
-    DirectX::SimpleMath::Matrix TensorMatrix{ MakeTensorMatrix(InertiaX, InertiaY, InertiaZ) };
-    return TensorMatrix;
-}
-
-DirectX::SimpleMath::Matrix CalculateSphereLocalInertiaTensor(float Mass, const DirectX::SimpleMath::Vector3& HalfExtents) {
-    float Radius{ std::max(std::max(HalfExtents.x, HalfExtents.y), HalfExtents.z) };
-    float Inertia{ 0.4F * Mass * Radius * Radius };
-    DirectX::SimpleMath::Matrix TensorMatrix{ MakeTensorMatrix(Inertia, Inertia, Inertia) };
-    return TensorMatrix;
-}
-
-DirectX::SimpleMath::Matrix CalculateCylinderLocalInertiaTensor(float Mass, const DirectX::SimpleMath::Vector3& HalfExtents) {
-    float Radius{ std::max(HalfExtents.x, HalfExtents.z) };
-    float Height{ HalfExtents.y * 2.0F };
-    float RadiusSquared{ Radius * Radius };
-    float HeightSquared{ Height * Height };
-    float InertiaX{ (Mass / 12.0F) * ((3.0F * RadiusSquared) + HeightSquared) };
-    float InertiaY{ 0.5F * Mass * RadiusSquared };
-    float InertiaZ{ InertiaX };
-    DirectX::SimpleMath::Matrix TensorMatrix{ MakeTensorMatrix(InertiaX, InertiaY, InertiaZ) };
-    return TensorMatrix;
-}
-
-DirectX::SimpleMath::Matrix CalculateLocalInertiaTensor(PhysicsActorBase::PhysicsInertiaShapeType ShapeType, float Mass, const DirectX::BoundingOrientedBox& BoundingBox, const DirectX::SimpleMath::Vector3& Scale) {
-    if (Mass <= 0.0F) {
-        return MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-    }
-
-    DirectX::SimpleMath::Vector3 HalfExtents{ GetScaledHalfExtents(BoundingBox, Scale) };
-    if (ShapeType == PhysicsActorBase::PhysicsInertiaShapeType::Sphere) {
-        return CalculateSphereLocalInertiaTensor(Mass, HalfExtents);
-    }
-
-    if (ShapeType == PhysicsActorBase::PhysicsInertiaShapeType::Cylinder) {
-        return CalculateCylinderLocalInertiaTensor(Mass, HalfExtents);
-    }
-
-    return CalculateBoxLocalInertiaTensor(Mass, HalfExtents);
-}
-
-DirectX::SimpleMath::Matrix CalculateLocalInverseInertiaTensor(const DirectX::SimpleMath::Matrix& LocalInertiaTensor) {
-    float InverseX{ LocalInertiaTensor._11 > InertiaTensorEpsilon ? (1.0F / LocalInertiaTensor._11) : 0.0F };
-    float InverseY{ LocalInertiaTensor._22 > InertiaTensorEpsilon ? (1.0F / LocalInertiaTensor._22) : 0.0F };
-    float InverseZ{ LocalInertiaTensor._33 > InertiaTensorEpsilon ? (1.0F / LocalInertiaTensor._33) : 0.0F };
-    DirectX::SimpleMath::Matrix TensorMatrix{ MakeTensorMatrix(InverseX, InverseY, InverseZ) };
-    return TensorMatrix;
-}
-
-DirectX::SimpleMath::Matrix CalculateWorldTensor(const DirectX::SimpleMath::Matrix& LocalTensor, const DirectX::SimpleMath::Quaternion& Orientation) {
-    DirectX::SimpleMath::Quaternion NormalizedOrientation{ Orientation };
-    if (NormalizedOrientation.LengthSquared() <= 0.0F) {
-        NormalizedOrientation = DirectX::SimpleMath::Quaternion{ 0.0F, 0.0F, 0.0F, 1.0F };
-    } else {
-        NormalizedOrientation.Normalize();
-    }
-
-    DirectX::SimpleMath::Matrix RotationMatrix{ DirectX::SimpleMath::Matrix::CreateFromQuaternion(NormalizedOrientation) };
-    DirectX::SimpleMath::Matrix WorldTensor{ RotationMatrix.Transpose() * LocalTensor * RotationMatrix };
-    return WorldTensor;
 }
 }
 
@@ -108,11 +27,9 @@ PhysicsActorBase::PhysicsActorBase()
       mRigidBody{},
       mFlags{ PhysicsActorFlags::None },
       mActorType{ PhysicsActorType::Dynamic },
-      mInertiaShapeType{ PhysicsInertiaShapeType::Box },
       mLocalBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mWorldBoundingBox{ MakeDefaultBoundingOrientedBox() },
       mFatWorldBoundingBox{ MakeDefaultBoundingOrientedBox() } {
-    RecalculateLocalInertiaTensor();
     UpdateWorldBoundingBox();
 }
 
@@ -144,17 +61,15 @@ PhysicsActorBase::PhysicsActorBase(const ActorDesc& Desc)
     mRigidBody.mRestitution = Desc.Restitution;
     mRigidBody.mLinearDamping = Desc.LinearDamping;
     mRigidBody.mAngularDamping = Desc.AngularDamping;
-    mInertiaShapeType = Desc.mInertiaShapeType;
     mSleepThreshold = Desc.SleepThreshold;
     mBoundingBoxFatMargin = Desc.BoundingBoxFatMargin;
 
     SetIsActive(Desc.IsActive);
+    SetMass(Desc.Mass);
+    SetFriction(Desc.Friction);
     SetFlags(Desc.Flags);
     SetActorType(Desc.ActorType);
     SetLocalBoundingBox(Desc.LocalBoundingBox);
-    SetInertiaShapeType(Desc.mInertiaShapeType);
-    SetMass(Desc.Mass);
-    SetFriction(Desc.Friction);
     SetVelocity(Desc.Velocity);
     SetAcceleration(Desc.Acceleration);
     UpdateWorldBoundingBox();
@@ -180,7 +95,6 @@ bool PhysicsActorBase::GetIsActive() const {
 void PhysicsActorBase::SetMass(float Mass) {
     mRigidBody.mMass = std::max(0.0F, Mass);
     mRigidBody.mInverseMass = mRigidBody.mMass > 0.0F ? (1.0F / mRigidBody.mMass) : 0.0F;
-    RecalculateLocalInertiaTensor();
 }
 
 float PhysicsActorBase::GetMass() const {
@@ -190,7 +104,6 @@ float PhysicsActorBase::GetMass() const {
 void PhysicsActorBase::SetInverseMass(float InverseMass) {
     mRigidBody.mInverseMass = std::max(0.0F, InverseMass);
     mRigidBody.mMass = mRigidBody.mInverseMass > 0.0F ? (1.0F / mRigidBody.mInverseMass) : 0.0F;
-    RecalculateLocalInertiaTensor();
 }
 
 float PhysicsActorBase::GetInverseMass() const {
@@ -207,13 +120,6 @@ float PhysicsActorBase::GetFriction() const {
 
 void PhysicsActorBase::SetLocalInertiaTensor(const DirectX::SimpleMath::Matrix& LocalInertiaTensor) {
     mRigidBody.mLocalInertiaTensor = LocalInertiaTensor;
-    if (mRigidBody.mInverseMass <= 0.0F) {
-        mRigidBody.mLocalInverseInertiaTensor = MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-    } else {
-        mRigidBody.mLocalInverseInertiaTensor = CalculateLocalInverseInertiaTensor(mRigidBody.mLocalInertiaTensor);
-    }
-
-    UpdateInverseInertiaTensorWorld();
 }
 
 const DirectX::SimpleMath::Matrix& PhysicsActorBase::GetLocalInertiaTensor() const {
@@ -221,8 +127,7 @@ const DirectX::SimpleMath::Matrix& PhysicsActorBase::GetLocalInertiaTensor() con
 }
 
 void PhysicsActorBase::SetLocalInverseInertiaTensor(const DirectX::SimpleMath::Matrix& LocalInverseInertiaTensor) {
-    mRigidBody.mLocalInverseInertiaTensor = mRigidBody.mInverseMass > 0.0F ? LocalInverseInertiaTensor : MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-    UpdateInverseInertiaTensorWorld();
+    mRigidBody.mLocalInverseInertiaTensor = LocalInverseInertiaTensor;
 }
 
 const DirectX::SimpleMath::Matrix& PhysicsActorBase::GetLocalInverseInertiaTensor() const {
@@ -239,7 +144,6 @@ const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetLinearMomentum() const 
 
 void PhysicsActorBase::SetAngularMomentum(const DirectX::SimpleMath::Vector3& AngularMomentum) {
     mRigidBody.mAngularMomentum = AngularMomentum;
-    mRigidBody.mAngularVelocity = DirectX::SimpleMath::Vector3::TransformNormal(mRigidBody.mAngularMomentum, mRigidBody.mInverseInertiaTensorWorld);
 }
 
 const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetAngularMomentum() const {
@@ -248,15 +152,7 @@ const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetAngularMomentum() const
 
 void PhysicsActorBase::SetRigidBody(const RigidBody& RigidBodyState) {
     mRigidBody = RigidBodyState;
-    mRigidBody.mMass = std::max(0.0F, mRigidBody.mMass);
-    if (mRigidBody.mMass <= 0.0F) {
-        mRigidBody.mInverseMass = 0.0F;
-        mRigidBody.mLocalInertiaTensor = MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-        mRigidBody.mLocalInverseInertiaTensor = MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-    }
-
     NormalizeRigidBodyOrientation();
-    UpdateInverseInertiaTensorWorld();
     UpdateWorldBoundingBox();
 }
 
@@ -285,18 +181,8 @@ PhysicsActorBase::PhysicsActorType PhysicsActorBase::GetActorType() const {
     return mActorType;
 }
 
-void PhysicsActorBase::SetInertiaShapeType(PhysicsInertiaShapeType InertiaShapeType) {
-    mInertiaShapeType = InertiaShapeType;
-    RecalculateLocalInertiaTensor();
-}
-
-PhysicsActorBase::PhysicsInertiaShapeType PhysicsActorBase::GetInertiaShapeType() const {
-    return mInertiaShapeType;
-}
-
 void PhysicsActorBase::SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox) {
     mLocalBoundingBox = LocalBoundingBox;
-    RecalculateLocalInertiaTensor();
     UpdateWorldBoundingBox();
 }
 
@@ -351,7 +237,6 @@ const DirectX::SimpleMath::Quaternion& PhysicsActorBase::GetOrientation() const 
 
 void PhysicsActorBase::SetScale(const DirectX::SimpleMath::Vector3& Scale) {
     mRigidBody.mScale = Scale;
-    RecalculateLocalInertiaTensor();
     UpdateWorldBoundingBox();
 }
 
@@ -421,35 +306,6 @@ float PhysicsActorBase::GetAngularDamping() const {
     return mRigidBody.mAngularDamping;
 }
 
-void PhysicsActorBase::SetAngularVelocity(const DirectX::SimpleMath::Vector3& AngularVelocity) {
-    if (mRigidBody.mInverseMass <= 0.0F || mRigidBody.mMass <= 0.0F) {
-        mRigidBody.mAngularVelocity = DirectX::SimpleMath::Vector3{};
-        mRigidBody.mAngularMomentum = DirectX::SimpleMath::Vector3{};
-        return;
-    }
-
-    mRigidBody.mAngularVelocity = AngularVelocity;
-    DirectX::SimpleMath::Matrix WorldInertiaTensor{ CalculateWorldTensor(mRigidBody.mLocalInertiaTensor, mRigidBody.mOrientation) };
-    mRigidBody.mAngularMomentum = DirectX::SimpleMath::Vector3::TransformNormal(mRigidBody.mAngularVelocity, WorldInertiaTensor);
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetAngularVelocity() const {
-    return mRigidBody.mAngularVelocity;
-}
-
-void PhysicsActorBase::AddTorque(const DirectX::SimpleMath::Vector3& Torque) {
-    mRigidBody.mTorque += Torque;
-    SetIsSleeping(false);
-}
-
-const DirectX::SimpleMath::Vector3& PhysicsActorBase::GetTorque() const {
-    return mRigidBody.mTorque;
-}
-
-void PhysicsActorBase::ClearTorque() {
-    mRigidBody.mTorque = DirectX::SimpleMath::Vector3{};
-}
-
 void PhysicsActorBase::SetSleepThreshold(float SleepThreshold) {
     mSleepThreshold = std::max(SleepThreshold, 0.0F);
 }
@@ -502,10 +358,9 @@ void PhysicsActorBase::MoveToTarget(const DirectX::SimpleMath::Vector3& TargetPo
 
 void PhysicsActorBase::UpdateSleepState() {
     float VelocityLengthSquared{ mRigidBody.mVelocity.LengthSquared() };
-    float AngularVelocityLengthSquared{ mRigidBody.mAngularVelocity.LengthSquared() };
     float AccelerationLengthSquared{ mRigidBody.mAcceleration.LengthSquared() };
     float ThresholdSquared{ mSleepThreshold * mSleepThreshold };
-    bool ShouldSleep{ VelocityLengthSquared <= ThresholdSquared && AngularVelocityLengthSquared <= ThresholdSquared && AccelerationLengthSquared <= ThresholdSquared };
+    bool ShouldSleep{ VelocityLengthSquared <= ThresholdSquared && AccelerationLengthSquared <= ThresholdSquared };
     SetIsSleeping(ShouldSleep);
 }
 
@@ -516,36 +371,7 @@ void PhysicsActorBase::UpdateWorldBoundingBox() {
     DirectX::SimpleMath::Matrix TranslationMatrix{ DirectX::SimpleMath::Matrix::CreateTranslation(mRigidBody.mPosition) };
     DirectX::SimpleMath::Matrix WorldMatrix{ ScalingMatrix * RotationMatrix * TranslationMatrix };
     mLocalBoundingBox.Transform(mWorldBoundingBox, WorldMatrix);
-    UpdateInverseInertiaTensorWorld();
     UpdateFatWorldBoundingBox();
-}
-
-void PhysicsActorBase::RecalculateLocalInertiaTensor() {
-    if (mRigidBody.mInverseMass <= 0.0F || mRigidBody.mMass <= 0.0F) {
-        mRigidBody.mLocalInertiaTensor = MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-        mRigidBody.mLocalInverseInertiaTensor = MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-        UpdateInverseInertiaTensorWorld();
-        return;
-    }
-
-    mRigidBody.mLocalInertiaTensor = CalculateLocalInertiaTensor(mInertiaShapeType, mRigidBody.mMass, mLocalBoundingBox, mRigidBody.mScale);
-    mRigidBody.mLocalInverseInertiaTensor = CalculateLocalInverseInertiaTensor(mRigidBody.mLocalInertiaTensor);
-    UpdateInverseInertiaTensorWorld();
-}
-
-void PhysicsActorBase::UpdateInverseInertiaTensorWorld() {
-    if (mRigidBody.mInverseMass <= 0.0F || mRigidBody.mMass <= 0.0F) {
-        mRigidBody.mInverseInertiaTensorWorld = MakeTensorMatrix(0.0F, 0.0F, 0.0F);
-        mRigidBody.mAngularVelocity = DirectX::SimpleMath::Vector3{};
-        return;
-    }
-
-    mRigidBody.mInverseInertiaTensorWorld = CalculateWorldTensor(mRigidBody.mLocalInverseInertiaTensor, mRigidBody.mOrientation);
-    mRigidBody.mAngularVelocity = DirectX::SimpleMath::Vector3::TransformNormal(mRigidBody.mAngularMomentum, mRigidBody.mInverseInertiaTensorWorld);
-}
-
-const DirectX::SimpleMath::Matrix& PhysicsActorBase::GetInverseInertiaTensorWorld() const {
-    return mRigidBody.mInverseInertiaTensorWorld;
 }
 
 void PhysicsActorBase::NormalizeRigidBodyOrientation() {
