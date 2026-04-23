@@ -9,6 +9,7 @@ Scene::Scene()
       mGameObjects{},
       mCubeMesh{},
       mSphereMesh{},
+      mCylinderMesh{},
       mTriangularPyramidMesh{},
       mSquarePyramidMesh{},
       mGridMesh{},
@@ -24,6 +25,7 @@ Scene::Scene(const Scene& Other)
       mGameObjects{ Other.mGameObjects },
       mCubeMesh{ Other.mCubeMesh },
       mSphereMesh{ Other.mSphereMesh },
+      mCylinderMesh{ Other.mCylinderMesh },
       mTriangularPyramidMesh{ Other.mTriangularPyramidMesh },
       mSquarePyramidMesh{ Other.mSquarePyramidMesh },
       mGridMesh{ Other.mGridMesh },
@@ -40,6 +42,7 @@ Scene& Scene::operator=(const Scene& Other) {
     mGameObjects = Other.mGameObjects;
     mCubeMesh = Other.mCubeMesh;
     mSphereMesh = Other.mSphereMesh;
+    mCylinderMesh = Other.mCylinderMesh;
     mTriangularPyramidMesh = Other.mTriangularPyramidMesh;
     mSquarePyramidMesh = Other.mSquarePyramidMesh;
     mGridMesh = Other.mGridMesh;
@@ -54,6 +57,7 @@ Scene::Scene(Scene&& Other) noexcept
       mGameObjects{ std::move(Other.mGameObjects) },
       mCubeMesh{ std::move(Other.mCubeMesh) },
       mSphereMesh{ std::move(Other.mSphereMesh) },
+      mCylinderMesh{ std::move(Other.mCylinderMesh) },
       mTriangularPyramidMesh{ std::move(Other.mTriangularPyramidMesh) },
       mSquarePyramidMesh{ std::move(Other.mSquarePyramidMesh) },
       mGridMesh{ std::move(Other.mGridMesh) },
@@ -70,6 +74,7 @@ Scene& Scene::operator=(Scene&& Other) noexcept {
     mGameObjects = std::move(Other.mGameObjects);
     mCubeMesh = std::move(Other.mCubeMesh);
     mSphereMesh = std::move(Other.mSphereMesh);
+    mCylinderMesh = std::move(Other.mCylinderMesh);
     mTriangularPyramidMesh = std::move(Other.mTriangularPyramidMesh);
     mSquarePyramidMesh = std::move(Other.mSquarePyramidMesh);
     mGridMesh = std::move(Other.mGridMesh);
@@ -110,6 +115,14 @@ std::size_t Scene::CreatePrimitiveGameObject(std::string Name, PrimitiveMeshType
     std::shared_ptr<Mesh> SharedMesh{ GetPrimitiveMesh(PrimitiveType) };
 
     NewObject.SetMesh(SharedMesh);
+    if (PrimitiveType == PrimitiveMeshType::Sphere) {
+        NewObject.SetPhysicsInertiaShapeType(PhysicsActorBase::PhysicsInertiaShapeType::Sphere);
+    } else if (PrimitiveType == PrimitiveMeshType::Cylinder) {
+        NewObject.SetPhysicsInertiaShapeType(PhysicsActorBase::PhysicsInertiaShapeType::Cylinder);
+    } else {
+        NewObject.SetPhysicsInertiaShapeType(PhysicsActorBase::PhysicsInertiaShapeType::Box);
+    }
+
     NewObject.UpdateWorldMatrix();
     mGameObjects.push_back(std::move(NewObject));
 
@@ -277,6 +290,14 @@ std::shared_ptr<Mesh> Scene::GetPrimitiveMesh(PrimitiveMeshType PrimitiveType) {
         }
 
         return mSphereMesh;
+    }
+
+    if (PrimitiveType == PrimitiveMeshType::Cylinder) {
+        if (mCylinderMesh == nullptr) {
+            mCylinderMesh = std::make_shared<Mesh>(MeshFactory::CreateCylinder(0.5F, 1.0F, 32U));
+        }
+
+        return mCylinderMesh;
     }
 
     if (PrimitiveType == PrimitiveMeshType::TriangularPyramid) {

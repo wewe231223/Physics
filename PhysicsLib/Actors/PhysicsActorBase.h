@@ -33,6 +33,12 @@ public:
         Static = 2U
     };
 
+    enum class PhysicsInertiaShapeType : std::uint32_t {
+        Box = 0U,
+        Sphere = 1U,
+        Cylinder = 2U
+    };
+
     struct ActorDesc {
         std::string Name{ "PhysicsActor" };
         bool IsActive{ true };
@@ -52,6 +58,7 @@ public:
         bool IsSleeping{};
         float SleepThreshold{ 0.05F };
         float BoundingBoxFatMargin{ 0.1F };
+        PhysicsInertiaShapeType mInertiaShapeType{ PhysicsInertiaShapeType::Box };
     };
 
 public:
@@ -96,6 +103,9 @@ public:
     void SetActorType(PhysicsActorType ActorType);
     PhysicsActorType GetActorType() const;
 
+    void SetInertiaShapeType(PhysicsInertiaShapeType InertiaShapeType);
+    PhysicsInertiaShapeType GetInertiaShapeType() const;
+
     void SetLocalBoundingBox(const DirectX::BoundingOrientedBox& LocalBoundingBox);
     const DirectX::BoundingOrientedBox& GetLocalBoundingBox() const;
     const DirectX::BoundingOrientedBox& GetWorldBoundingBox() const;
@@ -131,6 +141,12 @@ public:
     void SetAngularDamping(float AngularDamping);
     float GetAngularDamping() const;
 
+    void SetAngularVelocity(const DirectX::SimpleMath::Vector3& AngularVelocity);
+    const DirectX::SimpleMath::Vector3& GetAngularVelocity() const;
+    void AddTorque(const DirectX::SimpleMath::Vector3& Torque);
+    const DirectX::SimpleMath::Vector3& GetTorque() const;
+    void ClearTorque();
+
     void SetSleepThreshold(float SleepThreshold);
     float GetSleepThreshold() const;
 
@@ -143,6 +159,9 @@ public:
     void MoveToTarget(const DirectX::SimpleMath::Vector3& TargetPosition, float DeltaTime);
     void UpdateSleepState();
     void UpdateWorldBoundingBox();
+    void RecalculateLocalInertiaTensor();
+    void UpdateInverseInertiaTensorWorld();
+    const DirectX::SimpleMath::Matrix& GetInverseInertiaTensorWorld() const;
 
 public:
     virtual bool ResolveDynamicCollision(PhysicsActorBase& DynamicActor, float DeltaTime) const = 0;
@@ -164,6 +183,7 @@ private:
     RigidBody mRigidBody;
     PhysicsActorFlags mFlags;
     PhysicsActorType mActorType;
+    PhysicsInertiaShapeType mInertiaShapeType;
     DirectX::BoundingOrientedBox mLocalBoundingBox;
     DirectX::BoundingOrientedBox mWorldBoundingBox;
     DirectX::BoundingOrientedBox mFatWorldBoundingBox;

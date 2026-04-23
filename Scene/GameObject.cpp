@@ -18,6 +18,7 @@ GameObject::GameObject()
       mBoundingBoxWorldMatrix{ 1.0F },
       mActorId{ InvalidActorId },
       mPhysicsActorType{ PhysicsActorBase::PhysicsActorType::Dynamic },
+      mPhysicsInertiaShapeType{ PhysicsActorBase::PhysicsInertiaShapeType::Box },
       mPhysicsMass{ 1.0F },
       mHasInitialImpulse{},
       mInitialImpulse{} {
@@ -37,6 +38,7 @@ GameObject::GameObject(const GameObject& Other)
       mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
       mActorId{ Other.mActorId },
       mPhysicsActorType{ Other.mPhysicsActorType },
+      mPhysicsInertiaShapeType{ Other.mPhysicsInertiaShapeType },
       mPhysicsMass{ Other.mPhysicsMass },
       mHasInitialImpulse{ Other.mHasInitialImpulse },
       mInitialImpulse{ Other.mInitialImpulse } {
@@ -57,6 +59,7 @@ GameObject& GameObject::operator=(const GameObject& Other) {
     mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
     mActorId = Other.mActorId;
     mPhysicsActorType = Other.mPhysicsActorType;
+    mPhysicsInertiaShapeType = Other.mPhysicsInertiaShapeType;
     mPhysicsMass = Other.mPhysicsMass;
     mHasInitialImpulse = Other.mHasInitialImpulse;
     mInitialImpulse = Other.mInitialImpulse;
@@ -75,6 +78,7 @@ GameObject::GameObject(GameObject&& Other) noexcept
       mBoundingBoxWorldMatrix{ Other.mBoundingBoxWorldMatrix },
       mActorId{ Other.mActorId },
       mPhysicsActorType{ Other.mPhysicsActorType },
+      mPhysicsInertiaShapeType{ Other.mPhysicsInertiaShapeType },
       mPhysicsMass{ Other.mPhysicsMass },
       mHasInitialImpulse{ Other.mHasInitialImpulse },
       mInitialImpulse{ Other.mInitialImpulse } {
@@ -85,6 +89,7 @@ GameObject::GameObject(GameObject&& Other) noexcept
     Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
     Other.mActorId = InvalidActorId;
     Other.mPhysicsActorType = PhysicsActorBase::PhysicsActorType::Dynamic;
+    Other.mPhysicsInertiaShapeType = PhysicsActorBase::PhysicsInertiaShapeType::Box;
     Other.mPhysicsMass = 1.0F;
     Other.mHasInitialImpulse = false;
     Other.mInitialImpulse = DirectX::SimpleMath::Vector3{};
@@ -105,6 +110,7 @@ GameObject& GameObject::operator=(GameObject&& Other) noexcept {
     mBoundingBoxWorldMatrix = Other.mBoundingBoxWorldMatrix;
     mActorId = Other.mActorId;
     mPhysicsActorType = Other.mPhysicsActorType;
+    mPhysicsInertiaShapeType = Other.mPhysicsInertiaShapeType;
     mPhysicsMass = Other.mPhysicsMass;
     mHasInitialImpulse = Other.mHasInitialImpulse;
     mInitialImpulse = Other.mInitialImpulse;
@@ -116,6 +122,7 @@ GameObject& GameObject::operator=(GameObject&& Other) noexcept {
     Other.mBoundingBoxWorldMatrix = glm::mat4{ 1.0F };
     Other.mActorId = InvalidActorId;
     Other.mPhysicsActorType = PhysicsActorBase::PhysicsActorType::Dynamic;
+    Other.mPhysicsInertiaShapeType = PhysicsActorBase::PhysicsInertiaShapeType::Box;
     Other.mPhysicsMass = 1.0F;
     Other.mHasInitialImpulse = false;
     Other.mInitialImpulse = DirectX::SimpleMath::Vector3{};
@@ -134,6 +141,7 @@ GameObject::GameObject(std::string Name)
       mBoundingBoxWorldMatrix{ 1.0F },
       mActorId{ InvalidActorId },
       mPhysicsActorType{ PhysicsActorBase::PhysicsActorType::Dynamic },
+      mPhysicsInertiaShapeType{ PhysicsActorBase::PhysicsInertiaShapeType::Box },
       mPhysicsMass{ 1.0F },
       mHasInitialImpulse{},
       mInitialImpulse{} {
@@ -225,8 +233,16 @@ PhysicsActorBase::PhysicsActorType GameObject::GetPhysicsActorType() const {
     return mPhysicsActorType;
 }
 
+void GameObject::SetPhysicsInertiaShapeType(PhysicsActorBase::PhysicsInertiaShapeType InertiaShapeType) {
+    mPhysicsInertiaShapeType = InertiaShapeType;
+}
+
+PhysicsActorBase::PhysicsInertiaShapeType GameObject::GetPhysicsInertiaShapeType() const {
+    return mPhysicsInertiaShapeType;
+}
+
 void GameObject::SetPhysicsMass(float PhysicsMass) {
-    mPhysicsMass = std::max(PhysicsMass, 0.0001F);
+    mPhysicsMass = std::max(PhysicsMass, 0.0F);
 }
 
 float GameObject::GetPhysicsMass() const {
@@ -266,6 +282,7 @@ PhysicsDynamicActor::ActorDesc GameObject::GetPhysicsDynamicActorDesc() const {
     }
 
     PhysicsDynamicActor::ActorDesc ActorDesc{ mName, mIsActive, mPhysicsMass, PhysicsActorBase::PhysicsActorFlags::None, mPhysicsActorType, ActorBoundingBox, DirectX::SimpleMath::Vector3{ Position.x, Position.y, Position.z }, DirectX::SimpleMath::Vector3{ Rotation.x, Rotation.y, Rotation.z }, DirectX::SimpleMath::Vector3{ Scale.x, Scale.y, Scale.z }, DirectX::SimpleMath::Vector3{}, DirectX::SimpleMath::Vector3{}, 0.6F, 0.1F, 0.03F, 0.03F, false, 0.05F, 0.1F };
+    ActorDesc.mInertiaShapeType = mPhysicsInertiaShapeType;
     return ActorDesc;
 }
 
