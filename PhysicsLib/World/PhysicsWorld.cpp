@@ -53,6 +53,40 @@ void IntegrateKinematicActors(IPhysicsWorldMediator& WorldMediator, IPhysicsActo
     }
 }
 
+void ResolveKinematicCollisions(IPhysicsActorRepository& ActorRepository, float DeltaTime) {
+    if (DeltaTime <= 0.0F) {
+        return;
+    }
+
+    std::size_t ActorCount{ ActorRepository.GetActorCount() };
+    if (ActorCount < 2U) {
+        return;
+    }
+
+    for (std::size_t FirstActorIndex{ 0U }; FirstActorIndex < ActorCount; ++FirstActorIndex) {
+        PhysicsActorBase* FirstActor{ ActorRepository.GetActor(FirstActorIndex) };
+        if (FirstActor == nullptr) {
+            continue;
+        }
+
+        for (std::size_t SecondActorIndex{ FirstActorIndex + 1U }; SecondActorIndex < ActorCount; ++SecondActorIndex) {
+            PhysicsActorBase* SecondActor{ ActorRepository.GetActor(SecondActorIndex) };
+            if (SecondActor == nullptr) {
+                continue;
+            }
+
+            if (FirstActor->GetActorType() == PhysicsActorBase::PhysicsActorType::Kinematic) {
+                FirstActor->ResolveActorCollision(*SecondActor, DeltaTime);
+                continue;
+            }
+
+            if (SecondActor->GetActorType() == PhysicsActorBase::PhysicsActorType::Kinematic) {
+                SecondActor->ResolveActorCollision(*FirstActor, DeltaTime);
+            }
+        }
+    }
+}
+
 bool ResolveDynamicCollisionPair(IPhysicsWorldMediator& WorldMediator, PhysicsDynamicActor& FirstActor, PhysicsDynamicActor& SecondActor, float DeltaTime) {
     bool HasCollision{ FirstActor.ResolveActorCollision(SecondActor, DeltaTime) };
     if (HasCollision) {
@@ -596,6 +630,7 @@ void PhysicsWorld::StepSimulation() {
     ResolveStaticCollisions(*this, DynamicActors, StaticActors, mSettings.FixedTimeStep);
     IntegrateDynamicActors(*this, ActorRepository, mSettings.FixedTimeStep);
     IntegrateKinematicActors(*this, ActorRepository, mSettings.FixedTimeStep);
+    ResolveKinematicCollisions(ActorRepository, mSettings.FixedTimeStep);
 }
 
 void PhysicsWorld::Update(float DeltaTime) {
