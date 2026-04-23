@@ -7,6 +7,8 @@
 #include <DirectXCollision.h>
 #include <SimpleMath/SimpleMath.h>
 
+#include "PhysicsLib/Simulation/Types/RigidBody.h"
+
 #ifdef _DEBUG
 #pragma comment(lib, "debug/DirectXTK12.lib")
 #else
@@ -84,6 +86,8 @@ public:
     const DirectX::SimpleMath::Vector3& GetLinearMomentum() const;
     void SetAngularMomentum(const DirectX::SimpleMath::Vector3& AngularMomentum);
     const DirectX::SimpleMath::Vector3& GetAngularMomentum() const;
+    void SetRigidBody(const RigidBody& RigidBodyState);
+    const RigidBody& GetRigidBody() const;
 
     void SetFlags(PhysicsActorFlags Flags);
     PhysicsActorFlags GetFlags() const;
@@ -146,35 +150,22 @@ public:
     virtual std::unique_ptr<PhysicsActorBase> Clone() const = 0;
 
 private:
+    void UpdateRigidBodyOrientationFromEulerRotation();
+    void UpdateEulerRotationFromRigidBodyOrientation();
     void UpdateFatWorldBoundingBox();
 
 private:
     std::string mName;
     bool mIsActive;
-    float mMass;
-    float mInverseMass;
-    float mFriction;
-    DirectX::SimpleMath::Matrix mLocalInertiaTensor;
-    DirectX::SimpleMath::Matrix mLocalInverseInertiaTensor;
-    DirectX::SimpleMath::Vector3 mLinearMomentum;
-    DirectX::SimpleMath::Vector3 mAngularMomentum;
+    bool mIsSleeping;
+    float mSleepThreshold;
+    float mBoundingBoxFatMargin;
+    RigidBody mRigidBody;
     PhysicsActorFlags mFlags;
     PhysicsActorType mActorType;
     DirectX::BoundingOrientedBox mLocalBoundingBox;
     DirectX::BoundingOrientedBox mWorldBoundingBox;
     DirectX::BoundingOrientedBox mFatWorldBoundingBox;
-    DirectX::SimpleMath::Vector3 mPosition;
-    DirectX::SimpleMath::Vector3 mRotation;
-    DirectX::SimpleMath::Vector3 mScale;
-    DirectX::SimpleMath::Vector3 mVelocity;
-    DirectX::SimpleMath::Vector3 mAcceleration;
-    DirectX::SimpleMath::Vector3 mAccumulatedForce;
-    float mRestitution;
-    float mLinearDamping;
-    float mAngularDamping;
-    bool mIsSleeping;
-    float mSleepThreshold;
-    float mBoundingBoxFatMargin;
 };
 
 PhysicsActorBase::PhysicsActorFlags operator|(PhysicsActorBase::PhysicsActorFlags Left, PhysicsActorBase::PhysicsActorFlags Right);

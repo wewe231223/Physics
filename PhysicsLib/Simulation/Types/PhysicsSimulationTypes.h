@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "PhysicsLib/Actors/PhysicsDynamicActor.h"
+#include "PhysicsLib/Simulation/Types/RigidBody.h"
 
 class PhysicsActorBase;
 

@@ -58,15 +58,11 @@ void PhysicsDynamicIntegrater::Integrate(IPhysicsWorldMediator& WorldMediator, P
     float DampingFactor{ std::max(0.0F, 1.0F - (Actor.GetLinearDamping() * DeltaTime)) };
     NextVelocity *= DampingFactor;
     NextLinearMomentum = NextVelocity * ActorMass;
-    DirectX::SimpleMath::Vector3 NextAngularMomentum{ Actor.GetAngularMomentum() };
-    float AngularDampingFactor{ std::max(0.0F, 1.0F - (Actor.GetAngularDamping() * DeltaTime)) };
-    NextAngularMomentum *= AngularDampingFactor;
 
     DirectX::SimpleMath::Vector3 NextPosition{ Actor.GetPosition() + (NextVelocity * DeltaTime) };
     Actor.SetPosition(NextPosition);
     Actor.SetVelocity(NextVelocity);
     Actor.SetLinearMomentum(NextLinearMomentum);
-    Actor.SetAngularMomentum(NextAngularMomentum);
     Actor.ClearAccumulatedForce();
     Actor.UpdateSleepState();
 }
