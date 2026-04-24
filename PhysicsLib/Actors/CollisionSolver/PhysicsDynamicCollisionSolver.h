@@ -1,5 +1,17 @@
 #pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Resolves OBB collision response between Dynamic Actors.
+Initialization:
+- Direct construction is valid, but normal users get this through the PhysicsDynamicActor policy type.
+Usage:
+- Used as the PhysicsActor collision solver policy, with ResolveCollision handling Dynamic to Dynamic pairs.
+Notes:
+- BeginFrame and EndFrame are per-step extension points and currently do not keep state.
+*/
+
 #include <cstddef>
 
 #include "PhysicsLib/Actors/SolverType/PhysicsSolverType.h"

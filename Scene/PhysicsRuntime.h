@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "PhysicsLib/Container/SpscRingQueue.h"
 #include "PhysicsExchangeTypes.h"
 #include "PhysicsLib/World/PhysicsWorld.h"
 #include "Scene.h"
+#include "SpscRingQueue.h"
 
 #include <SimpleMath/SimpleMath.h>
 

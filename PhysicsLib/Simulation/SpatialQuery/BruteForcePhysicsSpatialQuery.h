@@ -1,5 +1,17 @@
 #pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Generates broad phase collision candidates by comparing Dynamic Actor fat bounding boxes.
+Initialization:
+- Default construct it for tests or let PhysicsWorld create it as an internal dependency.
+Usage:
+- Pass an ActorRepository to QueryDynamicCollisionPairs to get Dynamic Actor pair candidates.
+Notes:
+- Cost grows with Actor count, so large worlds should replace it with another IPhysicsSpatialQuery implementation.
+*/
+
 #include <memory>
 #include <vector>
 

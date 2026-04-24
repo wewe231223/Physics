@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Abstracts broad phase collision candidate generation.
+Initialization:
+- Do not instantiate directly; use BruteForcePhysicsSpatialQuery or a custom implementation.
+Usage:
+- PhysicsWorld calls QueryDynamicCollisionPairs during a step to find Dynamic Actor collision candidates.
+Notes:
+- Implement Clone so PhysicsWorld copies can duplicate the spatial query.
+*/
+
 #include <memory>
 #include <vector>
 

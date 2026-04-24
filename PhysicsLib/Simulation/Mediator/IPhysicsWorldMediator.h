@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Mediates access from Actor policies to PhysicsWorld gravity, repository, spatial query, and event publishing.
+Initialization:
+- Do not instantiate directly; PhysicsWorld provides the implementation.
+Usage:
+- Passed by reference to Integrater, CollisionSolver, and ConstraintSolver code that needs world state.
+Notes:
+- Repository and spatial query ownership stays in PhysicsWorld, so avoid long-lived cached references.
+*/
+
 #include <vector>
 
 #include <SimpleMath/SimpleMath.h>

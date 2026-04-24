@@ -1,5 +1,17 @@
 #pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Builds concrete Actor types by combining collision, integration, and constraint policies.
+Initialization:
+- Construct with ActorDesc or a name; normal users should prefer PhysicsWorld creation helpers.
+Usage:
+- Serves as the base template behind PhysicsDynamicActor, PhysicsKinematicActor, and PhysicsStaticActor.
+Notes:
+- Template implementation is defined at the bottom of this header, so include paths must stay valid when ported.
+*/
+
 #include <memory>
 #include <utility>
 

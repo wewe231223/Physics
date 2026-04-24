@@ -1,5 +1,17 @@
 #pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Stores linear motion, mass, inertia, and accumulated force state for an Actor.
+Initialization:
+- Brace initialize with defaults, or configure indirectly through PhysicsActorBase::ActorDesc.
+Usage:
+- PhysicsActorBase owns it internally and exposes full-state replacement or lookup through SetRigidBody and GetRigidBody.
+Notes:
+- Direct field changes do not update BoundingBox state, so prefer Actor setters.
+*/
+
 #include <SimpleMath/SimpleMath.h>
 
 struct RigidBody {

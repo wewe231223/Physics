@@ -80,6 +80,9 @@
     <ClInclude Include="Scene\PhysicsRuntime.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\SpscRingQueue.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
     <ClInclude Include="Scene\TerrainHeightMapLoader.h">
       <Filter>Scene</Filter>
     </ClInclude>

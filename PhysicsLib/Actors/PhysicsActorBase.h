@@ -1,5 +1,17 @@
 #pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Stores shared Transform, RigidBody, BoundingBox, and state flags for all Physics Actors.
+Initialization:
+- Construct with ActorDesc, or default construct and set mass, bounds, and Transform through setters.
+Usage:
+- Register as unique_ptr in PhysicsWorld or IPhysicsActorRepository; derived Actors implement collision and integration.
+Notes:
+- BoundingBox and orientation update through setters, so prefer SetRigidBody or related setters after state changes.
+*/
+
 #include <cstdint>
 #include <memory>
 #include <string>

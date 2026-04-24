@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Provides a Static Actor for HeightField terrain surface queries and Dynamic Actor terrain collision.
+Initialization:
+- Fill ActorDesc HeightFieldWidth, HeightFieldHeight, HeightFieldCellSpacing, HeightFieldMaxHeight, and HeightFieldValues.
+Usage:
+- Register through PhysicsWorld::CreateTerrainActor and query surface height with TryGetSurfaceHeightAtWorldPosition.
+Notes:
+- HeightFieldValues should contain width * height normalized height samples for stable interpolation.
+*/
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>

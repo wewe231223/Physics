@@ -162,6 +162,7 @@
     <ClInclude Include="Scene\MeshFactory.h" />
     <ClInclude Include="Scene\PhysicsExchangeTypes.h" />
     <ClInclude Include="Scene\PhysicsRuntime.h" />
+    <ClInclude Include="Scene\SpscRingQueue.h" />
     <ClInclude Include="Scene\TerrainHeightMapLoader.h" />
     <ClInclude Include="Scene\TerrainMeshBuilder.h" />
     <ClInclude Include="Scene\TerrainMeshTypes.h" />

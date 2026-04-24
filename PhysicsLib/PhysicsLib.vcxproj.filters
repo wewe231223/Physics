@@ -34,9 +34,6 @@
     <Filter Include="Simulation\Types">
       <UniqueIdentifier>{03b9f12d-ccf8-41e2-8268-6fa17a8bb8d0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Container">
-      <UniqueIdentifier>{e16fe532-c803-4864-9afd-fa9ef7ca465b}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Actors\CollisionSolver\PhysicsDynamicCollisionSolver.cpp">
@@ -61,15 +58,6 @@
       <Filter>Actors\Integrater</Filter>
     </ClCompile>
     <ClCompile Include="Actors\PhysicsActorBase.cpp">
-      <Filter>Actors</Filter>
-    </ClCompile>
-    <ClCompile Include="Actors\PhysicsDynamicActor.cpp">
-      <Filter>Actors</Filter>
-    </ClCompile>
-    <ClCompile Include="Actors\PhysicsKinematicActor.cpp">
-      <Filter>Actors</Filter>
-    </ClCompile>
-    <ClCompile Include="Actors\PhysicsStaticActor.cpp">
       <Filter>Actors</Filter>
     </ClCompile>
     <ClCompile Include="Actors\PhysicsTerrainActor.cpp">
@@ -143,9 +131,6 @@
     <ClInclude Include="Actors\SolverType\PhysicsSolverType.h">
       <Filter>Actors\SolverType</Filter>
     </ClInclude>
-    <ClInclude Include="Container\SpscRingQueue.h">
-      <Filter>Container</Filter>
-    </ClInclude>
     <ClInclude Include="Simulation\Mediator\IPhysicsWorldMediator.h">
       <Filter>Simulation\Mediator</Filter>
     </ClInclude>
@@ -162,6 +147,9 @@
       <Filter>Simulation\SpatialQuery</Filter>
     </ClInclude>
     <ClInclude Include="Simulation\Types\PhysicsSimulationTypes.h">
+      <Filter>Simulation\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="Simulation\Types\RigidBody.h">
       <Filter>Simulation\Types</Filter>
     </ClInclude>
     <ClInclude Include="World\PhysicsWorld.h">

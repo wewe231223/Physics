@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Provides the default unique_ptr based Actor repository implementation.
+Initialization:
+- Default construct it for tests or let PhysicsWorld create it as an internal dependency.
+Usage:
+- Register Actors through creation functions or AddActor, then use index lookup and typed collection functions.
+Notes:
+- Clone calls each Actor Clone implementation, so custom Actors must implement Clone correctly.
+*/
+
 #include <cstddef>
 #include <memory>
 #include <vector>

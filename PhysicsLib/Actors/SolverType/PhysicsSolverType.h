@@ -1,5 +1,17 @@
 #pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Defines CollisionSolver, Integrater, ConstraintSolver interfaces and policy concepts.
+Initialization:
+- Do not instantiate the interfaces directly; use concrete solver or integrater implementations.
+Usage:
+- Defines the functions and inheritance required by policy types passed to PhysicsActor.
+Notes:
+- Custom policy types must be default constructible and publicly derive from the matching interface.
+*/
+
 #include <concepts>
 
 class IPhysicsWorldMediator;

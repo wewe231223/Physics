@@ -23,13 +23,10 @@
     <ClCompile Include="Actors\CollisionSolver\PhysicsKinematicCollisionSolver.cpp" />
     <ClCompile Include="Actors\CollisionSolver\PhysicsStaticCollisionSolver.cpp" />
     <ClCompile Include="Actors\ConstraintSolver\PhysicsNoConstraintSolver.cpp" />
-    <ClCompile Include="Actors\PhysicsDynamicActor.cpp" />
-    <ClCompile Include="Actors\PhysicsKinematicActor.cpp" />
     <ClCompile Include="Actors\Integrater\PhysicsDynamicIntegrater.cpp" />
     <ClCompile Include="Actors\Integrater\PhysicsKinematicIntegrater.cpp" />
     <ClCompile Include="Actors\Integrater\PhysicsStaticIntegrater.cpp" />
     <ClCompile Include="Actors\PhysicsActorBase.cpp" />
-    <ClCompile Include="Actors\PhysicsStaticActor.cpp" />
     <ClCompile Include="Actors\PhysicsTerrainActor.cpp" />
     <ClCompile Include="Actors\SolverType\PhysicsSolverType.cpp" />
     <ClCompile Include="Simulation\Mediator\IPhysicsWorldMediator.cpp" />
@@ -55,13 +52,13 @@
     <ClInclude Include="Actors\Integrater\PhysicsStaticIntegrater.h" />
     <ClInclude Include="Actors\SolverType\PhysicsActorSolverType.h" />
     <ClInclude Include="Actors\SolverType\PhysicsSolverType.h" />
-    <ClInclude Include="Container\SpscRingQueue.h" />
     <ClInclude Include="Simulation\Mediator\IPhysicsWorldMediator.h" />
     <ClInclude Include="Simulation\Repository\IPhysicsActorRepository.h" />
     <ClInclude Include="Simulation\Repository\PhysicsActorRepository.h" />
     <ClInclude Include="Simulation\SpatialQuery\BruteForcePhysicsSpatialQuery.h" />
     <ClInclude Include="Simulation\SpatialQuery\IPhysicsSpatialQuery.h" />
     <ClInclude Include="Simulation\Types\PhysicsSimulationTypes.h" />
+    <ClInclude Include="Simulation\Types\RigidBody.h" />
     <ClInclude Include="World\PhysicsWorld.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -117,13 +114,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Externals\Include;$(SolutionDir);</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(SolutionDir)\Externals\lib;</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)..\Externals\Include;$(ProjectDir)..\;</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(ProjectDir)..\Externals\lib;</LibraryPath>
     <OutDir>$(SolutionDir)out\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Externals\Include;$(SolutionDir);</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(SolutionDir)\Externals\lib;</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)..\Externals\Include;$(ProjectDir)..\;</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(ProjectDir)..\Externals\lib;</LibraryPath>
     <OutDir>$(SolutionDir)out\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

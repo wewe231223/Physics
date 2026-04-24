@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Provides the main PhysicsLib entry point for Actor creation, fixed-step updates, interpolation, and collision events.
+Initialization:
+- Construct with WorldSettings containing FixedTimeStep and Gravity, or default construct and call Initialize.
+Usage:
+- Register Actors with CreateDynamicActor, CreateKinematicActor, CreateTerrainActor, or AddActor, then call Update or StepSimulation.
+Notes:
+- Update runs accumulated fixed steps, and TryGetInterpolatedActorTransform returns render interpolation state.
+*/
+
 #include <cstddef>
 #include <memory>
 #include <vector>

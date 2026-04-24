@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+/*
+PhysicsLib Header Guide
+Role:
+- Abstracts creation, lookup, and typed collection of Actors owned by PhysicsWorld.
+Initialization:
+- Do not instantiate directly; use PhysicsActorRepository or a custom repository implementation.
+Usage:
+- Create Actors with CreateDynamicActor, CreateKinematicActor, or CreateTerrainActor and query them with GetActor or Collect functions.
+Notes:
+- Returned Actor pointers are owned by the repository and become invalid after ClearActors.
+*/
+
 #include <cstddef>
 #include <memory>
 #include <vector>
